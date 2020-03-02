@@ -5,11 +5,6 @@ from olm.calcite import concCaEqFromPCO2, createPalmerInterpolationFunctions, pa
 from olm.general import CtoK
 
 
-#default_sim_dict = {'ntimes':1000, 'endtime':2., 'nx':1000, 'xmax':1,
-#                    'L':1000, 'D_w':30., 'D_a':30, 'Q_a':1., 'Q_w':0.1,
-#                    'pCO2_high':5000*1e-6, 'pCO2_outside':500*1e-6,
-#                    'T_C':10, 'Lambda_w':0.5, 'tol_ratio':1e-6}
-
 
 def calc_steady_adv_reaction(D_H_w, D_H_a,
                 ntimes=1000, endtime=2., nx=1000, xmax=1,
