@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 
 g=9.8 #m/s^2
+SMALL = 1e-6
 
 class CrossSection:
 
@@ -60,22 +61,31 @@ class CrossSection:
         Pw = self.calcP(wantidx=wetidx)
         A = self.calcA(wantidx=wetidx)
         D_H = 4.*A/Pw
-        Q = A*sqrt(2.*g*slope*D_H/f)
+        Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
         return Q
 
-    def discharge_residual(self, depth, slope, f, desiredQ):
+    def normal_discharge_residual(self, depth, slope, f, desiredQ):
         return desiredQ - self.calcNormalFlow(depth,slope,f=f)
 
-    def calcFlowDepth(self,Q, slope,f=0.1):
+    def backflood_discharge_residual(self,y_in,y_out,L,slope,f, desiredQ):
+        avg_flow_depth = (y_out + y_in)/2.
+        head_slope = (y_in - y_out)/L + slope
+#        wetidx = self.y - self.ymin < avg_flow_depth
+#        Pw = self.calcP(wantidx=wetidx)
+#        A = self.calcA(wantidx=wetidx)
+#        D_H = 4.*A/Pw
+        return desiredQ - self.calcNormalFlow(avg_flow_depth,head_slope,f=f)
+
+    def calcNormalFlowDepth(self,Q, slope,f=0.1):
         maxdepth = self.ymax - self.ymin
         calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f)
         if Q>calcFullFlow:
             calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
             if Q>calc95PerFlow:
-                print("Pipe is full.")
+                #print("Pipe is full.")
                 return -1
         else:
-            fd = brentq(self.discharge_residual, 1e-6, maxdepth, args=(slope,f,Q))
+            fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
         return fd
 
     def calcPipeFullHeadGrad(self,Q,slope,f=0.1):
@@ -83,3 +93,8 @@ class CrossSection:
         A = self.calcA()
         D_H = 4.*A/Pw
         return (Q**2/A**2)*f/(2.*g*D_H)
+
+    def calcBackfloodDepth(self,Q,slope,y_out, L, f=0.1):
+        maxdepth = self.ymax - self.ymin
+        y_in = brentq(self.backflood_discharge_residual, SMALL, maxdepth, args=(y_out,L,slope,f,Q) )
+        return y_in
