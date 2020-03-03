@@ -67,14 +67,20 @@ class CrossSection:
     def normal_discharge_residual(self, depth, slope, f, desiredQ):
         return desiredQ - self.calcNormalFlow(depth,slope,f=f)
 
-    def backflood_discharge_residual(self,y_in,y_out,L,slope,f, desiredQ):
+    def head_discharge_residual(self,y_in,y_out,L,slope,f, desiredQ):
         avg_flow_depth = (y_out + y_in)/2.
         head_slope = (y_in - y_out)/L + slope
-#        wetidx = self.y - self.ymin < avg_flow_depth
-#        Pw = self.calcP(wantidx=wetidx)
-#        A = self.calcA(wantidx=wetidx)
-#        D_H = 4.*A/Pw
         return desiredQ - self.calcNormalFlow(avg_flow_depth,head_slope,f=f)
+
+    def crit_flow_depth_residual(self,depth,Q):
+        wetidx = self.y - self.ymin < depth
+        #print(wetidx)
+        #print(depth)
+        A = self.calcA(wantidx=wetidx)
+        L,R = self.findLR(depth)
+        W = self.x[R] - self.x[L]
+        #print(depth,W,A)
+        return A**3/W - Q**2/g
 
     def calcNormalFlowDepth(self,Q, slope,f=0.1):
         maxdepth = self.ymax - self.ymin
@@ -88,13 +94,20 @@ class CrossSection:
             fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
         return fd
 
+    def calcCritFlowDepth(self,Q):
+        maxdepth = self.ymax - self.ymin
+        if self.crit_flow_depth_residual(maxdepth*0.01,Q)>0:
+            return -1
+        crit_depth = brentq(self.crit_flow_depth_residual, maxdepth*0.01, maxdepth*0.95, args=(Q,))
+        return crit_depth
+
     def calcPipeFullHeadGrad(self,Q,slope,f=0.1):
         Pw = self.calcP()
         A = self.calcA()
         D_H = 4.*A/Pw
         return (Q**2/A**2)*f/(2.*g*D_H)
 
-    def calcBackfloodDepth(self,Q,slope,y_out, L, f=0.1):
+    def calcUpstreamHead(self,Q,slope,y_out, L, f=0.1):
         maxdepth = self.ymax - self.ymin
-        y_in = brentq(self.backflood_discharge_residual, SMALL, maxdepth, args=(y_out,L,slope,f,Q) )
+        y_in = brentq(self.head_discharge_residual, SMALL, maxdepth, args=(y_out,L,slope,f,Q) )
         return y_in

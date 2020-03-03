@@ -5,7 +5,7 @@ import numpy as np
 d = 1000
 
 # Generate x, y points for an ellipse. Can set rotation angle with theta
-def genEll(r1,r2,theta=0):
+def genEll(r1,r2,theta=0,d=1000):
 
 	t=linspace(0, 2*pi-2*pi/d, d-1)
 	x=r1*cos(t)
@@ -19,13 +19,13 @@ def genEll(r1,r2,theta=0):
 
 		x=tx*cos(theta)-ty*sin(theta)
 		y=tx*sin(theta)+ty*cos(theta)
-	
+
 	return x, y
 
 # Generate x, y points for a circle
-def genCirc(r):
+def genCirc(r,d=1000):
 
-	return genEll(r, r)
+	return genEll(r, r,d=d)
 
 # Generate x, y points for the lower half of a circle
 def genSemiCirc(r):
@@ -40,4 +40,3 @@ def genSemiEll(r1,r2):
 	y=r2*sin(t)
 
 	return x, y
-
