@@ -13,23 +13,8 @@ def calc_steady_adv_reaction(D_H_w, D_H_a,
                 T_C=10, Lambda_w=0.5, tol=1e-5, rel_tol=1e-5,
                 C_w_upstream=1., C_Ca_upstream=0.5):
     #Define parameters for discretization
-    #ntimes = sim_dict['ntimes']
-    #endtime = sim_dict['endtime']
     dt = endtime/(ntimes-1)
-    #nx = sim_dict['nx']
-    #xmax = sim_dict['xmax']
     dx = xmax/(nx-1.)
-    #tol = sim_dict['tol']
-    #rel_tol = sim_dict['rel_tol']
-    #Dimensional parameters
-    #L=sim_dict['L']#m
-    #D_w = sim_dict['D_w']#30.#m^2/s
-    #D_a = sim_dict['D_a']#30.
-    #Q_a = sim_dict['Q_a']#.#m^3/s
-    #Q_w = sim_dict['Q_w']#m^3/s
-    #pCO2_high = sim_dict['pCO2_high']#5000.*1e-6 #5000 ppm converted to atm
-    #pCO2_outside = sim_dict['pCO2_outside']#500.*1e-6
-    #T_C=sim_dict['T_C']
     T_K = CtoK(T_C)
     K_H = calc_K_H(T_K) #Henry's law constant mols dissolved per atm
     Ca_eq_0 = concCaEqFromPCO2(pCO2_high, T_C=T_C)
@@ -88,14 +73,11 @@ def calc_steady_adv_reaction(D_H_w, D_H_a,
 
     #Set upstream boundary concentrations
     C_a_upstream = pCO2_outside/pCO2_high
-    #C_w_upstream = sim_dict['C_w_upstream']
-    #C_Ca_upstream = sim_dict['C_Ca_upstream'] #As percent of saturation at reference pCO2 ()
 
     #Set initial conditions for both species
     C_a[0,:] = C_a_upstream
     C_w[0,:] = C_w_upstream
     C_Ca[0,:] = C_Ca_upstream
-
 
     if V_a[0]>0:
         C_a[:,0] = C_a_upstream
