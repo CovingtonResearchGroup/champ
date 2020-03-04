@@ -8,12 +8,15 @@ from crossSection import CrossSection
 from ShapeGen import genCirc, genEll
 from numpy.random import rand,seed
 
+#Constants
+g=9.8#m/s^2
+
 class CO2_1D:
 
     def __init__(self, x_arr, z_arr, D_w=30., D_a=30, Q_w=0.1,
     pCO2_high=5000*1e-6, pCO2_outside=500*1e-6, f=0.1,
     T_cave=10, T_outside=20., Lambda_w=0.5, abs_tol=1e-5, rel_tol=1e-5,
-    CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_cave_air = 1.225,
+    CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, offsets = 0., xc_n=1000):
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
@@ -22,8 +25,11 @@ class CO2_1D:
         self.D_w = D_w
         self.D_a = D_a
         self.Q_w = Q_w
+        self.Q_a = 0.
         self.pCO2_high = pCO2_high
         self.pCO2_outside = pCO2_outside
+        self.rho_air_cave = rho_air_cave
+        self.dH = dH
         self.T_cave = T_cave
         self.T_cave_K = CtoK(T_cave)
         self.T_outside = T_outside
@@ -33,6 +39,16 @@ class CO2_1D:
         self.rel_tol = rel_tol
         self.CO2_w_upstream = CO2_w_upstream
         self.Ca_upstream = Ca_upstream
+
+        self.V_w = np.zeros(self.n_nodes - 1)
+        self.V_a = np.zeros(self.n_nodes - 1)
+        self.A_w = np.zeros(self.n_nodes - 1)
+        self.A_a = np.zeros(self.n_nodes - 1)
+        self.P_w = np.zeros(self.n_nodes - 1)
+        self.P_a = np.zeros(self.n_nodes - 1)
+        self.D_H_w = np.zeros(self.n_nodes - 1)
+        self.D_H_a = np.zeros(self.n_nodes - 1)
+        self.W = np.zeros(self.n_nodes - 1)
 
         self.slopes = (z_arr[1:] - z_arr[:-1])/(x_arr[1:] - x_arr[:-1])
         self.L_arr = x_arr[1:]- x_arr[:-1]
@@ -107,8 +123,35 @@ class CO2_1D:
                     #dz = slopes[i]*(x[i+1] - x[i])
                     self.h[i+1] = self.z_arr[i+1] + norm_fd
                     self.fd_mids[i] = norm_fd
+            # Calculate flow areas, wetted perimeters, hydraulic diameters,
+            # free surface widths, and velocities
+            wetidx = (xc.y - xc.ymin) < self.fd_mids[i]
+            self.A_w[i] = xc.calcA(wantidx=wetidx)
+            print(self.A_w[i])
+            self.P_w[i] = xc.calcP(wantidx=wetidx)
+            self.V_w[i] = self.Q_w/self.A_w[i]
+            self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
+            if self.flow_type[i] != 'full':
+                L,R = xc.findLR(self.fd_mids[i])
+                self.W[i] = xc.x[R] - xc.x[L]
+            else:
+                self.W[i] = 0.
 
-
+    def calc_air_flow(self):
+        dT = self.T_outside - self.T_cave
+        dP_tot = self.rho_air_cave*g*self.dH*dT/self.T_outside_K
+        R_air = np.zeros(self.n_nodes-1)
+        for i, xc in enumerate(self.xcs):
+            dryidx = xc.y>self.fd_mids[i]
+            self.A_a[i] = xc.calcA(wantidx=dryidx)
+            self.P_a = xc.calcP(wantidx=dryidx)
+            if self.A_a[i]>0:
+                self.D_H_a[i] = 4.*self.A_a[i]/self.P_a
+                R_air[i] = self.rho_air_cave*self.f*self.L_arr[i]/(2.*self.D_H_a[i]*self.A_a[i]**2.)
+            else:
+                R_air[i] = np.inf
+        self.Q_a = np.sqrt(abs(dP_tot/R_air.sum()))*np.sign(dP_tot)
+        print("Air discharge = ",self.Q_a, ' m^3/s')
 
 
 
