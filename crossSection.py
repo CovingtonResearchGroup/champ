@@ -139,6 +139,7 @@ class CrossSection:
         wetidx = self.wetidx
         l = np.hypot(self.x[wetidx] - self.xp[wetidx], self.y[wetidx] - self.yp[wetidx])
         sum = ((self.vgrad2)*l).sum()
+        self.wet_ls = l
         self.psi = g*self.eSlope/sum
         return self.psi
 
@@ -226,7 +227,7 @@ class CrossSection:
                 return -1
         else:
             fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
-        self.setFD(df)
+        self.setFD(fd)
         return fd
 
     def calcCritFlowDepth(self,Q):
