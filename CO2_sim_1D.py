@@ -183,6 +183,50 @@ class CO2_1D:
             self.V_a[:] = 0.
         print("Air discharge = ",self.Q_a, ' m^3/s')
 
+    def calc_steady_state_transport(self):
+        self.update_dimnless_params()
+        self.initialize_conc_arrays()
+
+        if np.sign(self.V_a[0])==np.sign(self.V_w[0]):
+            self.calc_conc_from_upstream()
+        else:
+            #Calculate air downstream bnd value using linear shooting method
+            g1 = self.pCO2_outside
+            g2 = self.pCO2_high
+            self.calc_conc_from_upstream(CO2_a_upstream=g1)
+            CO2_down_1 = self.CO2_a[0]
+            self.calc_conc_from_upstream(CO2_a_upstream=g2)
+            CO2_down_2 = self.CO2_a[0]
+            CO2_a_upstream_corrected = g1 + \
+                (g2 - g1)/(CO2_down_2-CO2_down_1)*(self.pCO2_outside-CO2_down_1)
+            self.calc_conc_from_upstream(CO2_a_upstream=CO2_a_upstream_corrected)
+
+    def calc_conc_from_upstream(self, CO2_a_upstream=None):
+        if CO2_a_upstream != None:
+            self.CO2_a[-1] = CO2_a_upstream
+        K_w = self.gas_transf_vel*self.W/self.A_w
+        K_a = self.gas_transf_vel*self.W/self.A_a
+        #Loop backwards through concentration arrays
+        F = np.zeros(self.n_nodes - 1)
+        mm_yr_to_mols_sec = 100.*rho_limestone/g_mol_CaCO3/secs_per_year/100./(self.D_H_w/2.)
+
+        for i in np.arange(self.n_nodes-1, 0, -1):
+            this_CO2_w = self.CO2_w[i]*self.pCO2_high
+            this_CO2_a = self.CO2_a[i]*self.pCO2_high
+            this_Ca = self.Ca[i]*self.Ca_eq_0
+            sol = solutionFromCaPCO2(this_Ca, this_CO2_w, T_C=self.T_cave)
+            F[i-1] = palmerFromSolution(sol, PCO2=this_CO2_w)
+            R = F[i-1]*mm_yr_to_mols_sec[i-1]
+            R_CO2 = R/self.K_H
+            #dx is negative, so signs on dC terms flip
+            dCO2_a = -self.L_arr[i-1]*K_a[i-1]/self.V_a[i-1]*(this_CO2_w - this_CO2_a)
+            dCO2_w = self.L_arr[i-1]*K_w[i-1]/self.V_w[i-1]*(this_CO2_w - this_CO2_a) - R_CO2/self.V_w[i-1]
+            dCa = -self.L_arr[i-1]*R/self.V_w[i-1]
+            self.CO2_a[i-1] = (this_CO2_a + dCO2_a)/self.pCO2_high
+            self.CO2_w[i-1] = (this_CO2_w + dCO2_w)/self.pCO2_high
+            self.Ca[i-1] = (this_Ca + dCa)/self.Ca_eq_0
+
+
 
     def update_adv_disp_M_water(self):
         #Construct Adv-disp matrix for water
@@ -371,7 +415,7 @@ class CO2_1D:
         self.Ca[:] = self.Ca_upstream
         self.CO2_a_upstream = CO2_a_upstream
 
-    def calc_steady_adv_reaction(self):
+    def calc_steady_adv_disp_reaction(self):
         """
             D_H_w, D_H_a,
                             ntimes=1000, endtime=2., nx=1000, xmax=1,
