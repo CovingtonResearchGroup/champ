@@ -146,7 +146,10 @@ class CrossSection:
     def setEnergySlope(self,slope):
         self.eSlope = slope
 
-    def erode(self, dr, resample=False, n=None):
+    def set_F_xc(self,F_xc):
+        self.F_xc = F_xc
+
+    def erode(self, dr, resample=True, n=None):
         if n==None:
             n=self.n
         wetidx=self.wetidx
@@ -184,6 +187,9 @@ class CrossSection:
         self.x = nx
         self.y = ny
         self.create_pm()
+        self.ymin = min(ny)
+        self.ymax = max(ny)
+
 
     # Counter clockwise function to determine if we drew points in the correct
     # direction

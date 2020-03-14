@@ -7,6 +7,7 @@ from olm.general import CtoK
 from crossSection import CrossSection
 from ShapeGen import genCirc, genEll
 from numpy.random import rand,seed
+from scipy.optimize import brentq
 
 #Constants
 g=9.8#m/s^2
@@ -19,6 +20,7 @@ g_mol_CaCO3 = 100.09
 L_per_m3 = 1000.
 secs_per_year =  3.154e7
 secs_per_hour = 60.*60.
+cm_m = 100.
 
 ###
 ## gas trasfer vel, typical values ~10 cm/hr for small streams (Wanningkhof 1990)
@@ -31,7 +33,7 @@ class CO2_1D:
     T_cave=10, T_outside=20., gas_transf_vel=0.1/secs_per_hour, abs_tol=1e-5, rel_tol=1e-5,
     CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, offsets = 0., xc_n=1000,
-    adv_disp_stabil_factor=0.9, impure=True):
+    adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.1, dt_erode=1.):
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
@@ -58,6 +60,9 @@ class CO2_1D:
         self.rel_tol = rel_tol
         self.CO2_w_upstream = CO2_w_upstream
         self.Ca_upstream = Ca_upstream
+        self.reduction_factor = reduction_factor
+        self.dt_erode = dt_erode
+        self.xc_n = xc_n
 
         self.V_w = np.zeros(self.n_nodes - 1)
         self.V_a = np.zeros(self.n_nodes - 1)
@@ -158,7 +163,7 @@ class CO2_1D:
             # free surface widths, and velocities
             wetidx = (xc.y - xc.ymin) < self.fd_mids[i]
             self.A_w[i] = xc.calcA(wantidx=wetidx)
-            print(self.A_w[i])
+            #print(self.A_w[i])
             self.P_w[i] = xc.calcP(wantidx=wetidx)
             self.V_w[i] = -self.Q_w/self.A_w[i]
             self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
@@ -192,11 +197,11 @@ class CO2_1D:
         self.update_dimnless_params()
         self.initialize_conc_arrays()
 
-        if np.sign(self.V_a[0])==np.sign(self.V_w[0]):
+        if np.sign(self.V_a[0])==np.sign(self.V_w[0]) or self.V_a[0]==0.:
             self.calc_conc_from_upstream( palmer=palmer)
         else:
             #Calculate air downstream bnd value using linear shooting method
-            g1 = self.pCO2_outside
+            g1 = self.pCO2_high*0.5#pCO2_outside
             g2 = self.pCO2_high
             self.calc_conc_from_upstream(CO2_a_upstream=g1, palmer=palmer)
             CO2_down_1 = self.CO2_a[0]
@@ -205,12 +210,23 @@ class CO2_1D:
             CO2_a_upstream_corrected = g1 + \
                 (g2 - g1)/(CO2_down_2-CO2_down_1)*(self.pCO2_outside-CO2_down_1)
             self.calc_conc_from_upstream(CO2_a_upstream=CO2_a_upstream_corrected,palmer=palmer)
+            if self.CO2_a[0] - self.pCO2_outside > self.abs_tol or True in np.isnan(self.CO2_a):
+                print("Linear shooting method failed...")
+                CO2_a_upstream_brent = brentq(self.downstream_CO2_residual, self.pCO2_high, self.pCO2_outside, xtol=self.abs_tol)
+
+    def downstream_CO2_residual(self,CO2_a_upstream):
+        mod_CO2_downstream = self.calc_conc_from_upstream(CO2_a_upstream=CO2_a_upstream)
+        return self.CO2_a[0] - self.pCO2_outside
 
     def calc_conc_from_upstream(self, CO2_a_upstream=None, palmer=False):
         if CO2_a_upstream != None:
             self.CO2_a[-1] = CO2_a_upstream
-        K_w = self.gas_transf_vel*self.W/self.A_w
-        K_a = self.gas_transf_vel*self.W/self.A_a
+        if self.A_a.min()>0:
+            K_w = self.gas_transf_vel*self.W/self.A_w
+            K_a = self.gas_transf_vel*self.W/self.A_a
+        else:
+            K_a = 0.0*self.W
+            K_w = 0.0*self.W
         #Loop backwards through concentration arrays
         F = np.zeros(self.n_nodes - 1)
 
@@ -220,6 +236,7 @@ class CO2_1D:
         for i in np.arange(self.n_nodes-1, 0, -1):
             this_CO2_w = self.CO2_w[i]*self.pCO2_high
             this_CO2_a = self.CO2_a[i]*self.pCO2_high
+            print("CO2_a=",this_CO2_a,"  CO2_w=",this_CO2_w)
             this_Ca = self.Ca[i]*self.Ca_eq_0
             if palmer:
                 sol = solutionFromCaPCO2(this_Ca, this_CO2_w, T_C=self.T_cave)
@@ -233,24 +250,40 @@ class CO2_1D:
                 this_xc.calcUmax(self.Q_w)
                 T_b = this_xc.calcT_b()
                 eps = 5*nu*Sc**(-1./3.)/np.sqrt(T_b/rho_w)
-                print(eps)
+                #print(eps)
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)
                 #print(this_Ca,Ca_Eq)
-                F_xc = D_Ca/eps*(Ca_Eq - this_Ca)*L_per_m3
-                F[i-1] = #seems too big, units problem?###np.sum(F_xc*this_xc.wet_ls)/this_xc.wet_ls.sum() #Units of F are mols/m^2/sec
-                R = 4.*F[i-1]/self.D_H_w[i-1]
-            self.F = F
+                F_xc = self.reduction_factor*D_Ca/eps*(Ca_Eq - this_Ca)*L_per_m3
+                this_xc.set_F_xc(F_xc)
+                P_w = this_xc.wet_ls.sum()
+                F[i-1] = np.sum(F_xc*this_xc.wet_ls)/P_w #Units of F are mols/m^2/sec
+                R = F[i-1]*P_w*self.L_arr[i-1]#4.*F[i-1]/self.D_H_w[i-1]
             R_CO2 = R/self.K_H
             #dx is negative, so signs on dC terms flip
-            dCO2_a = -self.L_arr[i-1]*K_a[i-1]/self.V_a[i-1]*(this_CO2_w - this_CO2_a)
-            dCO2_w = self.L_arr[i-1]*K_w[i-1]/self.V_w[i-1]*(this_CO2_w - this_CO2_a) - R_CO2/self.V_w[i-1]
-            dCa = -self.L_arr[i-1]*R/self.V_w[i-1]
-            print(dCO2_a,dCO2_w,dCa)
+            if self.A_a.min()>0:
+                dCO2_a = -self.L_arr[i-1]*K_a[i-1]/self.V_a[i-1]*(this_CO2_w - this_CO2_a)
+            else:
+                dCO2_a = 0.
+            dCO2_w = self.L_arr[i-1]*K_w[i-1]/self.V_w[i-1]*(this_CO2_w - this_CO2_a) - R_CO2/self.Q_w/L_per_m3#R_CO2/self.V_w[i-1]
+            dCa = R/self.Q_w/L_per_m3#-self.L_arr[i-1]*R/self.V_w[i-1]
+            #print(dCO2_a,dCO2_w,dCa)
             self.CO2_a[i-1] = (this_CO2_a + dCO2_a)/self.pCO2_high
             self.CO2_w[i-1] = (this_CO2_w + dCO2_w)/self.pCO2_high
             self.Ca[i-1] = (this_Ca + dCa)/self.Ca_eq_0
+            if self.CO2_a[i-1]<0:
+                self.CO2_a[i-1]=0.
+            if self.CO2_w[i-1]<0:
+                self.CO2_w[i-1]=0.
+            if self.Ca[i-1]<0:
+                self.Ca[i-1]=0.
 
+        self.F = F
 
+    def erode_xcs(self):
+        F_to_m_yr = g_mol_CaCO3*secs_per_year/rho_limestone/cm_m**3
+        for xc in self.xcs:
+            dr = F_to_m_yr*xc.F_xc*self.dt_erode
+            xc.erode(dr)
 
     def update_adv_disp_M_water(self):
         #Construct Adv-disp matrix for water
