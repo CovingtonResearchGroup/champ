@@ -53,11 +53,13 @@ class CrossSection:
 	# bottom
     def findLR(self, h):
         a_h = self.ymin + h
-        condL = logical_and(self.y > a_h, a_h > self.yp)
-        condR = logical_and(self.y < a_h, a_h < self.yp)
-
-        L = where(condL)[0][0] + 1
-        R = where(condR)[0][0]
+        condL = logical_and(self.y > a_h, a_h >= self.yp)
+        condR = logical_and(self.y < a_h, a_h <= self.yp)
+        #below_idx = where(self.y<a_h)[0]
+        #L = below_idx[0]
+        L=where(condL)[0][0] + 1
+        #R = below_idx[-1]
+        R=where(condR)[0][0]
         return L,R
 
     def setFD(self,fd):
