@@ -110,6 +110,7 @@ class CO2_1D:
         # Loop through cross-sections and solve for flow depths,
         # starting at downstream end
         for i, xc in enumerate(self.xcs):
+            #print('xc=',i)
             #Try calculating flow depth
             norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f)
             backflooded= (self.h[i]-self.z_arr[i+1])>self.maxdepths[i]
@@ -146,7 +147,7 @@ class CO2_1D:
                     self.fd_mids[i] = (y_in + y_star)/2.
                     self.h[i+1] = self.z_arr[i+1] + y_in
                     if i==0:
-                        self.h[0]=fd_norm#y_star
+                        self.h[0]=norm_fd#y_star
                 #elif downstream_less_normal:
                 #    self.flow_type[i] = 'dwnslessnorm'
                 #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
