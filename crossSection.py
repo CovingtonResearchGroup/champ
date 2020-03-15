@@ -35,7 +35,7 @@ class CrossSection:
         else:
             l = hypot(self.x - self.xp, self.y - self.yp)
 
-        P = sum(l)
+        P = abs(sum(l))
         return P
         #self.pp = cumsum(self.l)
 		#self.P = self.pp[-2]
@@ -177,7 +177,8 @@ class CrossSection:
 
         #Resample points by fitting spline
         if resample:
-            tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0.0)
+            #s = nx.size#+np.sqrt(2*nx.size)
+            tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0.)
             un = linspace(u.min(), u.max(), n if n!=nx.size else nx.size)
             nx, ny = interpolate.splev(un, tck, der=0)
 
