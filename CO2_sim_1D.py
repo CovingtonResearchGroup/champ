@@ -8,6 +8,7 @@ from crossSection import CrossSection
 from ShapeGen import genCirc, genEll
 from numpy.random import rand,seed
 from scipy.optimize import brentq
+from scipy.signal import savgol_filter
 
 #Constants
 g=9.8#m/s^2
@@ -112,6 +113,8 @@ class CO2_1D:
         # Loop through cross-sections and solve for flow depths,
         # starting at downstream end
         for i, xc in enumerate(self.xcs):
+            xc.create_A_interp()
+            xc.create_P_interp()
             #print('xc=',i)
             #Try calculating flow depth
             norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f)
@@ -286,8 +289,9 @@ class CO2_1D:
     def erode_xcs(self):
         F_to_m_yr = g_mol_CaCO3*secs_per_year/rho_limestone/cm_m**3
         for xc in self.xcs:
-            dr = F_to_m_yr*xc.F_xc*self.dt_erode
-            xc.erode(dr)
+            xc.dr = F_to_m_yr*xc.F_xc*self.dt_erode
+            #xc.dr = savgol_filter(xc.dr,15,3,mode='wrap')
+            xc.erode(xc.dr)
 
     def update_adv_disp_M_water(self):
         #Construct Adv-disp matrix for water

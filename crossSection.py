@@ -49,6 +49,30 @@ class CrossSection:
         A = fabs(self.sA)
         return A
 
+    def create_A_interp(self, n_points=100):
+        maxdepth = self.ymax - self.ymin
+        depth_arr = np.linspace(0,maxdepth,n_points)
+        As = []
+        for depth in depth_arr:
+            wantidx = self.y-self.ymin<depth
+            As.append(self.calcA(wantidx=wantidx))
+        As = np.array(As)
+        A_interp = interpolate.interp1d(depth_arr,As,kind='cubic')
+        self.A_interp = A_interp
+
+    def create_P_interp(self,n_points=100):
+        maxdepth = self.ymax - self.ymin
+        depth_arr = np.linspace(0,maxdepth,n_points)
+        Ps = []
+        for depth in depth_arr:
+            wantidx = self.y-self.ymin<depth
+            l = hypot(self.x[wantidx] - self.xp[wantidx], self.y[wantidx] - self.yp[wantidx])
+            Ps.append(abs(l.sum()))
+        Ps = np.array(Ps)
+        P_interp = interpolate.interp1d(depth_arr,Ps,kind='cubic')
+        self.P_interp = P_interp
+
+
 	# Find left and right points defining a height above the cross-section
 	# bottom
     def findLR(self, h):
@@ -190,6 +214,9 @@ class CrossSection:
         self.x = nx
         self.y = ny
         self.create_pm()
+#        self.x = (self.xp + self.xm)/2.
+#        self.y = (self.yp + self.ym)/2.
+#        self.create_pm()
         self.ymin = min(ny)
         self.ymax = max(ny)
 
@@ -201,9 +228,9 @@ class CrossSection:
 
 
     def calcNormalFlow(self,depth, slope,f=0.1):
-        wetidx = self.y - self.ymin < depth
-        Pw = self.calcP(wantidx=wetidx)
-        A = self.calcA(wantidx=wetidx)
+        #wetidx = self.y - self.ymin < depth
+        Pw = self.P_interp(depth)#self.calcP(wantidx=wetidx)
+        A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
         D_H = 4.*A/Pw
         Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
         return Q
@@ -217,10 +244,10 @@ class CrossSection:
         return desiredQ - self.calcNormalFlow(avg_flow_depth,head_slope,f=f)
 
     def crit_flow_depth_residual(self,depth,Q):
-        wetidx = self.y - self.ymin < depth
+        #wetidx = self.y - self.ymin < depth
         #print(wetidx)
         #print(depth)
-        A = self.calcA(wantidx=wetidx)
+        A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
         L,R = self.findLR(depth)
         W = self.x[R] - self.x[L]
         #print(depth,W,A)
