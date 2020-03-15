@@ -33,11 +33,12 @@ class CO2_1D:
     T_cave=10, T_outside=20., gas_transf_vel=0.1/secs_per_hour, abs_tol=1e-5, rel_tol=1e-5,
     CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, offsets = 0., xc_n=1000,
-    adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.1, dt_erode=1.):
+    adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.1, dt_erode=1.,
+    downstream_bnd_type='normal'):
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
-        self.z_arr = z_arr
+        self.z_arr = z_arr#z is zero of xc coords
         self.slopes = (z_arr[1:] - z_arr[:-1])/(x_arr[1:] - x_arr[:-1])
         self.L_arr = x_arr[1:]- x_arr[:-1]
         self.D_w = D_w
@@ -63,6 +64,7 @@ class CO2_1D:
         self.reduction_factor = reduction_factor
         self.dt_erode = dt_erode
         self.xc_n = xc_n
+        self.downstream_bnd_type = downstream_bnd_type
 
         self.V_w = np.zeros(self.n_nodes - 1)
         self.V_a = np.zeros(self.n_nodes - 1)
@@ -90,16 +92,16 @@ class CO2_1D:
 
         #Initialize cross-sections
         self.xcs = []
-        self.maxdepths = np.zeros(self.n_nodes-1)
+        #self.maxdepths = np.zeros(self.n_nodes-1)
         self.radii = init_radii*np.ones(self.n_nodes-1)
         for i in np.arange(self.n_nodes-1):
             x, y = genCirc(self.radii[i],n=xc_n)
             y = y + self.offsets[i]
             this_xc = CrossSection(x,y)
             self.xcs.append(this_xc)
-            self.maxdepths[i] = this_xc.ymax - this_xc.ymin
+            #self.maxdepths[i] = this_xc.ymax - this_xc.ymin
 
-        #Create b arrays for each concentration variables
+        #Create b arrays for each concentration variable
         self.bCO2_a = np.zeros(self.n_nodes-1)
         self.bCO2_w = np.zeros(self.n_nodes-1)
         self.bCa = np.zeros(self.n_nodes-1)
@@ -113,7 +115,7 @@ class CO2_1D:
             #print('xc=',i)
             #Try calculating flow depth
             norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f)
-            backflooded= (self.h[i]-self.z_arr[i+1])>self.maxdepths[i]
+            backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax)>0
             if norm_fd==-1:
                 over_normal_capacity=True
             else:
@@ -123,7 +125,7 @@ class CO2_1D:
                 self.flow_type[i] = 'full'
                 if i==0:
                     #if downstream boundary set head to top of pipe
-                    self.h[0]=self.maxdepths[0]
+                    self.h[0]= self.z_arr[0] + xc.ymax
                 #We have a full pipe, calculate head gradient instead
                 delh = xc.calcPipeFullHeadGrad(self.Q_w,self.slopes[i],f=self.f)
                 self.h[i+1] = self.h[i] + delh * self.L_arr[i]
@@ -131,23 +133,23 @@ class CO2_1D:
             else:
                 crit_fd = xc.calcCritFlowDepth(self.Q_w)
                 y_star = min([crit_fd,norm_fd])
-                y_out = self.h[i] - self.z_arr[i]
+                y_out = self.h[i] - self.z_arr[i] - xc.ymin
                 downstream_critical = y_star>y_out and y_star>0# and i>0
-                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]
+                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1] - xc.ymin
                 downstream_less_normal = norm_fd>y_out
                 if partial_backflood: #upstream node is flooded above normal depth
                     self.flow_type[i] = 'pbflood'
                     y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
-                    self.h[i+1] = self.z_arr[i+1] + y_in
+                    self.h[i+1] = self.z_arr[i+1] + y_in + xc.ymin
                     self.fd_mids[i] = (y_out + y_in)/2.
                 elif downstream_critical:
                     self.flow_type[i] = 'dwnscrit'
                     #Use minimum of critical or normal depth for downstream y
                     y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_star,self.L_arr[i],f=self.f)
                     self.fd_mids[i] = (y_in + y_star)/2.
-                    self.h[i+1] = self.z_arr[i+1] + y_in
+                    self.h[i+1] = self.z_arr[i+1] + y_in + xc.ymin
                     if i==0:
-                        self.h[0]=norm_fd#y_star
+                        self.h[0]=z_arr[0] + norm_fd + xc.ymin#y_star
                 #elif downstream_less_normal:
                 #    self.flow_type[i] = 'dwnslessnorm'
                 #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
@@ -156,9 +158,9 @@ class CO2_1D:
                 else:
                     self.flow_type[i] = 'norm'
                     if i==0:
-                        self.h[i] = norm_fd + self.z_arr[i]
+                        self.h[i] = norm_fd + self.z_arr[i] + xc.ymin
                     #dz = slopes[i]*(x[i+1] - x[i])
-                    self.h[i+1] = self.z_arr[i+1] + norm_fd
+                    self.h[i+1] = self.z_arr[i+1] + norm_fd + xc.ymin
                     self.fd_mids[i] = norm_fd
             # Calculate flow areas, wetted perimeters, hydraulic diameters,
             # free surface widths, and velocities
@@ -179,7 +181,7 @@ class CO2_1D:
         dP_tot = self.rho_air_cave*g*self.dH*dT/self.T_outside_K
         R_air = np.zeros(self.n_nodes-1)
         for i, xc in enumerate(self.xcs):
-            dryidx = xc.y>self.fd_mids[i]
+            dryidx = (xc.y - xc.ymin)>self.fd_mids[i]
             self.A_a[i] = xc.calcA(wantidx=dryidx)
             self.P_a = xc.calcP(wantidx=dryidx)
             if self.A_a[i]>0:
@@ -188,6 +190,7 @@ class CO2_1D:
             else:
                 R_air[i] = np.inf
         self.Q_a = -np.sqrt(abs(dP_tot/R_air.sum()))*np.sign(dP_tot)
+
         if self.A_a.min()>0:
             self.V_a = self.Q_a/self.A_a
         else:
@@ -237,7 +240,7 @@ class CO2_1D:
         for i in np.arange(self.n_nodes-1, 0, -1):
             this_CO2_w = self.CO2_w[i]*self.pCO2_high
             this_CO2_a = self.CO2_a[i]*self.pCO2_high
-            print("CO2_a=",this_CO2_a,"  CO2_w=",this_CO2_w)
+            #print("CO2_a=",this_CO2_a,"  CO2_w=",this_CO2_w)
             this_Ca = self.Ca[i]*self.Ca_eq_0
             if palmer:
                 sol = solutionFromCaPCO2(this_Ca, this_CO2_w, T_C=self.T_cave)
