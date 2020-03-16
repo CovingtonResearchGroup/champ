@@ -143,8 +143,15 @@ class CO2_1D:
                 if partial_backflood: #upstream node is flooded above normal depth
                     self.flow_type[i] = 'pbflood'
                     y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
-                    self.h[i+1] = self.z_arr[i+1] + y_in + xc.ymin
-                    self.fd_mids[i] = (y_out + y_in)/2.
+                    if y_in>0:
+                        self.h[i+1] = self.z_arr[i+1] + y_in + xc.ymin
+                        self.fd_mids[i] = (y_out + y_in)/2.
+                    else:
+                        #We need full pipe to push needed Q
+                        delh = xc.calcPipeFullHeadGrad(self.Q_w,self.slopes[i],f=self.f)
+                        self.h[i+1] = self.h[i] + delh * self.L_arr[i]
+                        self.fd_mids[i] = xc.ymax - xc.ymin
+                        self.flow_type[i] = 'full'
                 elif downstream_critical:
                     self.flow_type[i] = 'dwnscrit'
                     #Use minimum of critical or normal depth for downstream y
