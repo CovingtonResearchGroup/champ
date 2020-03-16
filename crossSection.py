@@ -231,8 +231,11 @@ class CrossSection:
         #wetidx = self.y - self.ymin < depth
         Pw = self.P_interp(depth)#self.calcP(wantidx=wetidx)
         A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
-        D_H = 4.*A/Pw
-        Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
+        if Pw>0 and A>0 and depth>0:
+            D_H = 4.*A/Pw
+            Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
+        else:
+            Q=0.
         return Q
 
     def normal_discharge_residual(self, depth, slope, f, desiredQ):
@@ -262,9 +265,16 @@ class CrossSection:
             #    print("Pipe is full.")
             return -1
         else:
+            dl = self.calcP()/self.n
+            dQ = abs(self.calcNormalFlow(self.fd+dl,slope,f=f) - self.calcNormalFlow(self.fd,slope,f=f))
+            print('dQ=',dQ)
             #fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
-            sol = root_scalar(self.normal_discharge_residual, args=(slope,f,Q), x0=self.fd, x1=self.fd*0.5)
+            sol = root_scalar(self.normal_discharge_residual, args=(slope,f,Q), x0=self.fd, x1=self.fd*0.75,xtol=dQ)
+#            print(sol)
             fd = sol.root
+            if fd<0:
+                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
+
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1
@@ -286,5 +296,11 @@ class CrossSection:
 
     def calcUpstreamHead(self,Q,slope,y_out, L, f=0.1):
         maxdepth = self.ymax - self.ymin
-        y_in = brentq(self.head_discharge_residual, SMALL, maxdepth, args=(y_out,L,slope,f,Q) )
-        return y_in
+        head_res_a = self.head_discharge_residual(SMALL, y_out,L,slope,f,Q)
+        head_res_b = self.head_discharge_residual(maxdepth, y_out,L,slope,f,Q)
+        if np.sign(head_res_a)*np.sign(head_res_b)==-1:
+            sol = root_scalar(self.head_discharge_residual, args=(y_out,L,slope,f,Q),  bracket=(SMALL,maxdepth))#x0=y_out, x1=maxdepth)#, bracket=(SMALL,maxdepth) )
+            y_in = sol.root
+            return y_in
+        else:
+            return -1
