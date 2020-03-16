@@ -2,7 +2,7 @@ from numpy import sin, cos, pi, fabs, sign, roll, arctan2, diff, sum, hypot,\
                     logical_and, where, linspace, sqrt
 import numpy as np
 from scipy import interpolate
-from scipy.optimize import brentq
+from scipy.optimize import brentq, root_scalar
 import matplotlib.pyplot as plt
 
 
@@ -21,6 +21,7 @@ class CrossSection:
         self.ymax = max(y)
         self.create_pm()
         self.z0=z0
+        self.setFD(SMALL)
 
     # Create arrays of x+1, y+1, x-1, x+1
     def create_pm(self):
@@ -34,7 +35,6 @@ class CrossSection:
             l = hypot(self.x[wantidx] - self.xp[wantidx], self.y[wantidx] - self.yp[wantidx])
         else:
             l = hypot(self.x - self.xp, self.y - self.yp)
-
         P = abs(sum(l))
         return P
         #self.pp = cumsum(self.l)
@@ -57,7 +57,7 @@ class CrossSection:
             wantidx = self.y-self.ymin<depth
             As.append(self.calcA(wantidx=wantidx))
         As = np.array(As)
-        A_interp = interpolate.interp1d(depth_arr,As,kind='cubic')
+        A_interp = interpolate.interp1d(depth_arr,As,kind='cubic',bounds_error=False,fill_value=(As[0],As[-1]))
         self.A_interp = A_interp
 
     def create_P_interp(self,n_points=100):
@@ -69,7 +69,7 @@ class CrossSection:
             l = hypot(self.x[wantidx] - self.xp[wantidx], self.y[wantidx] - self.yp[wantidx])
             Ps.append(abs(l.sum()))
         Ps = np.array(Ps)
-        P_interp = interpolate.interp1d(depth_arr,Ps,kind='cubic')
+        P_interp = interpolate.interp1d(depth_arr,Ps,kind='cubic',bounds_error=False,fill_value=(Ps[0],Ps[-1]))
         self.P_interp = P_interp
 
 
@@ -256,15 +256,20 @@ class CrossSection:
     def calcNormalFlowDepth(self,Q, slope,f=0.1):
         maxdepth = self.ymax - self.ymin
         calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f)
-        if Q>calcFullFlow:
-            calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
-            if Q>calc95PerFlow:
-                #print("Pipe is full.")
-                return -1
+        if Q>=calcFullFlow:
+            #calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
+            #if Q>calc95PerFlow:
+            #    print("Pipe is full.")
+            return -1
         else:
-            fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
+            #fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
+            sol = root_scalar(self.normal_discharge_residual, args=(slope,f,Q), x0=self.fd, x1=self.fd*0.5)
+            fd = sol.root
+            if fd >= maxdepth:
+                self.setFD(fd)
+                return -1
         self.setFD(fd)
-        return fd
+        return self.fd
 
     def calcCritFlowDepth(self,Q):
         maxdepth = self.ymax - self.ymin
