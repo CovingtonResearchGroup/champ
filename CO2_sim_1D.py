@@ -115,15 +115,15 @@ class CO2_1D:
         for i, xc in enumerate(self.xcs):
             xc.create_A_interp()
             xc.create_P_interp()
-            #print('xc=',i)
+            print('xc=',i)
             #Try calculating flow depth
-            norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f)
             backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax)>0
-            if norm_fd==-1:
-                over_normal_capacity=True
-            else:
-                over_normal_capacity=False
-
+            over_normal_capacity=False
+            if not backflooded:
+                norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f)
+                if norm_fd==-1:
+                    over_normal_capacity=True
+            print('norm_fd=', norm_fd, '  maxdepth=',xc.ymax - xc.ymin)
             if over_normal_capacity or backflooded:
                 self.flow_type[i] = 'full'
                 if i==0:
@@ -173,11 +173,14 @@ class CO2_1D:
             self.P_w[i] = xc.calcP(wantidx=wetidx)
             self.V_w[i] = -self.Q_w/self.A_w[i]
             self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
+            print(self.flow_type[i])
             if self.flow_type[i] != 'full':
                 L,R = xc.findLR(self.fd_mids[i])
                 self.W[i] = xc.x[R] - xc.x[L]
             else:
                 self.W[i] = 0.
+            #Set water line in cross-section object
+            xc.setFD(self.fd_mids[i])
 
     def calc_air_flow(self):
         dT = self.T_outside - self.T_cave
