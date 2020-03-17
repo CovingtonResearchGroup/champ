@@ -276,7 +276,8 @@ class CO2_1D:
                 T_b = this_xc.calcT_b()
                 print('min T_b=', T_b.min())
                 print('mean T_b=', T_b.mean())
-
+                if T_b.min()<0:
+                    print(asdf)
                 eps = 5*nu*Sc**(-1./3.)/np.sqrt(T_b/rho_w)
                 #print(eps)
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)
