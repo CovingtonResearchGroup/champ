@@ -115,6 +115,7 @@ class CO2_1D:
         for i, xc in enumerate(self.xcs):
             old_fd = self.fd_mids[i]
             if old_fd <=0:
+                print('zero or neg flow depth')
                 old_fd = xc.ymax - xc.ymin
             xc.create_A_interp()
             xc.create_P_interp()
@@ -194,7 +195,7 @@ class CO2_1D:
             #Set water line in cross-section object
             print('setting fd')
             xc.setFD(self.fd_mids[i])
-            print('down with this xc')
+            print('done with this xc')
 
     def calc_air_flow(self):
         dT = self.T_outside - self.T_cave
@@ -273,6 +274,9 @@ class CO2_1D:
                 this_xc.setMaxVelPoint(self.fd_mids[i-1])
                 this_xc.calcUmax(self.Q_w)
                 T_b = this_xc.calcT_b()
+                print('min T_b=', T_b.min())
+                print('mean T_b=', T_b.mean())
+
                 eps = 5*nu*Sc**(-1./3.)/np.sqrt(T_b/rho_w)
                 #print(eps)
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)

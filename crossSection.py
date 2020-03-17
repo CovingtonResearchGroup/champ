@@ -49,9 +49,12 @@ class CrossSection:
         A = fabs(self.sA)
         return A
 
-    def create_A_interp(self, n_points=100):
+    def create_A_interp(self, n_points=30):
         maxdepth = self.ymax - self.ymin
-        depth_arr = np.linspace(0,maxdepth,n_points)
+        max_interp = self.fd*1.25
+        if max_interp > maxdepth:
+            max_interp = maxdepth
+        depth_arr = np.linspace(0,max_interp,n_points)
         As = []
         for depth in depth_arr:
             wantidx = self.y-self.ymin<depth
@@ -60,9 +63,12 @@ class CrossSection:
         A_interp = interpolate.interp1d(depth_arr,As,kind='cubic',bounds_error=False,fill_value=(As[0],As[-1]))
         self.A_interp = A_interp
 
-    def create_P_interp(self,n_points=100):
+    def create_P_interp(self,n_points=30):
         maxdepth = self.ymax - self.ymin
-        depth_arr = np.linspace(0,maxdepth,n_points)
+        max_interp = self.fd*1.25
+        if max_interp > maxdepth:
+            max_interp = maxdepth
+        depth_arr = np.linspace(0,max_interp,n_points)
         Ps = []
         for depth in depth_arr:
             wantidx = self.y-self.ymin<depth
@@ -227,10 +233,13 @@ class CrossSection:
     #    return (x - xm) * (ny - ym) > (y - ym) * (nx - xm)
 
 
-    def calcNormalFlow(self,depth, slope,f=0.1):
-        #wetidx = self.y - self.ymin < depth
-        Pw = self.P_interp(depth)#self.calcP(wantidx=wetidx)
-        A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
+    def calcNormalFlow(self,depth, slope,f=0.1, use_interp=True):
+        if use_interp:
+            Pw = self.P_interp(depth)#self.calcP(wantidx=wetidx)
+            A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
+        else:
+            Pw = self.calcP()
+            A = self.calcA()
         if Pw>0 and A>0 and depth>0:
             D_H = 4.*A/Pw
             Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
@@ -266,14 +275,14 @@ class CrossSection:
             upper_bracket = maxdepth
         else:
             upper_bracket = old_fd*1.05
-        calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f)
+        calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f, use_interp=False)
         if Q>=calcFullFlow:
             #calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
             #if Q>calc95PerFlow:
             #    print("Pipe is full.")
             return -1
         else:
-            dl = self.calcP()/self.n
+            #dl = self.calcP()/self.n
             #dQ = abs(self.calcNormalFlow(self.fd+dl,slope,f=f) - self.calcNormalFlow(self.fd,slope,f=f))
             #print('dQ=',dQ)
             #sol = root_scalar(self.normal_discharge_residual, args=(slope,f,Q), x0=self.fd, x1=self.fd*0.75,xtol=dQ)
