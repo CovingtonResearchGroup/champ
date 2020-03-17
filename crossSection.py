@@ -51,7 +51,7 @@ class CrossSection:
 
     def create_A_interp(self, n_points=30):
         maxdepth = self.ymax - self.ymin
-        max_interp = self.fd*1.25
+        max_interp = self.fd*2.#1.25
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
@@ -69,7 +69,7 @@ class CrossSection:
 
     def create_P_interp(self,n_points=30):
         maxdepth = self.ymax - self.ymin
-        max_interp = self.fd*1.25
+        max_interp = self.fd*2.#1.25
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
@@ -296,7 +296,7 @@ class CrossSection:
         if type(old_fd) == type(None):
             upper_bound = maxdepth
         else:
-            upper_bound = old_fd*1.25
+            upper_bound = old_fd*2.
         calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f, use_interp=False)
         if Q>=calcFullFlow:
             #calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
@@ -315,6 +315,7 @@ class CrossSection:
             fd = sol.x
 #            if fd<0:
 #                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
+            print('Q residual=', self.abs_normal_discharge_residual(fd,slope,f,Q))
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1
@@ -322,9 +323,11 @@ class CrossSection:
         return self.fd
 
     def calcCritFlowDepth(self,Q):
-        #maxdepth = self.ymax - self.ymin
+        maxdepth = self.ymax - self.ymin
         fd = self.fd
-        upper_bound = fd*1.25
+        upper_bound = fd*2.#1.25
+        if upper_bound>0.99*maxdepth:
+            upper_bound=0.99*maxdepth
         #Commented this out when changed to abs(), don't think we need it anymore
         #if self.crit_flow_depth_residual(fd*0.01,Q)>0:
         #    return -1
