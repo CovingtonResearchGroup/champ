@@ -2,7 +2,7 @@ from numpy import sin, cos, pi, fabs, sign, roll, arctan2, diff, sum, hypot,\
                     logical_and, where, linspace, sqrt
 import numpy as np
 from scipy import interpolate
-from scipy.optimize import brentq, root_scalar
+from scipy.optimize import brentq, root_scalar, minimize_scalar
 import matplotlib.pyplot as plt
 
 
@@ -241,6 +241,10 @@ class CrossSection:
     def normal_discharge_residual(self, depth, slope, f, desiredQ):
         return desiredQ - self.calcNormalFlow(depth,slope,f=f)
 
+    def abs_normal_discharge_residual(self, depth, slope, f, desiredQ):
+        return np.abs(desiredQ - self.calcNormalFlow(depth,slope,f=f))
+
+
     def head_discharge_residual(self,y_in,y_out,L,slope,f, desiredQ):
         avg_flow_depth = (y_out + y_in)/2.
         head_slope = (y_in - y_out)/L + slope
@@ -256,8 +260,12 @@ class CrossSection:
         #print(depth,W,A)
         return A**3/W - Q**2/g
 
-    def calcNormalFlowDepth(self,Q, slope,f=0.1):
+    def calcNormalFlowDepth(self,Q, slope,f=0.1, old_fd=None):
         maxdepth = self.ymax - self.ymin
+        if type(old_fd) == type(None):
+            upper_bracket = maxdepth
+        else:
+            upper_bracket = old_fd*1.05
         calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f)
         if Q>=calcFullFlow:
             #calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
@@ -266,15 +274,16 @@ class CrossSection:
             return -1
         else:
             dl = self.calcP()/self.n
-            dQ = abs(self.calcNormalFlow(self.fd+dl,slope,f=f) - self.calcNormalFlow(self.fd,slope,f=f))
-            print('dQ=',dQ)
-            #fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
-            sol = root_scalar(self.normal_discharge_residual, args=(slope,f,Q), x0=self.fd, x1=self.fd*0.75,xtol=dQ)
-#            print(sol)
-            fd = sol.root
-            if fd<0:
-                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
-
+            #dQ = abs(self.calcNormalFlow(self.fd+dl,slope,f=f) - self.calcNormalFlow(self.fd,slope,f=f))
+            #print('dQ=',dQ)
+            #sol = root_scalar(self.normal_discharge_residual, args=(slope,f,Q), x0=self.fd, x1=self.fd*0.75,xtol=dQ)
+            #fd = sol.root
+            print('about to minimize')
+            sol = minimize_scalar(self.abs_normal_discharge_residual, bounds=[SMALL,upper_bracket], args=(slope,f,Q), method='bounded' )
+            print('found min')
+            fd = sol.x
+#            if fd<0:
+#                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1
