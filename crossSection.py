@@ -21,7 +21,7 @@ class CrossSection:
         self.ymax = max(y)
         self.create_pm()
         self.z0=z0
-        self.setFD(SMALL)
+        self.setFD(self.ymax - self.ymin)
 
     # Create arrays of x+1, y+1, x-1, x+1
     def create_pm(self):
@@ -54,6 +54,10 @@ class CrossSection:
         max_interp = self.fd*1.25
         if max_interp > maxdepth:
             max_interp = maxdepth
+        num_xc_points = len(self.y[self.y-self.ymin<max_interp])
+        print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
+        if num_xc_points<n_points/3.:
+            n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
         As = []
         for depth in depth_arr:
@@ -68,6 +72,10 @@ class CrossSection:
         max_interp = self.fd*1.25
         if max_interp > maxdepth:
             max_interp = maxdepth
+        num_xc_points = len(self.y[self.y-self.ymin<max_interp])
+        print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
+        if num_xc_points<n_points/3.:
+            n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
         Ps = []
         for depth in depth_arr:
@@ -190,8 +198,10 @@ class CrossSection:
         ny = self.y
         nx[wetidx] = self.x[wetidx] + dr*cos(theta[wetidx])
         ny[wetidx] = self.y[wetidx] - dr*sin(theta[wetidx])
-
-
+        #If we have few points left in xc, increase number of points
+        #if len(nx[wetidx])<20:
+        #    n=int(round(n*2))
+        #This approach is really inefficient and somewhat unstable
 
         # Check if we drew inside or outside..
         #  Think I fixed this MDC (3/13/2020)
@@ -225,6 +235,7 @@ class CrossSection:
 #        self.create_pm()
         self.ymin = min(ny)
         self.ymax = max(ny)
+        self.n = len(nx)
 
 
     # Counter clockwise function to determine if we drew points in the correct
@@ -269,12 +280,23 @@ class CrossSection:
         #print(depth,W,A)
         return A**3/W - Q**2/g
 
+    def abs_crit_flow_depth_residual(self,depth,Q):
+        #wetidx = self.y - self.ymin < depth
+        #print(wetidx)
+        #print(depth)
+        A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
+        L,R = self.findLR(depth)
+        W = self.x[R] - self.x[L]
+        #print(depth,W,A)
+        return abs(A**3/W - Q**2/g)
+
+
     def calcNormalFlowDepth(self,Q, slope,f=0.1, old_fd=None):
         maxdepth = self.ymax - self.ymin
         if type(old_fd) == type(None):
-            upper_bracket = maxdepth
+            upper_bound = maxdepth
         else:
-            upper_bracket = old_fd*1.05
+            upper_bound = old_fd*1.25
         calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f, use_interp=False)
         if Q>=calcFullFlow:
             #calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
@@ -288,7 +310,7 @@ class CrossSection:
             #sol = root_scalar(self.normal_discharge_residual, args=(slope,f,Q), x0=self.fd, x1=self.fd*0.75,xtol=dQ)
             #fd = sol.root
             print('about to minimize')
-            sol = minimize_scalar(self.abs_normal_discharge_residual, bounds=[SMALL,upper_bracket], args=(slope,f,Q), method='bounded' )
+            sol = minimize_scalar(self.abs_normal_discharge_residual, bounds=[SMALL,upper_bound], args=(slope,f,Q), method='bounded' )
             print('found min')
             fd = sol.x
 #            if fd<0:
@@ -300,10 +322,15 @@ class CrossSection:
         return self.fd
 
     def calcCritFlowDepth(self,Q):
-        maxdepth = self.ymax - self.ymin
-        if self.crit_flow_depth_residual(maxdepth*0.01,Q)>0:
-            return -1
-        crit_depth = brentq(self.crit_flow_depth_residual, maxdepth*0.01, maxdepth*0.95, args=(Q,))
+        #maxdepth = self.ymax - self.ymin
+        fd = self.fd
+        upper_bound = fd*1.25
+        #Commented this out when changed to abs(), don't think we need it anymore
+        #if self.crit_flow_depth_residual(fd*0.01,Q)>0:
+        #    return -1
+        #crit_depth = brentq(self.crit_flow_depth_residual, maxdepth*0.01, maxdepth*0.95, args=(Q,))
+        sol = minimize_scalar(self.abs_crit_flow_depth_residual, bounds=[SMALL,upper_bound], args=(Q,), method='bounded')
+        crit_depth = sol.x
         return crit_depth
 
     def calcPipeFullHeadGrad(self,Q,slope,f=0.1):
