@@ -249,8 +249,9 @@ class CrossSection:
             Pw = self.P_interp(depth)#self.calcP(wantidx=wetidx)
             A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
         else:
-            Pw = self.calcP()
-            A = self.calcA()
+            wetidx = self.y-self.ymin<depth
+            Pw = self.calcP(wantidx=wetidx)
+            A = self.calcA(wantidx=wetidx)
         if Pw>0 and A>0 and depth>0:
             D_H = 4.*A/Pw
             Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
@@ -315,7 +316,7 @@ class CrossSection:
             fd = sol.x
 #            if fd<0:
 #                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
-            print('Q residual=', self.abs_normal_discharge_residual(fd,slope,f,Q))
+            print('Q residual for',fd,' =', self.abs_normal_discharge_residual(fd,slope,f,Q))
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1
