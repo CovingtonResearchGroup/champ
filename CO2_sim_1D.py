@@ -226,22 +226,22 @@ class CO2_1D:
             self.calc_conc_from_upstream( palmer=palmer)
         else:
             #Calculate air downstream bnd value using linear shooting method
-            g1 = self.pCO2_high*0.5#pCO2_outside
-            g2 = self.pCO2_high
+            g1 = 1.#self.pCO2_high*0.5#pCO2_outside
+            g2 = 0.5#self.pCO2_high
             self.calc_conc_from_upstream(CO2_a_upstream=g1, palmer=palmer)
             CO2_down_1 = self.CO2_a[0]
             self.calc_conc_from_upstream(CO2_a_upstream=g2, palmer=palmer)
             CO2_down_2 = self.CO2_a[0]
             CO2_a_upstream_corrected = g1 + \
-                (g2 - g1)/(CO2_down_2-CO2_down_1)*(self.pCO2_outside-CO2_down_1)
+                (g2 - g1)/(CO2_down_2-CO2_down_1)*(self.pCO2_outside/self.pCO2_high-CO2_down_1)
             self.calc_conc_from_upstream(CO2_a_upstream=CO2_a_upstream_corrected,palmer=palmer)
-            if self.CO2_a[0] - self.pCO2_outside > self.abs_tol or True in np.isnan(self.CO2_a):
-                print("Linear shooting method failed...")
-                CO2_a_upstream_brent = brentq(self.downstream_CO2_residual, self.pCO2_high, self.pCO2_outside, xtol=self.abs_tol)
+            if self.CO2_a[0] - self.pCO2_outside/self.pCO2_high > self.abs_tol or True in np.isnan(self.CO2_a):
+                print("Linear shooting method failed...residual=",self.CO2_a[0] - self.pCO2_outside/self.pCO2_high)
+                CO2_a_upstream_brent = brentq(self.downstream_CO2_residual, self.pCO2_outside/self.pCO2_high, 1., xtol=self.abs_tol)
 
     def downstream_CO2_residual(self,CO2_a_upstream):
         mod_CO2_downstream = self.calc_conc_from_upstream(CO2_a_upstream=CO2_a_upstream)
-        return self.CO2_a[0] - self.pCO2_outside
+        return self.CO2_a[0] - self.pCO2_outside//self.pCO2_high
 
     def calc_conc_from_upstream(self, CO2_a_upstream=None, palmer=False):
         if CO2_a_upstream != None:
