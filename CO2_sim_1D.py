@@ -310,10 +310,29 @@ class CO2_1D:
 
     def erode_xcs(self):
         F_to_m_yr = g_mol_CaCO3*secs_per_year/rho_limestone/cm_m**3
+        ymins = []
         for xc in self.xcs:
             xc.dr = F_to_m_yr*xc.F_xc*self.dt_erode
             #xc.dr = savgol_filter(xc.dr,15,3,mode='wrap')
             xc.erode(xc.dr)
+            ymins.append(xc.ymin)
+        #Adjust slopes
+        ymins = np.array(ymins)
+        dys = ymins[0:-1] - ymins[1:]
+        print('dys=',dys)
+        for i,xc in enumerate(self.xcs):
+            if i==0:
+                dy_down = 0.
+            else:
+                dy_down = 0.5*dys[i-1]
+            if i==len(self.xcs)-1:
+                dy_up = 0.
+            else:
+                dy_up = 0.5*dys[i]
+            dslope = (dy_down - dy_up)/self.L_arr[i]
+            print('xc=',i,'  dslope=',dslope)
+            self.slopes[i] = self.slopes[i] + dslope
+
 
     def update_adv_disp_M_water(self):
         #Construct Adv-disp matrix for water
