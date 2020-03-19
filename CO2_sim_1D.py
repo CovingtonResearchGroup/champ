@@ -33,7 +33,7 @@ class CO2_1D:
     pCO2_high=5000*1e-6, pCO2_outside=500*1e-6, f=0.1,
     T_cave=10, T_outside=20., gas_transf_vel=0.1/secs_per_hour, abs_tol=1e-5, rel_tol=1e-5,
     CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
-    init_shape = 'circle', init_radii = 0.5, offsets = 0., xc_n=1000,
+    init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
     adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.1, dt_erode=1.,
     downstream_bnd_type='normal'):
         self.n_nodes = x_arr.size
@@ -80,7 +80,9 @@ class CO2_1D:
         self.Lambda_w = np.zeros(self.n_nodes - 1)
 
         self.fd_mids = np.zeros(self.n_nodes-1)
-        self.offsets = np.ones(self.n_nodes-1) * offsets
+        self.init_offsets = np.ones(self.n_nodes-1) * init_offsets
+        self.up_offsets = np.zeros(self.n_nodes-1)
+        self.down_offsets = np.zeros(self.n_nodes-1)
         self.h = np.zeros(self.n_nodes)
         self.h0 = h0
         self.f=f
@@ -97,7 +99,7 @@ class CO2_1D:
         self.radii = init_radii*np.ones(self.n_nodes-1)
         for i in np.arange(self.n_nodes-1):
             x, y = genCirc(self.radii[i],n=xc_n)
-            y = y + self.offsets[i]
+            y = y + self.init_offsets[i]
             this_xc = CrossSection(x,y)
             self.xcs.append(this_xc)
             #self.maxdepths[i] = this_xc.ymax - this_xc.ymin
@@ -121,7 +123,7 @@ class CO2_1D:
             xc.create_P_interp()
             print('xc=',i)
             #Try calculating flow depth
-            backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax)>0
+            backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+self.up_offsets[i])>0#Should I really use the offset here?
             over_normal_capacity=False
             if not backflooded:
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f, old_fd=old_fd)
@@ -140,15 +142,15 @@ class CO2_1D:
             else:
                 crit_fd = xc.calcCritFlowDepth(self.Q_w)
                 y_star = min([crit_fd,norm_fd])
-                y_out = self.h[i] - self.z_arr[i] - xc.ymin
+                y_out = self.h[i] - self.z_arr[i] - xc.ymin + self.down_offsets[i]
                 downstream_critical = y_star>y_out and y_star>0# and i>0
-                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1] - xc.ymin
+                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1] - xc.ymin +self.up_offsets[i]
                 downstream_less_normal = norm_fd>y_out
                 if partial_backflood: #upstream node is flooded above normal depth
                     self.flow_type[i] = 'pbflood'
                     y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
                     if y_in>0:
-                        self.h[i+1] = self.z_arr[i+1] + y_in + xc.ymin
+                        self.h[i+1] = self.z_arr[i+1] + y_in + xc.ymin - self.up_offsets[i]
                         self.fd_mids[i] = (y_out + y_in)/2.
                     else:
                         #We need full pipe to push needed Q
@@ -172,9 +174,9 @@ class CO2_1D:
                 else:
                     self.flow_type[i] = 'norm'
                     if i==0:
-                        self.h[i] = norm_fd + self.z_arr[i] + xc.ymin
+                        self.h[i] = norm_fd + self.z_arr[i] + xc.ymin - self.down_offsets[i]
                     #dz = slopes[i]*(x[i+1] - x[i])
-                    self.h[i+1] = self.z_arr[i+1] + norm_fd + xc.ymin
+                    self.h[i+1] = self.z_arr[i+1] + norm_fd + xc.ymin - self.up_offsets[i]
                     self.fd_mids[i] = norm_fd
             # Calculate flow areas, wetted perimeters, hydraulic diameters,
             # free surface widths, and velocities
@@ -318,21 +320,26 @@ class CO2_1D:
             ymins.append(xc.ymin)
         #Adjust slopes
         ymins = np.array(ymins)
-        dys = ymins[0:-1] - ymins[1:]
+        print('ymins=',ymins)
+        dys = ymins[0:-1]+self.down_offsets[0:-1] - (ymins[1:]+self.up_offsets[1:])
         print('dys=',dys)
         for i,xc in enumerate(self.xcs):
             if i==0:
                 dy_down = 0.
             else:
-                dy_down = 0.5*dys[i-1]
+                dy_down = -0.5*dys[i-1]
             if i==len(self.xcs)-1:
                 dy_up = 0.
             else:
                 dy_up = 0.5*dys[i]
+            self.down_offsets[i] -= dy_down
+            self.up_offsets[i] -= dy_up
             dslope = (dy_down - dy_up)/self.L_arr[i]
             print('xc=',i,'  dslope=',dslope)
+            print('down_offset=',self.down_offsets[i],'up_offset=',self.up_offsets[i])
             self.slopes[i] = self.slopes[i] + dslope
-
+        print('dys after=', ymins[0:-1]+self.down_offsets[0:-1] - (ymins[1:]+self.up_offsets[1:])
+ )
 
     def update_adv_disp_M_water(self):
         #Construct Adv-disp matrix for water
