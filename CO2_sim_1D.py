@@ -328,6 +328,9 @@ class CO2_1D:
         #Adjust slopes
         dz = self.ymins - old_ymins
         print('dz=',dz)
+        Celerity = max(dz/self.slopes)
+        CFL = self.dt_erode*Celerity/min((self.x_arr[1:] - self.x_arr[:-1]))
+        print('CFL=',CFL)
         self.z_arr[1:] = self.z_arr[1:] + dz
         #bed_elevs = self.z_arr[1:] + ymins
         #new_slopes = self.slopes
