@@ -297,7 +297,7 @@ class CrossSection:
         if type(old_fd) == type(None):
             upper_bound = maxdepth
         else:
-            upper_bound = old_fd*1.25
+            upper_bound = old_fd*1.1#25
         calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f, use_interp=False)
         if Q>=calcFullFlow:
             #calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
@@ -310,9 +310,9 @@ class CrossSection:
             #print('dQ=',dQ)
             #sol = root_scalar(self.normal_discharge_residual, args=(slope,f,Q), x0=self.fd, x1=self.fd*0.75,xtol=dQ)
             #fd = sol.root
-            print('about to minimize')
+            #print('about to minimize')
             sol = minimize_scalar(self.abs_normal_discharge_residual, bounds=[SMALL,upper_bound], args=(slope,f,Q), method='bounded' )
-            print('found min')
+            #print('found min')
             fd = sol.x
 #            if fd<0:
 #                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))

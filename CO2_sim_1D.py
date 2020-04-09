@@ -172,7 +172,7 @@ class CO2_1D:
                     self.fd_mids[i] = (y_in + y_star)/2.
                     self.h[i+1] = self.z_arr[i+1] + y_in
                     if i==0:
-                        self.h[0]=z_arr[0] + norm_fd #y_star
+                        self.h[0]=self.z_arr[0] + y_star#norm_fd #y_star
                 #elif downstream_less_normal:
                 #    self.flow_type[i] = 'dwnslessnorm'
                 #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
@@ -279,6 +279,7 @@ class CO2_1D:
             else:
                 this_xc = self.xcs[i-1]
                 eSlope = (self.h[i] - self.h[i-1])/self.L_arr[i-1]
+                print('i=',i,'eSlope=',eSlope)
                 this_xc.setEnergySlope(eSlope)
                 this_xc.setMaxVelPoint(self.fd_mids[i-1])
                 this_xc.calcUmax(self.Q_w)
@@ -327,9 +328,10 @@ class CO2_1D:
             self.ymins[i]= xc.ymin
         #Adjust slopes
         dz = self.ymins - old_ymins
+        self.dz = dz
         print('dz=',dz)
-        Celerity = max(dz/self.slopes)
-        CFL = self.dt_erode*Celerity/min((self.x_arr[1:] - self.x_arr[:-1]))
+        Celerity_times_dt = np.abs(max(dz/self.slopes))
+        CFL = Celerity_times_dt/min((self.x_arr[1:] - self.x_arr[:-1]))
         print('CFL=',CFL)
         self.z_arr[1:] = self.z_arr[1:] + dz
         #bed_elevs = self.z_arr[1:] + ymins
