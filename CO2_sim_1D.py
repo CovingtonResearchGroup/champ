@@ -278,24 +278,30 @@ class CO2_1D:
                 R = F[i-1]*mm_yr_to_mols_sec[i-1]
             else:
                 this_xc = self.xcs[i-1]
-                eSlope = (self.h[i] - self.h[i-1])/self.L_arr[i-1]
-                print('i=',i,'eSlope=',eSlope)
+                if self.flow_type[i-1] == 'norm':
+                    #use bed slope for energy slope in this case
+                    eSlope = self.slopes[i-1]
+                else:
+                    eSlope = (self.h[i] - self.h[i-1])/self.L_arr[i-1]
+                #print('xc i=',i-1,'eSlope=',eSlope)
                 this_xc.setEnergySlope(eSlope)
                 this_xc.setMaxVelPoint(self.fd_mids[i-1])
                 this_xc.calcUmax(self.Q_w)
                 T_b = this_xc.calcT_b()
-                print('min T_b=', T_b.min())
-                print('mean T_b=', T_b.mean())
+                #print('min T_b=', T_b.min())
+                #print('max T_b=', T_b.max())
+                #print('mean T_b=', T_b.mean())
                 if T_b.min()<0:
                     print(asdf)
                 eps = 5*nu*Sc**(-1./3.)/np.sqrt(T_b/rho_w)
-                #print(eps)
+                #print('eps=',eps.mean())
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)
-                #print(this_Ca,Ca_Eq)
+                #print('Ca=',this_Ca,'   Ca_eq=',Ca_Eq)
                 F_xc = self.reduction_factor*D_Ca/eps*(Ca_Eq - this_Ca)*L_per_m3
                 this_xc.set_F_xc(F_xc)
                 P_w = this_xc.wet_ls.sum()
                 F[i-1] = np.sum(F_xc*this_xc.wet_ls)/P_w #Units of F are mols/m^2/sec
+                #print('F=',F[i-1])
                 R = F[i-1]*P_w*self.L_arr[i-1]#4.*F[i-1]/self.D_H_w[i-1]
             R_CO2 = R/self.K_H
             #dx is negative, so signs on dC terms flip
@@ -323,13 +329,14 @@ class CO2_1D:
         old_ymins = self.ymins.copy()
         for i,xc in enumerate(self.xcs):
             xc.dr = F_to_m_yr*xc.F_xc*self.dt_erode
+            #print('i=',i,'  max dr=', xc.dr.max(), '  max F_xc=',xc.F_xc.max())
             #xc.dr = savgol_filter(xc.dr,15,3,mode='wrap')
             xc.erode(xc.dr)
             self.ymins[i]= xc.ymin
         #Adjust slopes
         dz = self.ymins - old_ymins
         self.dz = dz
-        print('dz=',dz)
+        #print('dz=',dz)
         Celerity_times_dt = np.abs(max(dz/self.slopes))
         CFL = Celerity_times_dt/min((self.x_arr[1:] - self.x_arr[:-1]))
         print('CFL=',CFL)
