@@ -297,7 +297,7 @@ class CO2_1D:
                 #print('eps=',eps.mean())
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)
                 #print('Ca=',this_Ca,'   Ca_eq=',Ca_Eq)
-                F_xc = self.reduction_factor*D_Ca/eps*(Ca_Eq - this_Ca)*L_per_m3
+                F_xc = self.reduction_factor*D_Ca/eps*(0.5*self.Ca_eq_0)*L_per_m3#(Ca_Eq - this_Ca)*L_per_m3
                 #Smooth F_xc with savgol_filter
                 window = int(np.ceil(len(F_xc)/25)//2*2+1)
                 F_xc = savgol_filter(F_xc,window,3)
