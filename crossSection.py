@@ -10,6 +10,8 @@ g=9.8 #m/s^2
 rho_w = 998.2 #kg/m^3
 SMALL = 1e-6
 use_centroid_fraction =0.98#switch to  max vel at centroid if over this fraction of ymax
+min_wet_points = 500
+trim_factor = 2. #Trim xc points with y above trim_factor*fd
 
 class CrossSection:
 
@@ -35,6 +37,11 @@ class CrossSection:
             l = hypot(self.x[wantidx] - self.xp[wantidx], self.y[wantidx] - self.yp[wantidx])
         else:
             l = hypot(self.x - self.xp, self.y - self.yp)
+        if len(l)>0:
+            maxidx = np.argmax(l)
+            if l[maxidx]>100*l.min():
+                #If perimeter connects across non-existent ceiling, cut this out
+                l[maxidx] = 0.
         P = abs(sum(l))
         return P
         #self.pp = cumsum(self.l)
@@ -198,28 +205,22 @@ class CrossSection:
         ny = self.y
         nx[wetidx] = self.x[wetidx] + dr*cos(theta[wetidx])
         ny[wetidx] = self.y[wetidx] - dr*sin(theta[wetidx])
-        #If we have few points left in xc, increase number of points
-        #if len(nx[wetidx])<20:
-        #    n=int(round(n*2))
-        #This approach is really inefficient and somewhat unstable
 
-        # Check if we drew inside or outside..
-        #  Think I fixed this MDC (3/13/2020)
-        #c = self.ccw(self.x[wetidx], self.y[wetidx], self.xm[wetidx], self.ym[wetidx], nx[wetidx], ny[wetidx])
-
-        #(nx[wetidx])[c] = (self.x[wetidx] - sign(self.x[wetidx])*dr*cos(theta))[c]
-        #(ny[wetidx])[c] = (self.y[wetidx] + sign(self.x[wetidx])*dr*sin(theta))[c]
-
-#        c = self.ccw(self.x, self.y, self.xm, self.ym, nx, ny)
-
-#        nx[c] = (self.x - sign(self.x)*dr*cos(theta))[c]
-#        ny[c] = (self.y + sign(self.x)*dr*sin(theta))[c]
-
+        #Once flow drops far enough below ceiling, trim XC
+        tmp_ymin = min(ny)
+        trim_y = (self.fd*trim_factor + tmp_ymin)
+        if trim_y<max(ny):
+            nx = nx[ny<trim_y]
+            ny = ny[ny<trim_y]
+        #print('trim_y=',trim_y)
+        #print('len nx=', len(nx))
+        #print('tmp ymin=',tmp_ymin)
+        #print('fd=',self.fd)
         #Resample points by fitting spline
         if resample:
             #s = nx.size#+np.sqrt(2*nx.size)
             tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0.)
-            un = linspace(u.min(), u.max(), n if n!=nx.size else nx.size)
+            un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
             nx, ny = interpolate.splev(un, tck, der=0)
 
 
@@ -234,7 +235,9 @@ class CrossSection:
 #        self.y = (self.yp + self.ym)/2.
 #        self.create_pm()
         self.ymin = min(ny)
-        self.ymax = max(ny)
+        #only reset ymax if it is increasing
+        if max(ny)>self.ymax:
+            self.ymax = max(ny)
         self.n = len(nx)
 
 
@@ -252,9 +255,11 @@ class CrossSection:
             wetidx = self.y-self.ymin<depth
             Pw = self.calcP(wantidx=wetidx)
             A = self.calcA(wantidx=wetidx)
+            print('Pw=',Pw, '  A=,',A)
         if Pw>0 and A>0 and depth>0:
             D_H = 4.*A/Pw
             Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
+            print('Q=',Q)
         else:
             Q=0.
         return Q
@@ -299,7 +304,7 @@ class CrossSection:
         else:
             upper_bound = old_fd*1.1#25
         calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f, use_interp=False)
-        if Q>=calcFullFlow:
+        if Q>=calcFullFlow and not self.ymax>self.y.max():
             #calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
             #if Q>calc95PerFlow:
             #    print("Pipe is full.")
