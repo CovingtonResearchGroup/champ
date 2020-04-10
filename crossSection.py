@@ -255,11 +255,11 @@ class CrossSection:
             wetidx = self.y-self.ymin<depth
             Pw = self.calcP(wantidx=wetidx)
             A = self.calcA(wantidx=wetidx)
-            print('Pw=',Pw, '  A=,',A)
+            #print('Pw=',Pw, '  A=,',A)
         if Pw>0 and A>0 and depth>0:
             D_H = 4.*A/Pw
             Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
-            print('Q=',Q)
+            #print('Q=',Q)
         else:
             Q=0.
         return Q
