@@ -299,7 +299,7 @@ class CO2_1D:
                 #print('Ca=',this_Ca,'   Ca_eq=',Ca_Eq)
                 F_xc = self.reduction_factor*D_Ca/eps*(0.5*self.Ca_eq_0)*L_per_m3#(Ca_Eq - this_Ca)*L_per_m3
                 #Smooth F_xc with savgol_filter
-                window = int(np.ceil(len(F_xc)/25)//2*2+1)
+                window = int(np.ceil(len(F_xc)/5)//2*2+1)
                 F_xc = savgol_filter(F_xc,window,3)
                 this_xc.set_F_xc(F_xc)
                 P_w = this_xc.wet_ls.sum()
