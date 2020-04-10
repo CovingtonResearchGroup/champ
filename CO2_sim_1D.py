@@ -147,8 +147,8 @@ class CO2_1D:
                 self.h[i+1] = self.h[i] + delh * self.L_arr[i]
                 self.fd_mids[i] = xc.ymax - xc.ymin
             else:
-                crit_fd = xc.calcCritFlowDepth(self.Q_w)
-                y_star = min([crit_fd,norm_fd])
+                #crit_fd = xc.calcCritFlowDepth(self.Q_w)
+                y_star = norm_fd#min([crit_fd,norm_fd])
                 y_out = self.h[i] - self.z_arr[i]  + self.down_offsets[i]
                 downstream_critical = y_star>y_out and y_star>0# and i>0
                 partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]  +self.up_offsets[i]
@@ -165,14 +165,14 @@ class CO2_1D:
                         self.h[i+1] = self.h[i] + delh * self.L_arr[i]
                         self.fd_mids[i] = xc.ymax - xc.ymin
                         self.flow_type[i] = 'full'
-                elif downstream_critical:
-                    self.flow_type[i] = 'dwnscrit'
-                    #Use minimum of critical or normal depth for downstream y
-                    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_star,self.L_arr[i],f=self.f)
-                    self.fd_mids[i] = (y_in + y_star)/2.
-                    self.h[i+1] = self.z_arr[i+1] + y_in
-                    if i==0:
-                        self.h[0]=self.z_arr[0] + y_star#norm_fd #y_star
+                #elif downstream_critical:
+                #    self.flow_type[i] = 'dwnscrit'
+                #    #Use minimum of critical or normal depth for downstream y
+                #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_star,self.L_arr[i],f=self.f)
+                #    self.fd_mids[i] = (y_in + y_star)/2.
+                #    self.h[i+1] = self.z_arr[i+1] + y_in
+                #    if i==0:
+                #        self.h[0]=self.z_arr[0] + y_star#norm_fd #y_star
                 #elif downstream_less_normal:
                 #    self.flow_type[i] = 'dwnslessnorm'
                 #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
