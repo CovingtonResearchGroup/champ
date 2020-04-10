@@ -62,7 +62,7 @@ class CrossSection:
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
-        print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
+        #print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
         if num_xc_points<n_points/3.:
             n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
@@ -80,7 +80,7 @@ class CrossSection:
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
-        print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
+        #print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
         if num_xc_points<n_points/3.:
             n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
