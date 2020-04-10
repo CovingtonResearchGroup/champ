@@ -195,16 +195,16 @@ class CO2_1D:
             self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
             print(self.flow_type[i])
             if self.flow_type[i] != 'full':
-                print('getting width')
+                #print('getting width')
                 L,R = xc.findLR(self.fd_mids[i])
-                print('got L,R')
+                #print('got L,R')
                 self.W[i] = xc.x[R] - xc.x[L]
             else:
                 self.W[i] = 0.
             #Set water line in cross-section object
-            print('setting fd')
+            #print('setting fd')
             xc.setFD(self.fd_mids[i])
-            print('done with this xc')
+            #print('done with this xc')
 
     def calc_air_flow(self):
         dT = self.T_outside - self.T_cave
