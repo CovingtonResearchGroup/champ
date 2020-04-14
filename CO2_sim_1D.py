@@ -288,9 +288,10 @@ class CO2_1D:
                 this_xc.setMaxVelPoint(self.fd_mids[i-1])
                 this_xc.calcUmax(self.Q_w)
                 T_b = this_xc.calcT_b()
-                #print('min T_b=', T_b.min())
-                #print('max T_b=', T_b.max())
-                #print('mean T_b=', T_b.mean())
+                print('i=',i)
+                print('min T_b=', T_b.min())
+                print('max T_b=', T_b.max())
+                print('mean T_b=', T_b.mean())
                 if T_b.min()<0:
                     print(asdf)
                 eps = 5*nu*Sc**(-1./3.)/np.sqrt(T_b/rho_w)

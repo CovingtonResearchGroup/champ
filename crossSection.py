@@ -10,7 +10,6 @@ g=9.8 #m/s^2
 rho_w = 998.2 #kg/m^3
 SMALL = 1e-6
 use_centroid_fraction =0.98#switch to  max vel at centroid if over this fraction of ymax
-min_wet_points = 500
 trim_factor = 2. #Trim xc points with y above trim_factor*fd
 
 class CrossSection:
@@ -167,10 +166,10 @@ class CrossSection:
         self.umax = Q/(a_i*u_i).sum()
 
     def calcT_b(self):
-        vgrad = self.calcVGrad2()
+        vgrad2 = self.calcVGrad2()
         psi = self.calcPsi()
         Awet = self.calcA(wantidx=self.wetidx)
-        self.T_b = psi*rho_w*Awet*self.vgrad2
+        self.T_b = psi*rho_w*Awet*vgrad2
         return self.T_b
 
     def calcVGrad2(self):
@@ -179,7 +178,7 @@ class CrossSection:
         alpha = np.arctan2(self.yp[wetidx] - self.ym[wetidx], self.xp[wetidx]-self.xm[wetidx])
         alpha[0] = alpha[1]
         alpha[-1] = alpha[-2]
-        self.vgrad2 = (self.umax/self.z0)*(1./np.log(self.r_l/self.z0))*np.fabs(np.sin(phi-alpha))**2
+        self.vgrad2 = ((self.umax/self.z0)*(1./np.log(self.r_l/self.z0))*np.fabs(np.sin(phi-alpha)))**2
         return self.vgrad2
 
     def calcPsi(self):
