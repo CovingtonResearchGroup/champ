@@ -14,7 +14,7 @@ trim_factor = 2. #Trim xc points with y above trim_factor*fd
 
 class CrossSection:
 
-    def __init__(self, x, y, z0=0.01):#z0=roughness height
+    def __init__(self, x, y, z0=0.01/30.):#z0=roughness height
         self.n = len(x)
         self.x = x
         self.y = y
@@ -164,9 +164,11 @@ class CrossSection:
             u_i = 1./np.log(r_l/z0)*u_top/u_bottom
 
         self.umax = Q/(a_i*u_i).sum()
+        print("Umax=",self.umax)
 
     def calcT_b(self):
         vgrad2 = self.calcVGrad2()
+        print('max vgrad2=',vgrad2.max())
         psi = self.calcPsi()
         Awet = self.calcA(wantidx=self.wetidx)
         self.T_b = psi*rho_w*Awet*vgrad2
@@ -178,12 +180,14 @@ class CrossSection:
         alpha = np.arctan2(self.yp[wetidx] - self.ym[wetidx], self.xp[wetidx]-self.xm[wetidx])
         alpha[0] = alpha[1]
         alpha[-1] = alpha[-2]
-        self.vgrad2 = ((self.umax/self.z0)*(1./np.log(self.r_l/self.z0))*np.fabs(np.sin(phi-alpha)))**2
+        self.vgrad2 = ((self.umax/self.z0)*(1./np.log(self.r_l/self.z0))*np.fabs(np.sin(phi-alpha)))**2.
+        print('min sin term=',np.fabs(np.sin(phi-alpha)).min())
         return self.vgrad2
 
     def calcPsi(self):
         wetidx = self.wetidx
         l = np.hypot(self.x[wetidx] - self.xp[wetidx], self.y[wetidx] - self.yp[wetidx])
+        print("min l=",l.min(), "max l=",l.max())
         sum = ((self.vgrad2)*l).sum()
         self.wet_ls = l
         self.psi = g*self.eSlope/sum
