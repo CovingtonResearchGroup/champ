@@ -211,9 +211,14 @@ class CO2_1D:
         dP_tot = self.rho_air_cave*g*self.dH*dT/self.T_outside_K
         R_air = np.zeros(self.n_nodes-1)
         for i, xc in enumerate(self.xcs):
-            dryidx = (xc.y - xc.ymin)>self.fd_mids[i]
-            self.A_a[i] = xc.calcA(wantidx=dryidx)
-            self.P_a = xc.calcP(wantidx=dryidx)
+            if type(xc.x_total) != type(None):
+                dryidx = (xc.y_total - xc.y_total.min())>self.fd_mids[i]
+                self.A_a[i] = xc.calcA(wantidx=dryidx, total=True)
+                self.P_a = xc.calcP(wantidx=dryidx, total=True)
+            else:
+                dryidx = (xc.y - xc.ymin)>self.fd_mids[i]
+                self.A_a[i] = xc.calcA(wantidx=dryidx)
+                self.P_a = xc.calcP(wantidx=dryidx)
             if self.A_a[i]>0:
                 self.D_H_a[i] = 4.*self.A_a[i]/self.P_a
                 R_air[i] = self.rho_air_cave*self.f*self.L_arr[i]/(2.*self.D_H_a[i]*self.A_a[i]**2.)

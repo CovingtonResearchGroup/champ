@@ -33,12 +33,27 @@ class CrossSection:
         self.ym = roll(self.y, 1)
         self.xp = roll(self.x, self.x.size-1)
         self.yp = roll(self.y, self.y.size-1)
+        if type(self.x_total) != type(None):
+            self.xm_total = roll(self.x_total, 1)
+            self.ym_total = roll(self.y_total, 1)
+            self.xp_total = roll(self.xp_total, self.x_total.size-1)
+            self.yp_total = roll(self.yp_total, self.y_total.size-1)
 
-    def calcP(self, wantidx=None):
-        if type(wantidx) != type(None):
-            l = hypot(self.x[wantidx] - self.xp[wantidx], self.y[wantidx] - self.yp[wantidx])
+    def calcP(self, wantidx=None, total=False):
+        if total:
+            x = self.x_total
+            y = self.y_total
+            xp = self.xp_total
+            yp = self.yp_total
         else:
-            l = hypot(self.x - self.xp, self.y - self.yp)
+            x = self.x
+            y = self.y
+            xp= self.xp
+            yp = self.yp
+        if type(wantidx) != type(None):
+            l = hypot(x[wantidx] - xp[wantidx], y[wantidx] - yp[wantidx])
+        else:
+            l = hypot(x - xp, y - yp)
         if len(l)>0:
             maxidx = np.argmax(l)
             if l[maxidx]>100*l.min():
@@ -50,16 +65,26 @@ class CrossSection:
 		#self.P = self.pp[-2]
 
 	# Calculates area of the cross-section
-    def calcA(self, wantidx=None):
+    def calcA(self, wantidx=None, total=False):
+        if total:
+            x = self.x_total
+            y = self.y_total
+            xm = self.xm_total
+            ym = self.ym_total
+        else:
+            x = self.x
+            y = self.y
+            xm= self.xm
+            ym = self.ym
         if type(wantidx) != type(None):
-            if len(self.y[wantidx]>0):
-                maxy = self.y[wantidx].max()
-                self.sA = (self.xm[wantidx]*(self.y[wantidx]-maxy) - self.x[wantidx]*(self.ym[wantidx]-maxy)).sum() * 0.5
+            if len(y[wantidx]>0):
+                maxy = y[wantidx].max()
+                self.sA = (xm[wantidx]*(y[wantidx]-maxy) - x[wantidx]*(ym[wantidx]-maxy)).sum() * 0.5
             else:
                 return 0.
         else:
-            maxy = self.y.max()
-            self.sA = (self.xm*(self.y-maxy) - self.x*(self.ym-maxy)).sum() * 0.5
+            maxy = y.max()
+            self.sA = (xm*(y-maxy) - x*(ym-maxy)).sum() * 0.5
         A = fabs(self.sA)
         return A
 
