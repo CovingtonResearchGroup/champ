@@ -10,18 +10,22 @@ g=9.8 #m/s^2
 rho_w = 998.2 #kg/m^3
 SMALL = 1e-6
 use_centroid_fraction =0.98#switch to  max vel at centroid if over this fraction of ymax
+trim_factor = 2. #Trim xc points with y above trim_factor*fd
 
 class CrossSection:
 
-    def __init__(self, x, y, z0=0.01):#z0=roughness height
+    def __init__(self, x, y, z0=0.01/30.):#z0=roughness height
         self.n = len(x)
         self.x = x
         self.y = y
+        self.x_total = None
+        self.y_total = None
         self.ymin = min(y)
         self.ymax = max(y)
         self.create_pm()
         self.z0=z0
         self.setFD(self.ymax - self.ymin)
+        self.Q = 0.
 
     # Create arrays of x+1, y+1, x-1, x+1
     def create_pm(self):
@@ -29,23 +33,58 @@ class CrossSection:
         self.ym = roll(self.y, 1)
         self.xp = roll(self.x, self.x.size-1)
         self.yp = roll(self.y, self.y.size-1)
+        if type(self.x_total) != type(None):
+            self.xm_total = roll(self.x_total, 1)
+            self.ym_total = roll(self.y_total, 1)
+            self.xp_total = roll(self.x_total, self.x_total.size-1)
+            self.yp_total = roll(self.y_total, self.y_total.size-1)
 
-    def calcP(self, wantidx=None):
-        if type(wantidx) != type(None):
-            l = hypot(self.x[wantidx] - self.xp[wantidx], self.y[wantidx] - self.yp[wantidx])
+    def calcP(self, wantidx=None, total=False):
+        if total:
+            x = self.x_total
+            y = self.y_total
+            xp = self.xp_total
+            yp = self.yp_total
         else:
-            l = hypot(self.x - self.xp, self.y - self.yp)
+            x = self.x
+            y = self.y
+            xp= self.xp
+            yp = self.yp
+        if type(wantidx) != type(None):
+            l = hypot(x[wantidx] - xp[wantidx], y[wantidx] - yp[wantidx])
+        else:
+            l = hypot(x - xp, y - yp)
+        if len(l)>0:
+            maxidx = np.argmax(l)
+            if l[maxidx]>100*l.min():
+                #If perimeter connects across non-existent ceiling, cut this out
+                l[maxidx] = 0.
         P = abs(sum(l))
         return P
         #self.pp = cumsum(self.l)
 		#self.P = self.pp[-2]
 
 	# Calculates area of the cross-section
-    def calcA(self, wantidx=None):
-        if type(wantidx) != type(None):
-            self.sA = (self.xm[wantidx]*self.y[wantidx] - self.x[wantidx]*self.ym[wantidx]).sum() * 0.5
+    def calcA(self, wantidx=None, total=False):
+        if total:
+            x = self.x_total
+            y = self.y_total
+            xm = self.xm_total
+            ym = self.ym_total
         else:
-            self.sA = (self.xm*self.y - self.x*self.ym).sum() * 0.5
+            x = self.x
+            y = self.y
+            xm= self.xm
+            ym = self.ym
+        if type(wantidx) != type(None):
+            if len(y[wantidx]>0):
+                maxy = y[wantidx].max()
+                self.sA = (xm[wantidx]*(y[wantidx]-maxy) - x[wantidx]*(ym[wantidx]-maxy)).sum() * 0.5
+            else:
+                return 0.
+        else:
+            maxy = y.max()
+            self.sA = (xm*(y-maxy) - x*(ym-maxy)).sum() * 0.5
         A = fabs(self.sA)
         return A
 
@@ -55,7 +94,7 @@ class CrossSection:
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
-        print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
+        #print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
         if num_xc_points<n_points/3.:
             n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
@@ -73,7 +112,7 @@ class CrossSection:
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
-        print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
+        #print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
         if num_xc_points<n_points/3.:
             n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
@@ -158,12 +197,14 @@ class CrossSection:
             u_i = 1./np.log(r_l/z0)*u_top/u_bottom
 
         self.umax = Q/(a_i*u_i).sum()
+        print("Umax=",self.umax)
 
     def calcT_b(self):
-        vgrad = self.calcVGrad2()
+        vgrad2 = self.calcVGrad2()
+        print('max vgrad2=',vgrad2.max())
         psi = self.calcPsi()
         Awet = self.calcA(wantidx=self.wetidx)
-        self.T_b = psi*rho_w*Awet*self.vgrad2
+        self.T_b = psi*rho_w*Awet*vgrad2
         return self.T_b
 
     def calcVGrad2(self):
@@ -172,12 +213,14 @@ class CrossSection:
         alpha = np.arctan2(self.yp[wetidx] - self.ym[wetidx], self.xp[wetidx]-self.xm[wetidx])
         alpha[0] = alpha[1]
         alpha[-1] = alpha[-2]
-        self.vgrad2 = (self.umax/self.z0)*(1./np.log(self.r_l/self.z0))*np.fabs(np.sin(phi-alpha))**2
+        self.vgrad2 = ((self.umax/self.z0)*(1./np.log(self.r_l/self.z0))*np.fabs(np.sin(phi-alpha)))**2.
+        print('min sin term=',np.fabs(np.sin(phi-alpha)).min())
         return self.vgrad2
 
     def calcPsi(self):
         wetidx = self.wetidx
         l = np.hypot(self.x[wetidx] - self.xp[wetidx], self.y[wetidx] - self.yp[wetidx])
+        print("min l=",l.min(), "max l=",l.max())
         sum = ((self.vgrad2)*l).sum()
         self.wet_ls = l
         self.psi = g*self.eSlope/sum
@@ -189,6 +232,14 @@ class CrossSection:
     def set_F_xc(self,F_xc):
         self.F_xc = F_xc
 
+    def erode_power_law(self, a=1., K=1e-5):
+        self.setMaxVelPoint(self.fd)
+        self.calcUmax(self.Q)
+        T_b = self.calcT_b()
+        #print('max T_b=', T_b.max())
+        self.dr = K*T_b**a
+        self.erode(self.dr)
+
     def erode(self, dr, resample=True, n=None):
         if n==None:
             n=self.n
@@ -198,28 +249,47 @@ class CrossSection:
         ny = self.y
         nx[wetidx] = self.x[wetidx] + dr*cos(theta[wetidx])
         ny[wetidx] = self.y[wetidx] - dr*sin(theta[wetidx])
-        #If we have few points left in xc, increase number of points
-        #if len(nx[wetidx])<20:
-        #    n=int(round(n*2))
-        #This approach is really inefficient and somewhat unstable
 
-        # Check if we drew inside or outside..
-        #  Think I fixed this MDC (3/13/2020)
-        #c = self.ccw(self.x[wetidx], self.y[wetidx], self.xm[wetidx], self.ym[wetidx], nx[wetidx], ny[wetidx])
+        #Once flow drops far enough below ceiling, trim XC
+        tmp_ymin = min(ny)
+        trim_y = (self.fd*trim_factor + tmp_ymin)
+        trim=False
+        if trim_y<max(ny):
+            trim = True
+            #Initialize total xc arrays if first trimming event
+            if type(self.x_total) == type(None):
+                first_trim = True
+                self.x_total = nx
+                self.y_total = ny
+            else:
+                first_trim = False
+            nx = nx[ny<trim_y]
+            ny = ny[ny<trim_y]
+            if not first_trim:
+                #create new total xc arrays from old and wet portions
+                self.x1 =x1= self.x_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
+                self.y1 =y1= self.y_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
+                #Slightly trim high-res XC to remove any connection across top
+                self.x2 =x2= nx[ny<trim_y-0.02*(ny.max()-ny.min())]
+                self.y2 =y2= ny[ny<trim_y-0.02*(ny.max()-ny.min())]
+                self.x3 =x3= self.x_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
+                self.y3 =y3= self.y_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
+                x_total_tmp = np.concatenate([x1,x2,x3])
+                y_total_tmp = np.concatenate([y1,y2,y3])
+                tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
+                un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
+                self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
+                #print(asdsf)
 
-        #(nx[wetidx])[c] = (self.x[wetidx] - sign(self.x[wetidx])*dr*cos(theta))[c]
-        #(ny[wetidx])[c] = (self.y[wetidx] + sign(self.x[wetidx])*dr*sin(theta))[c]
-
-#        c = self.ccw(self.x, self.y, self.xm, self.ym, nx, ny)
-
-#        nx[c] = (self.x - sign(self.x)*dr*cos(theta))[c]
-#        ny[c] = (self.y + sign(self.x)*dr*sin(theta))[c]
-
+        #print('trim_y=',trim_y)
+        #print('len nx=', len(nx))
+        #print('tmp ymin=',tmp_ymin)
+        #print('fd=',self.fd)
         #Resample points by fitting spline
         if resample:
             #s = nx.size#+np.sqrt(2*nx.size)
             tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0.)
-            un = linspace(u.min(), u.max(), n if n!=nx.size else nx.size)
+            un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
             nx, ny = interpolate.splev(un, tck, der=0)
 
 
@@ -227,6 +297,9 @@ class CrossSection:
         y_roll = ny.size - ny.argmax()
         nx = roll(nx, y_roll)
         ny = roll(ny, y_roll)
+#        if trim:
+#            nx = nx[ny<trim_y-0.02*(ny.max()-ny.min())]#Slightly trim to remove roof
+#            ny = ny[ny<trim_y-0.02*(ny.max()-ny.min())]
         self.x = nx
         self.y = ny
         self.create_pm()
@@ -234,6 +307,8 @@ class CrossSection:
 #        self.y = (self.yp + self.ym)/2.
 #        self.create_pm()
         self.ymin = min(ny)
+        #only reset ymax if it is increasing
+        #if max(ny)>self.ymax:
         self.ymax = max(ny)
         self.n = len(nx)
 
@@ -252,9 +327,11 @@ class CrossSection:
             wetidx = self.y-self.ymin<depth
             Pw = self.calcP(wantidx=wetidx)
             A = self.calcA(wantidx=wetidx)
+            #print('Pw=',Pw, '  A=,',A)
         if Pw>0 and A>0 and depth>0:
             D_H = 4.*A/Pw
             Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
+            #print('Q=',Q)
         else:
             Q=0.
         return Q
@@ -293,13 +370,14 @@ class CrossSection:
 
 
     def calcNormalFlowDepth(self,Q, slope,f=0.1, old_fd=None):
+        self.Q = Q
         maxdepth = self.ymax - self.ymin
         if type(old_fd) == type(None):
             upper_bound = maxdepth
         else:
             upper_bound = old_fd*1.1#25
         calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f, use_interp=False)
-        if Q>=calcFullFlow:
+        if Q>=calcFullFlow and not self.ymax>self.y.max():
             #calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
             #if Q>calc95PerFlow:
             #    print("Pipe is full.")
@@ -337,7 +415,8 @@ class CrossSection:
         crit_depth = sol.x
         return crit_depth
 
-    def calcPipeFullHeadGrad(self,Q,slope,f=0.1):
+    def calcPipeFullHeadGrad(self,Q,f=0.1):
+        self.Q = Q
         Pw = self.calcP()
         A = self.calcA()
         D_H = 4.*A/Pw

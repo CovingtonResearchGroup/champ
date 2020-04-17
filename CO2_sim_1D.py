@@ -143,12 +143,12 @@ class CO2_1D:
                     #if downstream boundary set head to top of pipe
                     self.h[0]= self.z_arr[0] + xc.ymax - xc.ymin
                 #We have a full pipe, calculate head gradient instead
-                delh = xc.calcPipeFullHeadGrad(self.Q_w,self.slopes[i],f=self.f)
+                delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
                 self.h[i+1] = self.h[i] + delh * self.L_arr[i]
                 self.fd_mids[i] = xc.ymax - xc.ymin
             else:
-                crit_fd = xc.calcCritFlowDepth(self.Q_w)
-                y_star = min([crit_fd,norm_fd])
+                #crit_fd = xc.calcCritFlowDepth(self.Q_w)
+                y_star = norm_fd#min([crit_fd,norm_fd])
                 y_out = self.h[i] - self.z_arr[i]  + self.down_offsets[i]
                 downstream_critical = y_star>y_out and y_star>0# and i>0
                 partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]  +self.up_offsets[i]
@@ -161,18 +161,18 @@ class CO2_1D:
                         self.fd_mids[i] = (y_out + y_in)/2.
                     else:
                         #We need full pipe to push needed Q
-                        delh = xc.calcPipeFullHeadGrad(self.Q_w,self.slopes[i],f=self.f)
+                        delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
                         self.h[i+1] = self.h[i] + delh * self.L_arr[i]
                         self.fd_mids[i] = xc.ymax - xc.ymin
                         self.flow_type[i] = 'full'
-                elif downstream_critical:
-                    self.flow_type[i] = 'dwnscrit'
-                    #Use minimum of critical or normal depth for downstream y
-                    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_star,self.L_arr[i],f=self.f)
-                    self.fd_mids[i] = (y_in + y_star)/2.
-                    self.h[i+1] = self.z_arr[i+1] + y_in
-                    if i==0:
-                        self.h[0]=self.z_arr[0] + y_star#norm_fd #y_star
+                #elif downstream_critical:
+                #    self.flow_type[i] = 'dwnscrit'
+                #    #Use minimum of critical or normal depth for downstream y
+                #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_star,self.L_arr[i],f=self.f)
+                #    self.fd_mids[i] = (y_in + y_star)/2.
+                #    self.h[i+1] = self.z_arr[i+1] + y_in
+                #    if i==0:
+                #        self.h[0]=self.z_arr[0] + y_star#norm_fd #y_star
                 #elif downstream_less_normal:
                 #    self.flow_type[i] = 'dwnslessnorm'
                 #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
@@ -195,25 +195,30 @@ class CO2_1D:
             self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
             print(self.flow_type[i])
             if self.flow_type[i] != 'full':
-                print('getting width')
+                #print('getting width')
                 L,R = xc.findLR(self.fd_mids[i])
-                print('got L,R')
+                #print('got L,R')
                 self.W[i] = xc.x[R] - xc.x[L]
             else:
                 self.W[i] = 0.
             #Set water line in cross-section object
-            print('setting fd')
+            #print('setting fd')
             xc.setFD(self.fd_mids[i])
-            print('done with this xc')
+            #print('done with this xc')
 
     def calc_air_flow(self):
         dT = self.T_outside - self.T_cave
         dP_tot = self.rho_air_cave*g*self.dH*dT/self.T_outside_K
         R_air = np.zeros(self.n_nodes-1)
         for i, xc in enumerate(self.xcs):
-            dryidx = (xc.y - xc.ymin)>self.fd_mids[i]
-            self.A_a[i] = xc.calcA(wantidx=dryidx)
-            self.P_a = xc.calcP(wantidx=dryidx)
+            if type(xc.x_total) != type(None):
+                dryidx = (xc.y_total - xc.y_total.min())>self.fd_mids[i]
+                self.A_a[i] = xc.calcA(wantidx=dryidx, total=True)
+                self.P_a = xc.calcP(wantidx=dryidx, total=True)
+            else:
+                dryidx = (xc.y - xc.ymin)>self.fd_mids[i]
+                self.A_a[i] = xc.calcA(wantidx=dryidx)
+                self.P_a = xc.calcP(wantidx=dryidx)
             if self.A_a[i]>0:
                 self.D_H_a[i] = 4.*self.A_a[i]/self.P_a
                 R_air[i] = self.rho_air_cave*self.f*self.L_arr[i]/(2.*self.D_H_a[i]*self.A_a[i]**2.)
@@ -288,6 +293,7 @@ class CO2_1D:
                 this_xc.setMaxVelPoint(self.fd_mids[i-1])
                 this_xc.calcUmax(self.Q_w)
                 T_b = this_xc.calcT_b()
+                #print('i=',i)
                 #print('min T_b=', T_b.min())
                 #print('max T_b=', T_b.max())
                 #print('mean T_b=', T_b.mean())
@@ -298,6 +304,9 @@ class CO2_1D:
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)
                 #print('Ca=',this_Ca,'   Ca_eq=',Ca_Eq)
                 F_xc = self.reduction_factor*D_Ca/eps*(Ca_Eq - this_Ca)*L_per_m3
+                #Smooth F_xc with savgol_filter
+                window = int(np.ceil(len(F_xc)/5)//2*2+1)
+                F_xc = savgol_filter(F_xc,window,3)
                 this_xc.set_F_xc(F_xc)
                 P_w = this_xc.wet_ls.sum()
                 F[i-1] = np.sum(F_xc*this_xc.wet_ls)/P_w #Units of F are mols/m^2/sec
