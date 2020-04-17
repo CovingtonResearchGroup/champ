@@ -161,7 +161,7 @@ class CO2_1D:
                         self.fd_mids[i] = (y_out + y_in)/2.
                     else:
                         #We need full pipe to push needed Q
-                        delh = xc.calcPipeFullHeadGrad(self.Q_w,,f=self.f)
+                        delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
                         self.h[i+1] = self.h[i] + delh * self.L_arr[i]
                         self.fd_mids[i] = xc.ymax - xc.ymin
                         self.flow_type[i] = 'full'

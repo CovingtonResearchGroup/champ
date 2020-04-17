@@ -18,6 +18,8 @@ class CrossSection:
         self.n = len(x)
         self.x = x
         self.y = y
+        self.x_total = None
+        self.y_total = None
         self.ymin = min(y)
         self.ymax = max(y)
         self.create_pm()
@@ -213,7 +215,6 @@ class CrossSection:
         self.dr = K*T_b**a
         self.erode(self.dr)
 
-
     def erode(self, dr, resample=True, n=None):
         if n==None:
             n=self.n
@@ -228,8 +229,31 @@ class CrossSection:
         tmp_ymin = min(ny)
         trim_y = (self.fd*trim_factor + tmp_ymin)
         if trim_y<max(ny):
+            #Initialize total xc arrays if first trimming event
+            if type(self.x_total) == type(None):
+                first_trim = True
+                self.x_total = nx
+                self.y_total = ny
+            else:
+                first_trim = False
             nx = nx[ny<trim_y]
             ny = ny[ny<trim_y]
+            if not first_trim:
+                #create new total xc arrays from old and wet portions
+                x1 = self.x_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
+                y1 = self.y_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
+                #Slightly trim high-res XC to remove any connection across top
+                x2 = nx[5:-5]
+                y2 = ny[5:-5]
+                x3 = self.x_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
+                y3 = self.y_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
+                x_total_tmp = np.concatenate([x1,x2,x3])
+                y_total_tmp = np.concatenate([y1,y2,y3])
+                tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
+                un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
+                self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
+
+
         #print('trim_y=',trim_y)
         #print('len nx=', len(nx))
         #print('tmp ymin=',tmp_ymin)
