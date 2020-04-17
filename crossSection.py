@@ -49,9 +49,14 @@ class CrossSection:
 	# Calculates area of the cross-section
     def calcA(self, wantidx=None):
         if type(wantidx) != type(None):
-            self.sA = (self.xm[wantidx]*self.y[wantidx] - self.x[wantidx]*self.ym[wantidx]).sum() * 0.5
+            if len(self.y[wantidx]>0):
+                maxy = self.y[wantidx].max()
+                self.sA = (self.xm[wantidx]*(self.y[wantidx]-maxy) - self.x[wantidx]*(self.ym[wantidx]-maxy)).sum() * 0.5
+            else:
+                return 0.
         else:
-            self.sA = (self.xm*self.y - self.x*self.ym).sum() * 0.5
+            maxy = self.y.max()
+            self.sA = (self.xm*(self.y-maxy) - self.x*(self.ym-maxy)).sum() * 0.5
         A = fabs(self.sA)
         return A
 
@@ -239,8 +244,8 @@ class CrossSection:
 #        self.create_pm()
         self.ymin = min(ny)
         #only reset ymax if it is increasing
-        if max(ny)>self.ymax:
-            self.ymax = max(ny)
+        #if max(ny)>self.ymax:
+        self.ymax = max(ny)
         self.n = len(nx)
 
 
@@ -345,7 +350,7 @@ class CrossSection:
         crit_depth = sol.x
         return crit_depth
 
-    def calcPipeFullHeadGrad(self,Q,slope,f=0.1):
+    def calcPipeFullHeadGrad(self,Q,f=0.1):
         Pw = self.calcP()
         A = self.calcA()
         D_H = 4.*A/Pw
