@@ -23,6 +23,7 @@ class CrossSection:
         self.create_pm()
         self.z0=z0
         self.setFD(self.ymax - self.ymin)
+        self.Q = 0.
 
     # Create arrays of x+1, y+1, x-1, x+1
     def create_pm(self):
@@ -204,6 +205,15 @@ class CrossSection:
     def set_F_xc(self,F_xc):
         self.F_xc = F_xc
 
+    def erode_power_law(self, a=1., K=1e-5):
+        self.setMaxVelPoint(self.fd)
+        self.calcUmax(self.Q)
+        T_b = self.calcT_b()
+        #print('max T_b=', T_b.max())
+        self.dr = K*T_b**a
+        self.erode(self.dr)
+
+
     def erode(self, dr, resample=True, n=None):
         if n==None:
             n=self.n
@@ -306,6 +316,7 @@ class CrossSection:
 
 
     def calcNormalFlowDepth(self,Q, slope,f=0.1, old_fd=None):
+        self.Q = Q
         maxdepth = self.ymax - self.ymin
         if type(old_fd) == type(None):
             upper_bound = maxdepth
@@ -351,6 +362,7 @@ class CrossSection:
         return crit_depth
 
     def calcPipeFullHeadGrad(self,Q,f=0.1):
+        self.Q = Q
         Pw = self.calcP()
         A = self.calcA()
         D_H = 4.*A/Pw

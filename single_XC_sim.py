@@ -82,9 +82,10 @@ class single_XC:
         self.xc.erode(self.xc.dr)
 
     def erode_power_law(self, a=1., K=1e-5):
-        self.xc.setMaxVelPoint(self.xc.fd)
-        self.xc.calcUmax(self.Q_w)
-        T_b = self.xc.calcT_b()
-        print('max T_b=', T_b.max())
-        self.xc.dr = K*T_b**a
-        self.xc.erode(self.xc.dr)
+        self.xc.erode_power_law(a=a, K=K)
+#        self.xc.setMaxVelPoint(self.xc.fd)
+#        self.xc.calcUmax(self.Q_w)
+#        T_b = self.xc.calcT_b()
+#        print('max T_b=', T_b.max())
+#        self.xc.dr = K*T_b**a
+#        self.xc.erode(self.xc.dr)
