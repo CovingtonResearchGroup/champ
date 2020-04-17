@@ -36,8 +36,8 @@ class CrossSection:
         if type(self.x_total) != type(None):
             self.xm_total = roll(self.x_total, 1)
             self.ym_total = roll(self.y_total, 1)
-            self.xp_total = roll(self.xp_total, self.x_total.size-1)
-            self.yp_total = roll(self.yp_total, self.y_total.size-1)
+            self.xp_total = roll(self.x_total, self.x_total.size-1)
+            self.yp_total = roll(self.y_total, self.y_total.size-1)
 
     def calcP(self, wantidx=None, total=False):
         if total:

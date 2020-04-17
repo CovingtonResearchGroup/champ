@@ -293,17 +293,17 @@ class CO2_1D:
                 this_xc.setMaxVelPoint(self.fd_mids[i-1])
                 this_xc.calcUmax(self.Q_w)
                 T_b = this_xc.calcT_b()
-                print('i=',i)
-                print('min T_b=', T_b.min())
-                print('max T_b=', T_b.max())
-                print('mean T_b=', T_b.mean())
+                #print('i=',i)
+                #print('min T_b=', T_b.min())
+                #print('max T_b=', T_b.max())
+                #print('mean T_b=', T_b.mean())
                 if T_b.min()<0:
                     print(asdf)
                 eps = 5*nu*Sc**(-1./3.)/np.sqrt(T_b/rho_w)
                 #print('eps=',eps.mean())
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)
                 #print('Ca=',this_Ca,'   Ca_eq=',Ca_Eq)
-                F_xc = self.reduction_factor*D_Ca/eps*(0.5*self.Ca_eq_0)*L_per_m3#(Ca_Eq - this_Ca)*L_per_m3
+                F_xc = self.reduction_factor*D_Ca/eps*(Ca_Eq - this_Ca)*L_per_m3
                 #Smooth F_xc with savgol_filter
                 window = int(np.ceil(len(F_xc)/5)//2*2+1)
                 F_xc = savgol_filter(F_xc,window,3)
