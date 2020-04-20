@@ -213,11 +213,11 @@ class CO2_1D:
         for i, xc in enumerate(self.xcs):
             if type(xc.x_total) != type(None):
                 dryidx = (xc.y_total - xc.y_total.min())>self.fd_mids[i]
-                self.A_a[i] = xc.calcA(wantidx=dryidx, total=True)
+                self.A_a[i] = xc.calcA(wantidx=dryidx, total=True, zeroAtUmax=False)
                 self.P_a = xc.calcP(wantidx=dryidx, total=True)
             else:
                 dryidx = (xc.y - xc.ymin)>self.fd_mids[i]
-                self.A_a[i] = xc.calcA(wantidx=dryidx)
+                self.A_a[i] = xc.calcA(wantidx=dryidx, zeroAtUmax=False)
                 self.P_a = xc.calcP(wantidx=dryidx)
             if self.A_a[i]>0:
                 self.D_H_a[i] = 4.*self.A_a[i]/self.P_a

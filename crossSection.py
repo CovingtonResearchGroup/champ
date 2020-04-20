@@ -25,6 +25,7 @@ class CrossSection:
         self.create_pm()
         self.z0=z0
         self.setFD(self.ymax - self.ymin)
+        self.setMaxVelPoint(self.fd)
         self.Q = 0.
 
     # Create arrays of x+1, y+1, x-1, x+1
@@ -65,7 +66,11 @@ class CrossSection:
 		#self.P = self.pp[-2]
 
 	# Calculates area of the cross-section
-    def calcA(self, wantidx=None, total=False):
+    def calcA(self, wantidx=None, total=False, zeroAtUmax=True):
+        if zeroAtUmax:
+            y0 = self.ymaxVel
+        else:
+            y0 = 0.
         if total:
             x = self.x_total
             y = self.y_total
@@ -78,13 +83,11 @@ class CrossSection:
             ym = self.ym
         if type(wantidx) != type(None):
             if len(y[wantidx]>0):
-                maxy = y[wantidx].max()
-                self.sA = (xm[wantidx]*(y[wantidx]-maxy) - x[wantidx]*(ym[wantidx]-maxy)).sum() * 0.5
+                self.sA = (xm[wantidx]*(y[wantidx]-y0) - x[wantidx]*(ym[wantidx]-y0)).sum() * 0.5
             else:
                 return 0.
         else:
-            maxy = y.max()
-            self.sA = (xm*(y-maxy) - x*(ym-maxy)).sum() * 0.5
+            self.sA = (xm*(y-y0) - x*(ym-y0)).sum() * 0.5
         A = fabs(self.sA)
         return A
 
@@ -161,7 +164,7 @@ class CrossSection:
 
     def findCentroid(self):
         m = self.xm*self.y-self.x*self.ym
-        A = self.calcA()
+        A = self.calcA(zeroAtUmax=False)
         cx = (1/(6*A))*((self.x + self.xm)*m).sum()#A was self.sA. not sure if this matters
         cy = (1/(6*A))*((self.y + self.ym)*m).sum()
         return cx, cy
