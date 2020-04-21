@@ -151,6 +151,8 @@ def test_calcPipeFullHeadGrad():
     assert_approx_equal(dh_calc, dh_by_hand, significant=3)
 
 def test_erode():
+    x,y = genCirc(r,n=n)
+    xc_Circ = CrossSection(x,y)
     erode_factor = 0.05
     xc_Circ.setMaxVelPoint(r*2)
     r_l = xc_Circ.calcR_l()
@@ -161,6 +163,8 @@ def test_erode():
     assert_approx_equal(A_before/A_after, (1/(1+erode_factor))**2, significant=4)
 
 def test_erode_half():
+    x,y = genCirc(r,n=n)
+    xc_Circ = CrossSection(x,y)
     erode_factor = 0.05
     xc_Circ.setFD(r)
     xc_Circ.setMaxVelPoint(r)
@@ -170,4 +174,4 @@ def test_erode_half():
     A_before = xc_Circ.calcA()
     xc_Circ.erode(dr, trim=False)
     A_after = xc_Circ.calcA()
-    assert_approx_equal(A_before/A_after, (2/(1+(1+erode_factor)**2)), significant=2)
+    assert_approx_equal(A_before/A_after, (2/(1+(1+erode_factor)**2)), significant=4)
