@@ -243,7 +243,7 @@ class CrossSection:
         self.dr = K*T_b**a
         self.erode(self.dr)
 
-    def erode(self, dr, resample=True, n=None):
+    def erode(self, dr, resample=True, n=None, trim=True):
         if n==None:
             n=self.n
         wetidx=self.wetidx
@@ -256,33 +256,32 @@ class CrossSection:
         #Once flow drops far enough below ceiling, trim XC
         tmp_ymin = min(ny)
         trim_y = (self.fd*trim_factor + tmp_ymin)
-        trim=False
-        if trim_y<max(ny):
-            trim = True
-            #Initialize total xc arrays if first trimming event
-            if type(self.x_total) == type(None):
-                first_trim = True
-                self.x_total = nx
-                self.y_total = ny
-            else:
-                first_trim = False
-            nx = nx[ny<trim_y]
-            ny = ny[ny<trim_y]
-            if not first_trim:
-                #create new total xc arrays from old and wet portions
-                self.x1 =x1= self.x_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
-                self.y1 =y1= self.y_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
-                #Slightly trim high-res XC to remove any connection across top
-                self.x2 =x2= nx[ny<trim_y-0.02*(ny.max()-ny.min())]
-                self.y2 =y2= ny[ny<trim_y-0.02*(ny.max()-ny.min())]
-                self.x3 =x3= self.x_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
-                self.y3 =y3= self.y_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
-                x_total_tmp = np.concatenate([x1,x2,x3])
-                y_total_tmp = np.concatenate([y1,y2,y3])
-                tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
-                un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
-                self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
-                #print(asdsf)
+        if trim:
+            if trim_y<max(ny):
+                #Initialize total xc arrays if first trimming event
+                if type(self.x_total) == type(None):
+                    first_trim = True
+                    self.x_total = nx
+                    self.y_total = ny
+                else:
+                    first_trim = False
+                nx = nx[ny<trim_y]
+                ny = ny[ny<trim_y]
+                if not first_trim:
+                    #create new total xc arrays from old and wet portions
+                    self.x1 =x1= self.x_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
+                    self.y1 =y1= self.y_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
+                    #Slightly trim high-res XC to remove any connection across top
+                    self.x2 =x2= nx[ny<trim_y-0.02*(ny.max()-ny.min())]
+                    self.y2 =y2= ny[ny<trim_y-0.02*(ny.max()-ny.min())]
+                    self.x3 =x3= self.x_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
+                    self.y3 =y3= self.y_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
+                    x_total_tmp = np.concatenate([x1,x2,x3])
+                    y_total_tmp = np.concatenate([y1,y2,y3])
+                    tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
+                    un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
+                    self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
+                    #print(asdsf)
 
         #print('trim_y=',trim_y)
         #print('len nx=', len(nx))
