@@ -200,11 +200,11 @@ class CrossSection:
             u_i = 1./np.log(r_l/z0)*u_top/u_bottom
 
         self.umax = Q/(a_i*u_i).sum()
-        print("Umax=",self.umax)
+        #print("Umax=",self.umax)
 
     def calcT_b(self):
         vgrad2 = self.calcVGrad2()
-        print('max vgrad2=',vgrad2.max())
+        #print('max vgrad2=',vgrad2.max())
         psi = self.calcPsi()
         Awet = self.calcA(wantidx=self.wetidx)
         self.T_b = psi*rho_w*Awet*vgrad2
@@ -217,13 +217,13 @@ class CrossSection:
         alpha[0] = alpha[1]
         alpha[-1] = alpha[-2]
         self.vgrad2 = ((self.umax/self.z0)*(1./np.log(self.r_l/self.z0))*np.fabs(np.sin(phi-alpha)))**2.
-        print('min sin term=',np.fabs(np.sin(phi-alpha)).min())
+        #print('min sin term=',np.fabs(np.sin(phi-alpha)).min())
         return self.vgrad2
 
     def calcPsi(self):
         wetidx = self.wetidx
         l = np.hypot(self.x[wetidx] - self.xp[wetidx], self.y[wetidx] - self.yp[wetidx])
-        print("min l=",l.min(), "max l=",l.max())
+        #print("min l=",l.min(), "max l=",l.max())
         sum = ((self.vgrad2)*l).sum()
         self.wet_ls = l
         self.psi = g*self.eSlope/sum
@@ -396,7 +396,7 @@ class CrossSection:
             fd = sol.x
 #            if fd<0:
 #                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
-            print('Q residual for',fd,' =', self.abs_normal_discharge_residual(fd,slope,f,Q))
+            #print('Q residual for',fd,' =', self.abs_normal_discharge_residual(fd,slope,f,Q))
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1

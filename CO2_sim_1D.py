@@ -124,11 +124,11 @@ class CO2_1D:
         for i, xc in enumerate(self.xcs):
             old_fd = self.fd_mids[i]
             if old_fd <=0:
-                print('zero or neg flow depth')
+                #print('zero or neg flow depth')
                 old_fd = xc.ymax - xc.ymin
             xc.create_A_interp()
             xc.create_P_interp()
-            print('xc=',i)
+            #print('xc=',i)
             #Try calculating flow depth
             backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+xc.ymin+self.up_offsets[i])>0#Should I really use the offset here?
             over_normal_capacity=False
@@ -136,7 +136,7 @@ class CO2_1D:
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f, old_fd=old_fd)
                 if norm_fd==-1:
                     over_normal_capacity=True
-            print('norm_fd=', norm_fd, '  maxdepth=',xc.ymax - xc.ymin)
+            #print('norm_fd=', norm_fd, '  maxdepth=',xc.ymax - xc.ymin)
             if over_normal_capacity or backflooded:
                 self.flow_type[i] = 'full'
                 if i==0:
@@ -193,7 +193,7 @@ class CO2_1D:
             self.P_w[i] = xc.calcP(wantidx=wetidx)
             self.V_w[i] = -self.Q_w/self.A_w[i]
             self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
-            print(self.flow_type[i])
+            #print(self.flow_type[i])
             if self.flow_type[i] != 'full':
                 #print('getting width')
                 L,R = xc.findLR(self.fd_mids[i])
@@ -377,6 +377,10 @@ class CO2_1D:
                     self.slopes[i] = self.slopes[i] + dslope
                 print('dys after=', ymins[0:-1]+self.down_offsets[0:-1] - (ymins[1:]+self.up_offsets[1:]))
         """
+
+    def set_T_outside(self, T_outside_C):
+        self.T_outside = T_outside_C
+        self.T_outside_K = CtoK(T_outside_C)
 
 
     def update_adv_disp_M_water(self):
