@@ -35,7 +35,7 @@ class CO2_1D:
     CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
     adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.1, dt_erode=1.,
-    downstream_bnd_type='normal'):
+    downstream_bnd_type='normal', trim=True):
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
@@ -65,6 +65,7 @@ class CO2_1D:
         self.dt_erode = dt_erode
         self.xc_n = xc_n
         self.downstream_bnd_type = downstream_bnd_type
+        self.trim = trim
 
         self.V_w = np.zeros(self.n_nodes - 1)
         self.V_a = np.zeros(self.n_nodes - 1)
@@ -362,7 +363,7 @@ class CO2_1D:
             xc.dr = F_to_m_yr*xc.F_xc*self.dt_erode
             #print('i=',i,'  max dr=', xc.dr.max(), '  max F_xc=',xc.F_xc.max())
             #xc.dr = savgol_filter(xc.dr,15,3,mode='wrap')
-            xc.erode(xc.dr)
+            xc.erode(xc.dr, trim=self.trim)
             self.ymins[i]= xc.ymin
         #Adjust slopes
         dz = self.ymins - old_ymins

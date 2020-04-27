@@ -69,6 +69,12 @@ class CrossSection:
     def calcA(self, wantidx=None, total=False, zeroAtUmax=True):
         if zeroAtUmax:
             y0 = self.ymaxVel
+            #This fails in first timestep because we haven't set max vel pos
+            if type(wantidx) != type(None):
+                if len(self.y[wantidx])>0:
+                    this_max_y = np.max(self.y[wantidx])
+                    if this_max_y < y0:
+                        y0 = this_max_y
         else:
             y0 = 0.
         if total:
@@ -93,7 +99,7 @@ class CrossSection:
 
     def create_A_interp(self, n_points=30):
         maxdepth = self.ymax - self.ymin
-        max_interp = self.fd*1.25
+        max_interp = self.fd*1.5
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
@@ -111,7 +117,7 @@ class CrossSection:
 
     def create_P_interp(self,n_points=30):
         maxdepth = self.ymax - self.ymin
-        max_interp = self.fd*1.25
+        max_interp = self.fd*1.5
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
@@ -396,7 +402,7 @@ class CrossSection:
             fd = sol.x
 #            if fd<0:
 #                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
-            #print('Q residual for',fd,' =', self.abs_normal_discharge_residual(fd,slope,f,Q))
+            print('Q residual for',fd,' =', self.abs_normal_discharge_residual(fd,slope,f,Q))
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1
