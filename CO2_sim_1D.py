@@ -118,6 +118,20 @@ class CO2_1D:
         self.bCa = np.zeros(self.n_nodes-1)
 
 
+    def run_one_step(self, T_outside_arr = None):
+        self.calc_flow_depths()
+        if type(T_outside_arr) == type(None):
+            self.calc_air_flow()
+            self.calc_steady_state_transport()
+            sim.erode_xcs()
+        else:
+            dt_frac = 1./len(T_outside_arr)
+            for this_T in T_outside_arr:
+                self.set_T_outside(this_T)
+                self.calc_air_flow()
+                self.calc_steady_state_transport()
+                self.erode_xcs(dt_frac=dt_frac)
+
 
     def calc_flow_depths(self):
         # Loop through cross-sections and solve for flow depths,
@@ -356,11 +370,11 @@ class CO2_1D:
 
         self.F = F
 
-    def erode_xcs(self):
+    def erode_xcs(self, dt_frac = 1.):
         F_to_m_yr = g_mol_CaCO3*secs_per_year/rho_limestone/cm_m**3
         old_ymins = self.ymins.copy()
         for i,xc in enumerate(self.xcs):
-            xc.dr = F_to_m_yr*xc.F_xc*self.dt_erode
+            xc.dr = F_to_m_yr*xc.F_xc*self.dt_erode*dt_frac
             #print('i=',i,'  max dr=', xc.dr.max(), '  max F_xc=',xc.F_xc.max())
             #xc.dr = savgol_filter(xc.dr,15,3,mode='wrap')
             xc.erode(xc.dr, trim=self.trim)
