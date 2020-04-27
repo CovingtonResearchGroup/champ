@@ -123,7 +123,7 @@ class CO2_1D:
         if type(T_outside_arr) == type(None):
             self.calc_air_flow()
             self.calc_steady_state_transport()
-            sim.erode_xcs()
+            self.erode_xcs()
         else:
             dt_frac = 1./len(T_outside_arr)
             for this_T in T_outside_arr:
