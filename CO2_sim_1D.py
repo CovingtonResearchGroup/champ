@@ -246,16 +246,21 @@ class CO2_1D:
             CO2_down_1 = self.CO2_a[0]
             self.calc_conc_from_upstream(CO2_a_upstream=g2, palmer=palmer)
             CO2_down_2 = self.CO2_a[0]
-            CO2_a_upstream_corrected = g1 + \
-                (g2 - g1)/(CO2_down_2-CO2_down_1)*(self.pCO2_outside/self.pCO2_high-CO2_down_1)
-            self.calc_conc_from_upstream(CO2_a_upstream=CO2_a_upstream_corrected,palmer=palmer)
-            if self.CO2_a[0] - self.pCO2_outside/self.pCO2_high > self.abs_tol or True in np.isnan(self.CO2_a):
-                print("Linear shooting method failed...residual=",self.CO2_a[0] - self.pCO2_outside/self.pCO2_high)
-                CO2_a_upstream_brent = brentq(self.downstream_CO2_residual, self.pCO2_outside/self.pCO2_high, 1., xtol=self.abs_tol)
+            #print('CO2_down_1=',CO2_down_1, '  CO2_down_2=',CO2_down_2)
+            if CO2_down_1 != CO2_down_2: #These are equal for very low airflow, for which we ignore this calculation
+                CO2_a_upstream_corrected = g1 + \
+                    (g2 - g1)/(CO2_down_2-CO2_down_1)*(self.pCO2_outside/self.pCO2_high-CO2_down_1)
+                self.calc_conc_from_upstream(CO2_a_upstream=CO2_a_upstream_corrected,palmer=palmer)
+                if np.abs(self.CO2_a[0] - self.pCO2_outside/self.pCO2_high) > self.abs_tol or True in np.isnan(self.CO2_a):
+                    print("Linear shooting method failed...residual=",self.CO2_a[0] - self.pCO2_outside/self.pCO2_high)
+                    CO2_a_upstream_brent = brentq(self.downstream_CO2_residual, self.pCO2_outside/self.pCO2_high, 1., xtol=self.abs_tol)
+            else:
+                #For case of low airflow velocity, need to fix upstream air CO2 to water value
+                self.CO2_a[-1] = self.CO2_w[-1]
 
     def downstream_CO2_residual(self,CO2_a_upstream):
         mod_CO2_downstream = self.calc_conc_from_upstream(CO2_a_upstream=CO2_a_upstream)
-        return self.CO2_a[0] - self.pCO2_outside//self.pCO2_high
+        return self.CO2_a[0] - self.pCO2_outside/self.pCO2_high
 
     def calc_conc_from_upstream(self, CO2_a_upstream=None, palmer=False):
         if CO2_a_upstream != None:
@@ -307,6 +312,9 @@ class CO2_1D:
                 #Smooth F_xc with savgol_filter
                 window = int(np.ceil(len(F_xc)/5)//2*2+1)
                 F_xc = savgol_filter(F_xc,window,3)
+                if F_xc.min() < 0:
+                    #Don't allow precipitation
+                    F_xc = F_xc*0.0
                 this_xc.set_F_xc(F_xc)
                 P_w = this_xc.wet_ls.sum()
                 F[i-1] = np.sum(F_xc*this_xc.wet_ls)/P_w #Units of F are mols/m^2/sec
@@ -315,9 +323,21 @@ class CO2_1D:
             R_CO2 = R/self.K_H
             #dx is negative, so signs on dC terms flip
             if self.A_a.min()>0:
-                dCO2_a = -self.L_arr[i-1]*K_a[i-1]/self.V_a[i-1]*(this_CO2_w - this_CO2_a)
+                if self.V_a[i-1] != 0:
+                    dCO2_a = -self.L_arr[i-1]*K_a[i-1]/self.V_a[i-1]*(this_CO2_w - this_CO2_a)
+                    if np.abs(dCO2_a) > np.abs(this_CO2_w - this_CO2_a):
+                        #Don't let CO2 change more than difference between air and water
+                        #print("Low v case")
+                        dCO2_a = 0.#(this_CO2_w - this_CO2_a)
+                        this_CO2_a = this_CO2_w
+                        self.CO2_a[i] = self.CO2_w[i]
+                else:
+                    #For zero airflow, CO2_a goes to CO2_w
+                    dCO2_a = (this_CO2_w - this_CO2_a)
             else:
                 dCO2_a = 0.
+                this_CO2_a = this_CO2_w
+                self.CO2_a[i] = self.CO2_w[i]
             dCO2_w = self.L_arr[i-1]*K_w[i-1]/self.V_w[i-1]*(this_CO2_w - this_CO2_a) - R_CO2/self.Q_w/L_per_m3#R_CO2/self.V_w[i-1]
             dCa = R/self.Q_w/L_per_m3#-self.L_arr[i-1]*R/self.V_w[i-1]
             #print(dCO2_a,dCO2_w,dCa)
