@@ -333,7 +333,9 @@ class CO2_1D:
                         self.CO2_a[i] = self.CO2_w[i]
                 else:
                     #For zero airflow, CO2_a goes to CO2_w
-                    dCO2_a = (this_CO2_w - this_CO2_a)
+                    dCO2_a = 0.#(this_CO2_w - this_CO2_a)
+                    this_CO2_a = this_CO2_w
+                    self.CO2_a[i] = self.CO2_w[i]
             else:
                 dCO2_a = 0.
                 this_CO2_a = this_CO2_w
