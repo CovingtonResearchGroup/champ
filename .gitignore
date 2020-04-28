@@ -131,3 +131,7 @@ dmypy.json
 #images
 *.png
 *.jpg
+
+#sim outputs
+*.pkl
+*.dat
