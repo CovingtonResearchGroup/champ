@@ -25,7 +25,7 @@ sim = CO2_1D(x,z, init_radii=r,
 ntimes = 200000
 T_cold = 0.
 T_hot = 20.
-
+plotdir='./high-with-CO2-figs/
 for t in arange(ntimes):
     print('t=',t, '**********************')
     sim.run_one_step(T_outside_arr = [T_cold, T_hot])
@@ -45,7 +45,7 @@ for t in arange(ntimes):
         if type(sim.xcs[-1].x_total) != type(None):
             plot(sim.xcs[-1].x_total ,sim.xcs[-1].y_total)
         plot(sim.xcs[-1].x ,sim.xcs[-1].y)
-        savefig('./with-CO2-figs/XC-'+timestep_str+'.png')
+        savefig(plotdir+'XC-'+timestep_str+'.png')
 
         figure()
         plot(x, sim.h)
@@ -53,14 +53,14 @@ for t in arange(ntimes):
         xlabel('Distance (m)')
         ylabel('Elevation (m)')
         legend(['h','z'])
-        savefig('./with-CO2-figs/Elevation-Profile-'+timestep_str+'.png')
+        savefig(plotdir+'Elevation-Profile-'+timestep_str+'.png')
 
         figure()
         plot(x,sim.CO2_w)
         plot(x,sim.CO2_a)
         plot(x,sim.Ca)
         legend(['w','a','Ca'])
-        savefig('./with-CO2-figs/Concentration-Profile-'+timestep_str+'.png')
+        savefig(plotdir+'Concentration-Profile-'+timestep_str+'.png')
 
         figure()
         xmid = (x[1:] + x[:-1])/2.
@@ -70,7 +70,7 @@ for t in arange(ntimes):
         xlabel('Distance (m)')
         ylabel('Slope/Erosion rate')
         tight_layout()
-        savefig('./with-CO2-figs/Slope-'+timestep_str+'.png')
+        savefig(plotdir+'Slope-'+timestep_str+'.png')
         #Create 3d XC fig
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -108,8 +108,8 @@ for t in arange(ntimes):
         ax.add_collection3d(water_poly)#, zdir='y')
         xlim([-5,5])
         ax.view_init(elev=10, azim=-35)
-        savefig('./with-CO2-figs/3D-XC-'+timestep_str+'.png')
+        savefig(plotdir+'3D-XC-'+timestep_str+'.png')
         close('all')
         if t % 200 == 0:
-            f = open('./with-CO2-figs/snapshot-'+timestep_str+'.pkl', 'wb')
+            f = open(plotdir+'snapshot-'+timestep_str+'.pkl', 'wb')
             pickle.dump(sim, f)
