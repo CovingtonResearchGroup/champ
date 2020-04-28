@@ -14,7 +14,8 @@ r = 1.*ones(n-1)# + 0.1*np.random.rand(n-1)
 sim = CO2_1D(x,z, init_radii=r,
              Q_w=0.25,
              dH=30.,
-             T_outside=10.,
+              Ca_upstream=0.8,
+             T_outside=10.01,
              T_cave=10.,
              D_a=35., D_w=35.,
              adv_disp_stabil_factor=0.5,
@@ -22,12 +23,12 @@ sim = CO2_1D(x,z, init_radii=r,
             dt_erode=1.,
             xc_n=1500, trim=True)
 ntimes = 200000
-T_cold = 0.
-T_hot = 20.
+#T_cold = 0.
+#T_hot = 20.
 
 for t in arange(ntimes):
     print('t=',t, '**********************')
-    sim.run_one_step(T_outside_arr = [T_cold, T_hot])
+    sim.run_one_step()#T_outside_arr = [T_cold, T_hot])
     sim.z_arr[0] -= 0.00025
     if t % 100 == 0:
         timestep_str = '%08d' % (t,)
@@ -44,7 +45,7 @@ for t in arange(ntimes):
         if type(sim.xcs[-1].x_total) != type(None):
             plot(sim.xcs[-1].x_total ,sim.xcs[-1].y_total)
         plot(sim.xcs[-1].x ,sim.xcs[-1].y)
-        savefig('./with-CO2-figs/XC-'+timestep_str+'.png')
+        savefig('./without-CO2-figs/XC-'+timestep_str+'.png')
 
         figure()
         plot(x, sim.h)
@@ -109,6 +110,6 @@ for t in arange(ntimes):
         ax.view_init(elev=10, azim=-35)
         savefig('./without-CO2-figs/3D-XC-'+timestep_str+'.png')
         close('all')
-        if t % 200 == 0:
+        if t % 1000 == 0:
             f = open('./without-CO2-figs/snapshot-'+timestep_str+'.pkl', 'wb')
             pickle.dump(sim, f)

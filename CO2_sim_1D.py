@@ -126,12 +126,15 @@ class CO2_1D:
             self.erode_xcs()
         else:
             dt_frac = 1./len(T_outside_arr)
+            cum_dz = np.zeros(self.n_nodes-1)
             for this_T in T_outside_arr:
                 self.set_T_outside(this_T)
                 self.calc_air_flow()
                 self.calc_steady_state_transport()
                 self.erode_xcs(dt_frac=dt_frac)
-
+                cum_dz += self.dz
+            self.dz = cum_dz
+            print('dz_cum =',self.dz)
 
     def calc_flow_depths(self):
         # Loop through cross-sections and solve for flow depths,
@@ -355,7 +358,9 @@ class CO2_1D:
                 dCO2_a = 0.
                 this_CO2_a = this_CO2_w
                 self.CO2_a[i] = self.CO2_w[i]
-            dCO2_w = self.L_arr[i-1]*K_w[i-1]/self.V_w[i-1]*(this_CO2_w - this_CO2_a) - R_CO2/self.Q_w/L_per_m3#R_CO2/self.V_w[i-1]
+            dCO2_w_exc = self.L_arr[i-1]*K_w[i-1]/self.V_w[i-1]*(this_CO2_w - this_CO2_a)
+            #print('dCO2_w_exc=',dCO2_w_exc)
+            dCO2_w = dCO2_w_exc - R_CO2/self.Q_w/L_per_m3#R_CO2/self.V_w[i-1]
             dCa = R/self.Q_w/L_per_m3#-self.L_arr[i-1]*R/self.V_w[i-1]
             #print(dCO2_a,dCO2_w,dCa)
             self.CO2_a[i-1] = (this_CO2_a + dCO2_a)/self.pCO2_high
@@ -382,7 +387,8 @@ class CO2_1D:
         #Adjust slopes
         dz = self.ymins - old_ymins
         self.dz = dz
-        #print('dz=',dz)
+        print('dt_frac=',dt_frac)
+        print('dz=',dz)
         Celerity_times_dt = np.abs(max(dz/self.slopes))
         CFL = Celerity_times_dt/min((self.x_arr[1:] - self.x_arr[:-1]))
         print('CFL=',CFL)
