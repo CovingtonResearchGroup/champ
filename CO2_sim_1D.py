@@ -127,13 +127,22 @@ class CO2_1D:
         else:
             dt_frac = 1./len(T_outside_arr)
             cum_dz = np.zeros(self.n_nodes-1)
+            avg_CO2_w = np.zeros(self.n_nodes)
+            avg_CO2_a = np.zeros(self.n_nodes)
+            avg_Ca = np.zeros(self.n_nodes)
             for this_T in T_outside_arr:
                 self.set_T_outside(this_T)
                 self.calc_air_flow()
                 self.calc_steady_state_transport()
                 self.erode_xcs(dt_frac=dt_frac)
                 cum_dz += self.dz
+                avg_CO2_w += dt_frac*self.CO2_w
+                avg_CO2_a += dt_frac*self.CO2_a
+                avg_Ca += dt_frac*self.Ca
             self.dz = cum_dz
+            self.CO2_w = avg_CO2_w
+            self.CO2_a = avg_CO2_a
+            self.Ca = avg_Ca
             print('dz_cum =',self.dz)
 
     def calc_flow_depths(self):
