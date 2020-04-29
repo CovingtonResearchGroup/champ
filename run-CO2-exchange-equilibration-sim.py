@@ -110,6 +110,6 @@ for t in arange(ntimes):
         ax.view_init(elev=10, azim=-35)
         savefig(plotdir+'3D-XC-'+timestep_str+'.png')
         close('all')
-        if t % 200 == 0:
+        if t % 1000 == 0:
             f = open(plotdir+'snapshot-'+timestep_str+'.pkl', 'wb')
             pickle.dump(sim, f)

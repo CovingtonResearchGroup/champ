@@ -402,7 +402,7 @@ class CrossSection:
             fd = sol.x
 #            if fd<0:
 #                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
-            print('Q residual for',fd,' =', self.abs_normal_discharge_residual(fd,slope,f,Q))
+            #print('Q residual for',fd,' =', self.abs_normal_discharge_residual(fd,slope,f,Q))
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1

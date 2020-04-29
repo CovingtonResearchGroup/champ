@@ -31,7 +31,8 @@ class CO2_1D:
 
     def __init__(self, x_arr, z_arr, D_w=30., D_a=30, Q_w=0.1,
     pCO2_high=5000*1e-6, pCO2_outside=500*1e-6, f=0.1,
-    T_cave=10, T_outside=20., gas_transf_vel=0.1/secs_per_hour, abs_tol=1e-5, rel_tol=1e-5,
+    T_cave=10, T_outside=20., gas_transf_vel=0.1/secs_per_hour,
+    abs_tol=1e-5, rel_tol=1e-5, CO2_err_rel_tol=0.001,
     CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
     adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.1, dt_erode=1.,
@@ -59,6 +60,7 @@ class CO2_1D:
         self.gas_transf_vel = gas_transf_vel
         self.abs_tol = abs_tol
         self.rel_tol = rel_tol
+        self.CO2_err_rel_tol = CO2_err_rel_tol
         self.CO2_w_upstream = CO2_w_upstream
         self.Ca_upstream = Ca_upstream
         self.reduction_factor = reduction_factor
@@ -118,9 +120,9 @@ class CO2_1D:
         self.bCa = np.zeros(self.n_nodes-1)
 
 
-    def run_one_step(self, T_outside_arr = None):
+    def run_one_step(self, T_outside_arr = []):
         self.calc_flow_depths()
-        if type(T_outside_arr) == type(None):
+        if len(T_outside_arr) == 0:
             self.calc_air_flow()
             self.calc_steady_state_transport()
             self.erode_xcs()
@@ -278,9 +280,12 @@ class CO2_1D:
                 CO2_a_upstream_corrected = g1 + \
                     (g2 - g1)/(CO2_down_2-CO2_down_1)*(self.pCO2_outside/self.pCO2_high-CO2_down_1)
                 self.calc_conc_from_upstream(CO2_a_upstream=CO2_a_upstream_corrected,palmer=palmer)
-                if np.abs(self.CO2_a[0] - self.pCO2_outside/self.pCO2_high) > self.abs_tol or True in np.isnan(self.CO2_a):
+                rel_CO2_err = np.abs(self.CO2_a[0] - self.pCO2_outside/self.pCO2_high)/(self.pCO2_outside/self.pCO2_high)
+                if not hasattr(self, 'CO2_err_rel_tol'):
+                    self.CO2_err_rel_tol = 0.001
+                if rel_CO2_err > self.CO2_err_rel_tol or True in np.isnan(self.CO2_a):
                     print("Linear shooting method failed...residual=",self.CO2_a[0] - self.pCO2_outside/self.pCO2_high)
-                    CO2_a_upstream_brent = brentq(self.downstream_CO2_residual, self.pCO2_outside/self.pCO2_high, 1., xtol=self.abs_tol)
+                    CO2_a_upstream_brent = brentq(self.downstream_CO2_residual, self.pCO2_outside/self.pCO2_high, 1., rtol=self.CO2_err_rel_tol)
             else:
                 #For case of low airflow velocity, need to fix upstream air CO2 to water value
                 self.CO2_a[-1] = self.CO2_w[-1]
