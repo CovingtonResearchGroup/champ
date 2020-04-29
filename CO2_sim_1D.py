@@ -185,7 +185,7 @@ class CO2_1D:
                 if partial_backflood: #upstream node is flooded above normal depth
                     self.flow_type[i] = 'pbflood'
                     y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
-                    if y_in>0:
+                    if y_in>0 and (y_out + y_in)/2. < xc.ymax - xc.ymin:# or could use fraction of y_in 
                         self.h[i+1] = self.z_arr[i+1] + y_in - self.up_offsets[i]
                         self.fd_mids[i] = (y_out + y_in)/2.
                     else:

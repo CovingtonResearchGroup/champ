@@ -5,7 +5,7 @@ r_init: 1.
 endstep: 100000
 plotdir: './low-without-CO2-figs/'
 start_from_snapshot_num: 0
-dz0_dt: 0.000005
+dz0_dt: 0.00005
 snapshot_every: 1000
 plot_every: 10
 T_outside_arr: []
