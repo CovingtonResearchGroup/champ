@@ -2,7 +2,7 @@ n: 10
 L: 5000.
 dz: 2.
 r_init: 1.
-endstep: 100
+endstep: 1000
 plotdir: './test-without-CO2-figs/'
 start_from_snapshot_num: 0
 dz0_dt: 0.00125
@@ -19,3 +19,4 @@ CO2_1D_params:
   dt_erode: 1.
   xc_n: 1500
   trim: True
+  reduction_factor: 0.01

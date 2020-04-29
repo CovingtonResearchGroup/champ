@@ -4,13 +4,14 @@ import numpy as np
 from scipy import interpolate
 from scipy.optimize import brentq, root_scalar, minimize_scalar
 import matplotlib.pyplot as plt
-
+import copy
 
 g=9.8 #m/s^2
 rho_w = 998.2 #kg/m^3
 SMALL = 1e-6
 use_centroid_fraction =0.98#switch to  max vel at centroid if over this fraction of ymax
 trim_factor = 2. #Trim xc points with y above trim_factor*fd
+add_factor = 1.75 # add xc points back in from total if ceiling less than 1.75*fd
 
 class CrossSection:
 
@@ -27,6 +28,7 @@ class CrossSection:
         self.setFD(self.ymax - self.ymin)
         self.setMaxVelPoint(self.fd)
         self.Q = 0.
+        self.back_to_total = False
 
     # Create arrays of x+1, y+1, x-1, x+1
     def create_pm(self):
@@ -249,6 +251,27 @@ class CrossSection:
         self.dr = K*T_b**a
         self.erode(self.dr)
 
+    def update_total_xc(self, trim_y, nx, ny):
+        n=self.n
+        #create new total xc arrays from old and wet portions
+        self.x1 =x1= self.x_total[np.logical_and(self.x_total<0,self.y_total>ny.max())]
+        self.y1 =y1= self.y_total[np.logical_and(self.x_total<0,self.y_total>ny.max())]
+        #Slightly trim high-res XC to remove any connection across top
+        self.x2 =x2= nx[ny<ny.max()-0.02*(ny.max()-ny.min())]
+        self.y2 =y2= ny[ny<ny.max()-0.02*(ny.max()-ny.min())]
+        #self.x2 =x2= nx[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx<0)]
+        #self.y2 =y2= ny[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx<0)]
+        #self.x3 =x3= nx[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx>0)]
+        #self.y3 =y3= ny[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx>0)]
+        self.x4 =x4= self.x_total[np.logical_and(self.x_total>0,self.y_total>ny.max())]
+        self.y4 =y4= self.y_total[np.logical_and(self.x_total>0,self.y_total>ny.max())]
+        x_total_tmp = np.concatenate([x1,x2,x4])
+        y_total_tmp = np.concatenate([y1,y2,y4])
+        tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
+        un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
+        self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
+
+
     def erode(self, dr, resample=True, n=None, trim=True):
         if n==None:
             n=self.n
@@ -262,7 +285,12 @@ class CrossSection:
         #Once flow drops far enough below ceiling, trim XC
         tmp_ymin = min(ny)
         trim_y = (self.fd*trim_factor + tmp_ymin)
-        if trim:
+
+        if self.back_to_total:
+            if self.fd<0.1*(max(ny) - min(ny)):
+                back_to_total = False
+
+        if trim and not self.back_to_total:
             if trim_y<max(ny):
                 #Initialize total xc arrays if first trimming event
                 if type(self.x_total) == type(None):
@@ -274,20 +302,45 @@ class CrossSection:
                 nx = nx[ny<trim_y]
                 ny = ny[ny<trim_y]
                 if not first_trim:
+                    self.update_total_xc(trim_y, nx, ny)
                     #create new total xc arrays from old and wet portions
-                    self.x1 =x1= self.x_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
-                    self.y1 =y1= self.y_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
+                    #self.x1 =x1= self.x_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
+                    #self.y1 =y1= self.y_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
                     #Slightly trim high-res XC to remove any connection across top
-                    self.x2 =x2= nx[ny<trim_y-0.02*(ny.max()-ny.min())]
-                    self.y2 =y2= ny[ny<trim_y-0.02*(ny.max()-ny.min())]
-                    self.x3 =x3= self.x_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
-                    self.y3 =y3= self.y_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
-                    x_total_tmp = np.concatenate([x1,x2,x3])
-                    y_total_tmp = np.concatenate([y1,y2,y3])
-                    tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
-                    un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
-                    self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
+                    #self.x2 =x2= nx[ny<trim_y-0.02*(ny.max()-ny.min())]
+                    #self.y2 =y2= ny[ny<trim_y-0.02*(ny.max()-ny.min())]
+                    #self.x3 =x3= self.x_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
+                    #self.y3 =y3= self.y_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
+                    #x_total_tmp = np.concatenate([x1,x2,x3])
+                    #y_total_tmp = np.concatenate([y1,y2,y3])
+                    #tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
+                    #un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
+                    #self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
                     #print(asdsf)
+            else:
+                #Water level is increasing
+                self.update_total_xc(trim_y, nx, ny)
+                if (max(ny) - min(ny)) < add_factor*self.fd:
+                    #Switch to using total
+                    print('########################################')
+                    print('############ Switch! #############')
+                    print('########################################')
+                    nx = copy.deepcopy(self.x_total)
+                    ny = copy.deepcopy(self.y_total)
+                    self.x_total = None
+                    self.y_total = None
+                    self.back_to_total = True
+                    resample = False
+                #x1_add = self.x_total[np.logical_and(np.logical_and(self.x_total<0, self.y_total<trim_y), self.y_total>max(ny) )]
+                #y1_add = self.y_total[np.logical_and(np.logical_and(self.x_total<0, self.y_total<trim_y), self.y_total>max(ny) )]
+                #x2_add = nx[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx<0)]
+                #y2_add = ny[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx<0)]
+                #x3_add = nx[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx>0)]
+                #y3_add = ny[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx>0)]
+                #x4_add = self.x_total[np.logical_and(np.logical_and(self.x_total>0, self.y_total<trim_y), self.y_total>max(ny) )]
+                #y4_add = self.y_total[np.logical_and(np.logical_and(self.x_total>0, self.y_total<trim_y), self.y_total>max(ny) )]
+                #nx = np.concatenate([x1_add, x2_add, x3_add, x4_add])
+                #ny = np.concatenate([y1_add, y2_add, y3_add, y4_add])
 
         #print('trim_y=',trim_y)
         #print('len nx=', len(nx))

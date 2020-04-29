@@ -35,7 +35,7 @@ class CO2_1D:
     abs_tol=1e-5, rel_tol=1e-5, CO2_err_rel_tol=0.001,
     CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
-    adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.1, dt_erode=1.,
+    adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.01, dt_erode=1.,
     downstream_bnd_type='normal', trim=True):
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
