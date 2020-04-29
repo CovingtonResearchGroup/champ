@@ -22,12 +22,11 @@ def runSim(n=5, L=1000, dz=1, r_init=1, endstep=1000,
     if not os.path.isdir(plotdir):
         os.mkdir(plotdir)
 
-    x = linspace(0,L,n)
-    z = linspace(1.,1.+dz,n)
-    r = r_init*ones(n-1)# + 0.1*np.random.rand(n-1)
-
     if start_from_snapshot_num == 0:
         #Create a new simulation
+        x = linspace(0,L,n)
+        z = linspace(1.,1.+dz,n)
+        r = r_init*ones(n-1)
         sim = CO2_1D(x,z, init_radii=r,**CO2_1D_params)
         startstep = 0
     else:
@@ -62,22 +61,22 @@ def runSim(n=5, L=1000, dz=1, r_init=1, endstep=1000,
             savefig(plotdir+'XC-'+timestep_str+'.png')
 
             figure()
-            plot(x, sim.h)
-            plot(x,z)
+            plot(sim.x_arr, sim.h)
+            plot(sim.x_arr,sim.z_arr)
             xlabel('Distance (m)')
             ylabel('Elevation (m)')
             legend(['h','z'])
             savefig(plotdir+'Elevation-Profile-'+timestep_str+'.png')
 
             figure()
-            plot(x,sim.CO2_w)
-            plot(x,sim.CO2_a)
-            plot(x,sim.Ca)
+            plot(sim.x_arr,sim.CO2_w)
+            plot(sim.x_arr,sim.CO2_a)
+            plot(sim.x_arr,sim.Ca)
             legend(['w','a','Ca'])
             savefig(plotdir+'Concentration-Profile-'+timestep_str+'.png')
 
             figure()
-            xmid = (x[1:] + x[:-1])/2.
+            xmid = (sim.x_arr[1:] + sim.x_arr[:-1])/2.
             plot(xmid,sim.slopes)
             plot(xmid, abs(sim.dz))
             yscale('log')
