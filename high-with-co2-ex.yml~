@@ -1,0 +1,13 @@
+n: 10
+L: 5000.
+dz: 2.
+r_init: 1.
+endstep: 1000
+plotdir: './with-CO2-figs/'
+start_from_snapshot_num: 200
+dz0_dt: 0.00125
+snapshot_every: 1000
+plot_every: 100
+T_outside_arr: [0., 20.]
+
+
