@@ -128,9 +128,9 @@ def plot_erosion_slope_width_over_distance(plotdir_co2, co2, noco2, every=5):
     cb_formatter.set_powerlimits((0,0))
     cb_formatter.set_useMathText(True)
 
-    x = co2['x'][0,:-1]
+    x = (co2['x'][0,:-1] + co2['x'][0,1:])/2.
 
-    fig, axs = subplots(3,2, figsize=(10,10),
+    fig, axs = subplots(4,2, figsize=(10,12),
                         gridspec_kw={'width_ratios':[0.85,1]},
                        sharex=True, sharey='row')
 
@@ -182,6 +182,23 @@ def plot_erosion_slope_width_over_distance(plotdir_co2, co2, noco2, every=5):
     cb.set_label('Years')
     axs[2,1].grid('--')
     axs[2,1].tick_params(direction='in', labelsize=10)
+
+    axs[3,0].plot(co2['x'].transpose()[::,::every], abs(co2['Ca_Ca_eq'].transpose()[::,::every]))
+    axs[3,0].set_xlabel('Distance upstream (m)')
+    axs[3,0].set_ylabel(r'$Ca/Ca_{\rm eq}$')
+    ymin = 0.9*min([co2['Ca_Ca_eq'].min(), noco2['Ca_Ca_eq'].min()])
+    ymax =1.1* max([co2['Ca_Ca_eq'].max(), noco2['Ca_Ca_eq'].max()])
+    axs[3,0].set_ylim([ymin,ymax])
+    axs[3,0].grid('--')
+    axs[3,0].tick_params(direction='in', labelsize=10)
+
+    axs[3,1].plot(noco2['x'].transpose()[::,::every], abs(noco2['Ca_Ca_eq'].transpose()[::,::every]))
+    axs[3,1].set_xlabel('Distance upstream (m)')
+    cb=colorbar(sMap, ax=axs[3,1],format=cb_formatter)
+    cb.set_label('Years')
+    axs[3,1].grid('--')
+    axs[3,1].tick_params(direction='in', labelsize=10)
+
     tight_layout(h_pad=0.0,w_pad=0.)
 
     savefig(plotdir_co2+'/1-Erosion-slope-width-v-distance.png')
