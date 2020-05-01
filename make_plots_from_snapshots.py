@@ -3,7 +3,7 @@ from glob import glob
 import pickle
 from olm.calcite import concCaEqFromPCO2
 from matplotlib import ticker
-
+from scipy.stats import linregress
 
 ###################################
 ## Plotting convenience funtions ##
@@ -330,6 +330,79 @@ def plot_morphodynamics(plotdir_co2, co2, noco2):
     savefig(plotdir_co2+'/1-Morphodynamics.png')
 
 
+## This plot seems too crammed for use. All points quickly
+## approach scaling relationship
+"""
+def slope_width_all_times(plotdir_co2, co2, noco2):
+
+    cmap = get_cmap('nipy_spectral')
+    n_steps= max([int(ceil(co2['Ca'].shape[0]/every)),int(ceil(noco2['Ca'].shape[0]/every))])
+    cyc = cycler(color=[cmap(k) for k in linspace(0,1,n_steps)])
+    rcParams['axes.prop_cycle'] = cyc
+
+    max_years = max([co2['years'][-1], noco2['years'][-1]])
+    cNorm = Normalize(vmin=0,vmax=max_years)
+    sMap = cm.ScalarMappable(norm=cNorm, cmap = cmap)
+
+    cb_formatter = ticker.ScalarFormatter()
+    cb_formatter.set_powerlimits((0,0))
+    cb_formatter.set_useMathText(True)
+
+    fig, axs = subplots(1,2, figsize=(10,6),
+                        gridspec_kw={'width_ratios':[0.85,1]})
+#                       sharex=True, sharey=True)
+
+    axs[0,0].semilogy(co2['width'].transpose()[::,::every], co2['slope'].transpose()[::,::every])
+    xlabel('Width (m)')
+    ylabel('Slope')
+
+    axs[0,1].semilogy(noco2['width'].transpose()[::,::every], noco2['slope'].transpose()[::,::every])
+    xlabel('Width (m)')
+    ylabel('Slope')
+    ax = gca()
+    ax.xaxis.set_major_locator(ticker.AutoLocator())
+    ax.xaxis.set_major_formatter(ticker.ScalarFormatter())
+    cb=colorbar(sMap, ax=axs[0,1],format=cb_formatter)
+    cb.set_label('Years')
+
+
+    tight_layout()
+    savefig(plotdir_co2+'/1-Slope-width-all-times.png')
+"""
+
+
+def final_step_morphology(plotdir_co2, co2, noco2):
+
+    figure()
+    semilogy(co2['width'][-1], co2['slope'][-1], 'ko')
+    semilogy(noco2['width'][-1], noco2['slope'][-1], 'bs')
+    w_i = co2['width'][-1][0]
+    s_i = co2['slope'][-1][0]
+    w_f = co2['width'][-1][-1]
+    w_opt = linspace(w_i,w_f,20)
+    C_prop = s_i*w_i**(16./3.)
+    s_opt = C_prop*w_opt**(-16./3.)
+    plot(w_opt, s_opt, '--k')
+    m, b, r, p, err = linregress(log10(co2['width'][-1]), log10(co2['slope'][-1]))
+    plot(co2['width'][-1], co2['width'][-1]**m * 10**b, ':k')
+
+    xlabel('Width (m)')
+    ylabel('Slope')
+    ax = gca()
+    ax.xaxis.set_major_locator(ticker.AutoLocator())
+    ax.xaxis.set_major_formatter(ticker.ScalarFormatter())
+    opt = -16./3.
+    opt_str = r'$S \propto w^{' + str(opt)[:5]+'}$'
+    fit_str = r'$S \propto w^{' + str(m)[:5]+'}$'
+
+    legend(['With CO2', 'Without CO2', 'Optimal: '+opt_str, 'Fit: '+fit_str])
+    tight_layout()
+    savefig(plotdir_co2+'/1-Final-Morphology.png')
+
+    #s_f = co2['slope'][-1][-1]
+
+
+
 def make_plots_from_snapshots(plotdir_co2, plotdir_no_co2, every=5):
 
     co2 = get_results(plotdir_co2)
@@ -338,6 +411,8 @@ def make_plots_from_snapshots(plotdir_co2, plotdir_no_co2, every=5):
     plot_erosion_slope_width_over_distance(plotdir_co2, co2, noco2, every=every)
     plot_ca_co2_over_time(plotdir_co2, co2, noco2)
     plot_morphodynamics(plotdir_co2, co2, noco2)
+    final_step_morphology(plotdir_co2, co2, noco2)
+    #slope_width_all_times(plotdir_co2, co2, noco2)
 
 if __name__ == '__main__':
     plotdir_co2 = sys.argv[1]
