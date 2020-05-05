@@ -4,7 +4,7 @@ dz: 2.
 r_init: 1.
 endstep: 200000
 plotdir: './med-var-k-with-CO2-figs/'
-start_from_snapshot_num: 0
+start_from_snapshot_num: 73000
 dz0_dt: 0.00025
 snapshot_every: 1000
 plot_every: 100

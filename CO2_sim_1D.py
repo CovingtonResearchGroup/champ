@@ -449,7 +449,7 @@ class CO2_1D:
         eD = g*self.slopes*np.abs(self.V_w)
         k_600_m_d = np.exp(3.10 + 0.35*np.log(eD))
         if eD.max()>0.02:
-            k_600_m_d[eD>0.02] = np.exp(6.43 + 1.18*log(eD[eD>0.02]))
+            k_600_m_d[eD>0.02] = np.exp(6.43 + 1.18*np.log(eD[eD>0.02]))
         k_600 = k_600_m_d/secs_per_day
         Sc_CO2 = self.calc_Sc_CO2()
         k_CO2 = k_600*(600/Sc_CO2)**0.5
