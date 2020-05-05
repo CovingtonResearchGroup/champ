@@ -37,7 +37,7 @@ def test_A_interp():
     A_from_interp = xc_Circ.A_interp(fd)
     wetidx = xc_Circ.y < xc_Circ.y.min() + fd
     A_from_calcA = xc_Circ.calcA(wantidx=wetidx)
-    assert_approx_equal(A_from_interp, A_from_calcA, significant=3)
+    assert_approx_equal(A_from_interp, A_from_calcA, significant=2)
 
 def test_P_interp():
     fd = r*0.5
@@ -136,13 +136,13 @@ def test_calcNormalFlow_with_interp():
     xc_Circ.create_P_interp()
     Q_calc = xc_Circ.calcNormalFlow(fd, slope, f=0.1, use_interp=True)
     Q_by_hand = 0.98347
-    assert_approx_equal(Q_calc, Q_by_hand, significant=3)
+    assert_approx_equal(Q_calc, Q_by_hand, significant=2)
 
 def test_calcNormalFlowDepth():
     Q = 0.98347 #by hand half full circular pipe
     slope=0.001
     fd = xc_Circ.calcNormalFlowDepth(Q, slope, f=0.1)
-    assert_approx_equal(fd, 1., significant=3)
+    assert_approx_equal(fd, 1., significant=2)
 
 def test_calcPipeFullHeadGrad():
     Q=1.
@@ -158,7 +158,7 @@ def test_erode():
     r_l = xc_Circ.calcR_l()
     dr = r_l*erode_factor
     A_before = xc_Circ.calcA()
-    xc_Circ.erode(dr)
+    xc_Circ.erode(dr, trim=False)
     A_after = xc_Circ.calcA()
     assert_approx_equal(A_before/A_after, (1/(1+erode_factor))**2, significant=4)
 
