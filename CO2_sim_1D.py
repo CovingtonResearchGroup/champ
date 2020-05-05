@@ -16,11 +16,12 @@ rho_limestone = 2.6#g/cm^3
 rho_w = 998.2#kg/m^3
 D_Ca = 10**-9#m^2/s
 nu = 1.3e-6#m^2/s at 10 C
-Sc = nu/D_Ca
+Sc_Ca = nu/D_Ca
 g_mol_CaCO3 = 100.09
 L_per_m3 = 1000.
 secs_per_year =  3.154e7
 secs_per_hour = 60.*60.
+secs_per_day = secs_per_hour*24.
 cm_m = 100.
 
 ###
@@ -36,7 +37,7 @@ class CO2_1D:
     CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
     adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.01, dt_erode=1.,
-    downstream_bnd_type='normal', trim=True):
+    downstream_bnd_type='normal', trim=True, variable_gas_transf=False):
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
@@ -57,7 +58,9 @@ class CO2_1D:
         self.T_cave_K = CtoK(T_cave)
         self.T_outside = T_outside
         self.T_outside_K = CtoK(T_outside)
-        self.gas_transf_vel = gas_transf_vel
+        self.gas_transf_vel = np.ones(self.n_nodes-1)*gas_transf_vel
+        self.variable_gas_transf = variable_gas_transf
+
         self.abs_tol = abs_tol
         self.rel_tol = rel_tol
         self.CO2_err_rel_tol = CO2_err_rel_tol
@@ -185,7 +188,7 @@ class CO2_1D:
                 if partial_backflood: #upstream node is flooded above normal depth
                     self.flow_type[i] = 'pbflood'
                     y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
-                    if y_in>0 and (y_out + y_in)/2. < xc.ymax - xc.ymin:# or could use fraction of y_in 
+                    if y_in>0 and (y_out + y_in)/2. < xc.ymax - xc.ymin:# or could use fraction of y_in
                         self.h[i+1] = self.z_arr[i+1] + y_in - self.up_offsets[i]
                         self.fd_mids[i] = (y_out + y_in)/2.
                     else:
@@ -298,6 +301,8 @@ class CO2_1D:
         if CO2_a_upstream != None:
             self.CO2_a[-1] = CO2_a_upstream
         if self.A_a.min()>0:
+            if self.variable_gas_transf == True:
+                self.calc_gas_transf_vel_from_eD()
             K_w = self.gas_transf_vel*self.W/self.A_w
             K_a = self.gas_transf_vel*self.W/self.A_a
         else:
@@ -336,7 +341,7 @@ class CO2_1D:
                 #print('mean T_b=', T_b.mean())
                 if T_b.min()<0:
                     print(asdf)
-                eps = 5*nu*Sc**(-1./3.)/np.sqrt(T_b/rho_w)
+                eps = 5*nu*Sc_Ca**(-1./3.)/np.sqrt(T_b/rho_w)
                 #print('eps=',eps.mean())
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)
                 #print('Ca=',this_Ca,'   Ca_eq=',Ca_Eq)
@@ -439,6 +444,26 @@ class CO2_1D:
         self.T_outside = T_outside_C
         self.T_outside_K = CtoK(T_outside_C)
 
+    def calc_gas_transf_vel_from_eD(self):
+        #Relationship from Ulseth et al. (2019), Nat Geosci.
+        eD = g*self.slopes*np.abs(self.V_w)
+        k_600_m_d = np.exp(3.10 + 0.35*np.log(eD))
+        if eD.max()>0.02:
+            k_600_m_d[eD>0.02] = np.exp(6.43 + 1.18*log(eD[eD>0.02]))
+        k_600 = k_600_m_d/secs_per_day
+        Sc_CO2 = self.calc_Sc_CO2()
+        k_CO2 = k_600*(600/Sc_CO2)**0.5
+        self.gas_transf_vel = k_CO2
+
+
+    def calc_Sc_CO2(self):
+        A = 1742
+        B= -91.24
+        C=2.208
+        D=-0.0219
+        T = self.T_cave
+        Sc_CO2 = A + B*T + C*T**2 + D*T**3
+        return Sc_CO2
 
     def update_adv_disp_M_water(self):
         #Construct Adv-disp matrix for water
@@ -599,9 +624,9 @@ class CO2_1D:
         self.Pe_w = L_tot*V_w_mean/self.D_w
         openchan = self.A_a > 0
         self.Lambda_w[openchan] = \
-            (self.gas_transf_vel*L_tot/V_w_mean)*self.W[openchan]/self.A_w[openchan]
+            (self.gas_transf_vel[openchan]*L_tot/V_w_mean)*self.W[openchan]/self.A_w[openchan]
         self.Lambda_a[openchan] = \
-            (self.gas_transf_vel*L_tot/V_w_mean)*self.W[openchan]/self.A_a[openchan]
+            (self.gas_transf_vel[openchan]*L_tot/V_w_mean)*self.W[openchan]/self.A_a[openchan]
         self.Lambda_w[~openchan] = 0.
         self.Lambda_a[~openchan] = 0.
         self.dt_ad = self.dt_ad_dim/self.tau
