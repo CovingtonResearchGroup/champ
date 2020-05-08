@@ -37,7 +37,8 @@ class CO2_1D:
     CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
     adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.01, dt_erode=1.,
-    downstream_bnd_type='normal', trim=True, variable_gas_transf=False):
+    downstream_bnd_type='normal', trim=True, variable_gas_transf=False,
+    subdivide_factor = 0.2):
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
@@ -60,6 +61,8 @@ class CO2_1D:
         self.T_outside_K = CtoK(T_outside)
         self.gas_transf_vel = np.ones(self.n_nodes-1)*gas_transf_vel
         self.variable_gas_transf = variable_gas_transf
+        self.subdivide_factor = subdivide_factor
+        #self.n_subdivide = n_subdivide
 
         self.abs_tol = abs_tol
         self.rel_tol = rel_tol
@@ -362,12 +365,6 @@ class CO2_1D:
             if self.A_a.min()>0:
                 if self.V_a[i-1] != 0:
                     dCO2_a = -self.L_arr[i-1]*K_a[i-1]/self.V_a[i-1]*(this_CO2_w - this_CO2_a)
-                    if np.abs(dCO2_a) > np.abs(this_CO2_w - this_CO2_a):
-                        #Don't let CO2 change more than difference between air and water
-                        #print("Low v case")
-                        dCO2_a = 0.#(this_CO2_w - this_CO2_a)
-                        this_CO2_a = this_CO2_w
-                        self.CO2_a[i] = self.CO2_w[i]
                 else:
                     #For zero airflow, CO2_a goes to CO2_w
                     dCO2_a = 0.#(this_CO2_w - this_CO2_a)
@@ -378,8 +375,39 @@ class CO2_1D:
                 this_CO2_a = this_CO2_w
                 self.CO2_a[i] = self.CO2_w[i]
             dCO2_w_exc = self.L_arr[i-1]*K_w[i-1]/self.V_w[i-1]*(this_CO2_w - this_CO2_a)
+            #Check whether air or water CO2 changes too much
+            if np.abs(dCO2_a) > self.subdivide_factor*np.abs(this_CO2_w - this_CO2_a)\
+                or np.abs(dCO2_w_exc) > self.subdivide_factor*np.abs(this_CO2_w - this_CO2_a):
+                Q_f = (-1./self.Q_w + 1./self.Q_a)
+                lambda_co2 = 1./(self.gas_transf_vel[i-1]*self.W[i-1]*Q_f)
+#                if self.Q_a<0:
+                #air and water flow in same direction
+                #Use analytical solution for output concentrations
+                CO2_w_out = this_CO2_w + ( (this_CO2_w - this_CO2_a)/(-self.Q_w*Q_f))*(np.exp(self.L_arr[i-1]/lambda_co2)-1. )
+                CO2_a_out = CO2_w_out - (this_CO2_w - this_CO2_a)*np.exp(self.L_arr[i-1]/lambda_co2)
+                dCO2_w_exc = CO2_w_out - this_CO2_w
+                dCO2_a = CO2_a_out - this_CO2_a
+#                else:
+                    #Air and water flow in opposite directions
+                    #Use shooting method analytical solution for outputs
+                    #Started this and then didn't complete. We can't use
+                    #shooting method for internal segments because we don't
+                    #know downstream boundary value. This routine is within
+                    #a shooting method for the opposite flow case. We can just
+                    #always use the solution above (I think).
+#                    Q_r = -self.Q_w*Q_f
+#                    CO2_a_upstream_g1 = 0.5*self.pCO2_high
+#                    CO2_a_upstream_g2 = 0.0
+#                    CO2_w_g1 = sim.CO2_w[-1] +((sim.CO2_w[-1] - CO2_a_L_g1)/(-sim.Q_w*Q_f))*(np.exp((L-x)/lambda_co2)-1. )
+#                    CO2_a_g1 = CO2_w_g1 - (sim.CO2_w[-1] - CO2_a_L_g1)*np.exp((L-x)/lambda_co2)
+
+
+
             #print('dCO2_w_exc=',dCO2_w_exc)
             dCO2_w = dCO2_w_exc - R_CO2/self.Q_w/L_per_m3#R_CO2/self.V_w[i-1]
+            #if np.abs(dCO2_w) > np.abs(this_CO2_w - this_CO2_a):
+            #    if this_CO2_a>this_CO2_w:
+
             dCa = R/self.Q_w/L_per_m3#-self.L_arr[i-1]*R/self.V_w[i-1]
             #print(dCO2_a,dCO2_w,dCa)
             self.CO2_a[i-1] = (this_CO2_a + dCO2_a)/self.pCO2_high
