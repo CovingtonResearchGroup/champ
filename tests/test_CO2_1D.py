@@ -184,7 +184,64 @@ def test_co2_water_profile():
     sim.calc_flow_depths()
     sim.calc_air_flow()
     sim.calc_steady_state_transport()
-    K_w = sim.gas_transf_vel*sim.W.mean()/sim.A_w.mean()
+    K_w = sim.gas_transf_vel.mean()*sim.W.mean()/sim.A_w.mean()
     lambda_co2 = -sim.V_w.mean()/K_w
     CO2_ana = (sim.CO2_a[0] -(sim.CO2_a[0] - sim.CO2_w[-1] )*np.exp(-(L-x)/lambda_co2))
     assert_allclose(sim.CO2_w,CO2_ana, rtol=0.01)
+
+def test_coupled_analytical_solution_airflow_summer():
+    n=50
+    L=10.*1000.
+    x = np.linspace(0, L,n)
+    slope = 0.001
+    z = x*slope+1.
+    r = 1.*np.ones(n-1)
+    Q = 0.25
+    f=0.1
+    Rf = 0.0
+    sim = CO2_1D(x, z, init_radii=r, Q_w = Q, f=f, xc_n=1500,
+            Ca_upstream=1.0, T_cave=10., T_outside=20.,
+            reduction_factor = Rf, variable_gas_transf=False)
+    sim.calc_flow_depths()
+    sim.calc_air_flow()
+    sim.calc_steady_state_transport()
+    Q_f = (-1./sim.Q_w + 1./sim.Q_a)
+    lambda_co2 = 1./(sim.gas_transf_vel.mean()*sim.W.mean()*Q_f)
+    CO2_w_ana = sim.CO2_w[-1] +((sim.CO2_w[-1] - sim.CO2_a[-1])/(-sim.Q_w*Q_f))*(np.exp((L-x)/lambda_co2)-1. )
+    CO2_a_ana = CO2_w_ana - (sim.CO2_w[-1] - sim.CO2_a[-1])*np.exp((L-x)/lambda_co2)
+    assert_allclose(sim.CO2_w,CO2_w_ana, rtol=0.001)
+    assert_allclose(sim.CO2_a,CO2_a_ana, rtol=0.001)
+
+def test_coupled_analytical_solution_airflow_winter():
+    n=50
+    L=10.*1000.
+    x = np.linspace(0, L,n)
+    slope = 0.001
+    z = x*slope+1.
+    r = 1.*np.ones(n-1)
+    Q = 0.25
+    f=0.1
+    Rf = 0.0
+    sim = CO2_1D(x, z, init_radii=r, Q_w = Q, f=f, xc_n=1500,
+                Ca_upstream=1.0, T_cave=10., T_outside=0.,
+                reduction_factor = Rf, variable_gas_transf=False)
+    sim.calc_flow_depths()
+    sim.calc_air_flow()
+    sim.calc_steady_state_transport()
+    Q_f = (-1./sim.Q_w + 1./sim.Q_a)
+    Q_r = -Q_f*sim.Q_w
+    lambda_co2 = 1./(sim.gas_transf_vel.mean()*sim.W.mean()*Q_f)
+    #Use linear shooting method to get analytical solution
+    CO2_a_L_g1 = 0.5
+    CO2_a_L_g2 = 0.
+    CO2_w_g1 = sim.CO2_w[-1] +((sim.CO2_w[-1] - CO2_a_L_g1)/(-sim.Q_w*Q_f))*(np.exp((L-x)/lambda_co2)-1. )
+    CO2_a_g1 = CO2_w_g1 - (sim.CO2_w[-1] - CO2_a_L_g1)*np.exp((L-x)/lambda_co2)
+    CO2_w_g2 = sim.CO2_w[-1] +((sim.CO2_w[-1] - CO2_a_L_g2)/(-sim.Q_w*Q_f))*(np.exp((L-x)/lambda_co2)-1. )
+    CO2_a_g2 = CO2_w_g2 - (sim.CO2_w[-1] - CO2_a_L_g2)*np.exp((L-x)/lambda_co2)
+
+    f = (CO2_a_g1[0] - sim.CO2_a[0])/(CO2_a_g1[0] - CO2_a_g2[0])
+
+    CO2_a_ana = (1-f)*CO2_a_g1 + f*CO2_a_g2
+    CO2_w_ana = (1-f)*CO2_w_g1 + f*CO2_w_g2
+    assert_allclose(sim.CO2_w,CO2_w_ana, rtol=0.01)
+    assert_allclose(sim.CO2_a,CO2_a_ana, rtol=0.01)
