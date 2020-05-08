@@ -245,3 +245,66 @@ def test_coupled_analytical_solution_airflow_winter():
     CO2_w_ana = (1-f)*CO2_w_g1 + f*CO2_w_g2
     assert_allclose(sim.CO2_w,CO2_w_ana, rtol=0.01)
     assert_allclose(sim.CO2_a,CO2_a_ana, rtol=0.01)
+
+def test_subdivide_solution_winter():
+    n=6
+    L=25.*1000.
+    x = np.linspace(0, L,n)
+    slope = 0.001
+    z = x*slope+1.
+    r = 1.*np.ones(n-1)
+    Q = 0.25
+    f=0.1
+    Rf = 0.0
+    sim = CO2_1D(x, z, init_radii=r, Q_w = Q, f=f, xc_n=1500,
+                Ca_upstream=1.0, T_cave=10., T_outside=0.,
+                reduction_factor = Rf, variable_gas_transf=False)
+    sim.calc_flow_depths()
+    sim.calc_air_flow()
+    sim.calc_steady_state_transport()
+
+    n=51
+    x = np.linspace(0, L,n)
+    z = x*slope+1.
+    r = 1.*np.ones(n-1)
+    sim2 = CO2_1D(x, z, init_radii=r, Q_w = Q, f=f, xc_n=1500,
+                Ca_upstream=1.0, T_cave=10., T_outside=0.,
+                reduction_factor = Rf, variable_gas_transf=False)
+    sim2.calc_flow_depths()
+    sim2.calc_air_flow()
+    sim2.calc_steady_state_transport()
+
+    assert_allclose(sim.CO2_w,sim2.CO2_w[::10], rtol=0.02)
+    assert_allclose(sim.CO2_a,sim2.CO2_a[::10], rtol=0.02)
+
+
+def test_subdivide_solution_summer():
+    n=6
+    L=25.*1000.
+    x = np.linspace(0, L,n)
+    slope = 0.001
+    z = x*slope+1.
+    r = 1.*np.ones(n-1)
+    Q = 0.25
+    f=0.1
+    Rf = 0.0
+    sim = CO2_1D(x, z, init_radii=r, Q_w = Q, f=f, xc_n=1500,
+                Ca_upstream=1.0, T_cave=10., T_outside=20.,
+                reduction_factor = Rf, variable_gas_transf=False)
+    sim.calc_flow_depths()
+    sim.calc_air_flow()
+    sim.calc_steady_state_transport()
+
+    n=51
+    x = np.linspace(0, L,n)
+    z = x*slope+1.
+    r = 1.*np.ones(n-1)
+    sim2 = CO2_1D(x, z, init_radii=r, Q_w = Q, f=f, xc_n=1500,
+                Ca_upstream=1.0, T_cave=10., T_outside=20.,
+                reduction_factor = Rf, variable_gas_transf=False)
+    sim2.calc_flow_depths()
+    sim2.calc_air_flow()
+    sim2.calc_steady_state_transport()
+
+    assert_allclose(sim.CO2_w,sim2.CO2_w[::10], rtol=0.02)
+    assert_allclose(sim.CO2_a,sim2.CO2_a[::10], rtol=0.02)
