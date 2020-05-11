@@ -28,6 +28,43 @@ cm_m = 100.
 ####
 
 class CO2_1D:
+    """Simulation object for a coupled waterflow, airflow, CO2 exchange, and
+    cave cross-section evolution algorithm
+
+    The simulation object implements an algorithm for simulating the evolution
+    of a 1D cave channel with an arbitrary number of defined cross-sections.
+
+    Key functionality includes:
+
+    1. Calculating steady discharge within a mixture of open channel and
+    full pipe conditions with arbitrary channel cross-sectional shapes.
+
+    2. Calculating airflow within the air-filled portion of the cave passage.
+
+    3. Calculating CO2 transport and exchange between air and water.
+
+    4. Calculating calcite dissolution rates.
+
+    5. Evolving channel cross-section according to calculated dissolution rates.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from CO2_sim_1D import CO2_1D
+    >>> n=5
+    >>> x = np.linspace(0, 5000,n) # m
+    >>> slope = 0.001
+    >>> z = x*slope
+    >>> r = 1.*np.ones(n-1) # m
+    >>> Q = 1. # m^3/s
+    >>> sim = CO2_1D(x, z, init_radii=r, Q_w = Q, T_outside=20., T_cave=10.,
+    ...              dt_erode=1., Ca_upstream=0.5, CO2_w_upstream =1.,
+    ...              CO2_a_upstream=0.9, pCO2_high=5e-3)
+    >>> nsteps=10
+    >>> for t in np.arange(nsteps):
+    >>>     sim.run_one_step()
+
+    """
 
     def __init__(self, x_arr, z_arr, Q_w=0.1,
     pCO2_high=5000*1e-6, pCO2_outside=500*1e-6, f=0.1,
