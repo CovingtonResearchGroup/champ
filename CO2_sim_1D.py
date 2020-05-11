@@ -94,7 +94,6 @@ class CO2_1D:
         self.gas_transf_vel = np.ones(self.n_nodes-1)*gas_transf_vel
         self.variable_gas_transf = variable_gas_transf
         self.subdivide_factor = subdivide_factor
-        #self.n_subdivide = n_subdivide
 
         self.abs_tol = abs_tol
         self.rel_tol = rel_tol
@@ -133,7 +132,6 @@ class CO2_1D:
 
         #Initialize cross-sections
         self.xcs = []
-        #self.maxdepths = np.zeros(self.n_nodes-1)
         self.radii = init_radii*np.ones(self.n_nodes-1)
         ymins = []
         for i in np.arange(self.n_nodes-1):
@@ -141,7 +139,6 @@ class CO2_1D:
             y = y + self.init_offsets[i]
             this_xc = CrossSection(x,y)
             self.xcs.append(this_xc)
-            #self.maxdepths[i] = this_xc.ymax - this_xc.ymin
             ymins.append(this_xc.ymin)
         self.ymins = np.array(ymins)
         #Reset z to bottom of cross-sections
@@ -380,21 +377,14 @@ class CO2_1D:
                     eSlope = self.slopes[i-1]
                 else:
                     eSlope = (self.h[i] - self.h[i-1])/self.L_arr[i-1]
-                #print('xc i=',i-1,'eSlope=',eSlope)
                 this_xc.setEnergySlope(eSlope)
                 this_xc.setMaxVelPoint(self.fd_mids[i-1])
                 this_xc.calcUmax(self.Q_w)
                 T_b = this_xc.calcT_b()
-                #print('i=',i)
-                #print('min T_b=', T_b.min())
-                #print('max T_b=', T_b.max())
-                #print('mean T_b=', T_b.mean())
                 if T_b.min()<0:
                     print(asdf)
                 eps = 5*nu*Sc_Ca**(-1./3.)/np.sqrt(T_b/rho_w)
-                #print('eps=',eps.mean())
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)
-                #print('Ca=',this_Ca,'   Ca_eq=',Ca_Eq)
                 F_xc = self.reduction_factor*D_Ca/eps*(Ca_Eq - this_Ca)*L_per_m3
                 #Smooth F_xc with savgol_filter
                 window = int(np.ceil(len(F_xc)/5)//2*2+1)
@@ -405,8 +395,7 @@ class CO2_1D:
                 this_xc.set_F_xc(F_xc)
                 P_w = this_xc.wet_ls.sum()
                 F[i-1] = np.sum(F_xc*this_xc.wet_ls)/P_w #Units of F are mols/m^2/sec
-                #print('F=',F[i-1])
-                R = F[i-1]*P_w*self.L_arr[i-1]#4.*F[i-1]/self.D_H_w[i-1]
+                R = F[i-1]*P_w*self.L_arr[i-1]
             R_CO2 = R/self.K_H
             #dx is negative, so signs on dC terms flip
             if self.A_a.min()>0:
@@ -450,8 +439,6 @@ class CO2_1D:
         old_ymins = self.ymins.copy()
         for i,xc in enumerate(self.xcs):
             xc.dr = F_to_m_yr*xc.F_xc*self.dt_erode*dt_frac
-            #print('i=',i,'  max dr=', xc.dr.max(), '  max F_xc=',xc.F_xc.max())
-            #xc.dr = savgol_filter(xc.dr,15,3,mode='wrap')
             xc.erode(xc.dr, trim=self.trim)
             self.ymins[i]= xc.ymin
         #Adjust slopes
@@ -463,33 +450,7 @@ class CO2_1D:
         CFL = Celerity_times_dt/min((self.x_arr[1:] - self.x_arr[:-1]))
         print('CFL=',CFL)
         self.z_arr[1:] = self.z_arr[1:] + dz
-        #bed_elevs = self.z_arr[1:] + ymins
-        #new_slopes = self.slopes
-        #new_slopes[1:-1] = (bed_elevs[2:] - bed_elevs[:-2])/(self.L_arr[2:] + self.L_arr[:-2])
-        #new_slopes[0] = (bed_elevs[0] - self.z_arr[0])/self.L_arr[0]
-        #new_slopes[-1] = new_slopes[-2]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
-        """
-        #        print('ymins=',ymins)
-        #        dys = ymins[0:-1]+self.down_offsets[0:-1] - (ymins[1:]+self.up_offsets[1:])
-                print('dys=',dys)
-                for i,xc in enumerate(self.xcs):
-                    if i==0:
-                        dy_down = 0.
-                    else:
-                        dy_down = -0.5*dys[i-1]
-                    if i==len(self.xcs)-1:
-                        dy_up = 0.
-                    else:
-                        dy_up = 0.5*dys[i]
-                    self.down_offsets[i] -= dy_down
-                    self.up_offsets[i] -= dy_up
-                    dslope = (dy_down - dy_up)/self.L_arr[i]
-                    print('xc=',i,'  dslope=',dslope)
-                    print('down_offset=',self.down_offsets[i],'up_offset=',self.up_offsets[i])
-                    self.slopes[i] = self.slopes[i] + dslope
-                print('dys after=', ymins[0:-1]+self.down_offsets[0:-1] - (ymins[1:]+self.up_offsets[1:]))
-        """
 
     def set_T_outside(self, T_outside_C):
         self.T_outside = T_outside_C
