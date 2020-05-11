@@ -34,7 +34,7 @@ class CO2_1D:
     pCO2_high=5000*1e-6, pCO2_outside=500*1e-6, f=0.1,
     T_cave=10, T_outside=20., gas_transf_vel=0.1/secs_per_hour,
     abs_tol=1e-5, rel_tol=1e-5, CO2_err_rel_tol=0.001,
-    CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
+    CO2_w_upstream=1., CO2_a_upstream = 0.9, Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
     adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.01, dt_erode=1.,
     downstream_bnd_type='normal', trim=True, variable_gas_transf=False,
@@ -68,6 +68,7 @@ class CO2_1D:
         self.rel_tol = rel_tol
         self.CO2_err_rel_tol = CO2_err_rel_tol
         self.CO2_w_upstream = CO2_w_upstream
+        self.CO2_a_upstream = CO2_a_upstream
         self.Ca_upstream = Ca_upstream
         self.reduction_factor = reduction_factor
         self.dt_erode = dt_erode
@@ -118,6 +119,11 @@ class CO2_1D:
         self.z_arr[1:] = self.z_arr[1:] + self.ymins
         self.z_arr[0] = self.z_arr[0] + self.ymins[0]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
+
+        #Create concentration arrays
+        self.CO2_a = np.zeros(self.n_nodes)
+        self.CO2_w = np.zeros(self.n_nodes)
+        self.Ca = np.zeros(self.n_nodes)
 
 
         #Create b arrays for each concentration variable
@@ -267,9 +273,31 @@ class CO2_1D:
             self.V_a[:] = 0.
         print("Air discharge = ",self.Q_a, ' m^3/s')
 
+
+    def set_concentration_bnd_conditions(self):
+        #Determine upstream boundary concentration for air
+        if self.V_a[0]>0:
+            CO2_a_boundary = self.pCO2_outside/self.pCO2_high
+            air_upstream_idx = 0
+        elif self.V_a[0]==0:
+            CO2_a_boundary = self.CO2_w_upstream
+            air_upstream_idx = -1
+        else:
+            CO2_a_boundary = self.CO2_a_upstream
+            air_upstream_idx = -1
+
+        #Asign upstream boundary conditions into concentration arrays
+        self.CO2_a[air_upstream_idx] = CO2_a_boundary
+        self.CO2_w[-1] = self.CO2_w_upstream
+        self.Ca[-1] = self.Ca_upstream
+        #self.CO2_a_upstream = CO2_a_upstream
+
+
+
     def calc_steady_state_transport(self, palmer=False):
-        self.update_dimnless_params()
-        self.initialize_conc_arrays()
+        #self.update_dimnless_params()
+        #self.initialize_conc_arrays()
+        self.set_concentration_bnd_conditions()
 
         if np.sign(self.V_a[0])==np.sign(self.V_w[0]) or self.V_a[0]==0.:
             self.calc_conc_from_upstream( palmer=palmer)
