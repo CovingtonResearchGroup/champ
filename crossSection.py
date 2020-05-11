@@ -29,6 +29,7 @@ class CrossSection:
         self.setMaxVelPoint(self.fd)
         self.Q = 0.
         self.back_to_total = False
+        self.is_trimmed = False
 
     # Create arrays of x+1, y+1, x-1, x+1
     def create_pm(self):
@@ -297,6 +298,7 @@ class CrossSection:
                     first_trim = True
                     self.x_total = nx
                     self.y_total = ny
+                    self.is_trimmed = True
                 else:
                     first_trim = False
                 nx = nx[ny<trim_y]
@@ -317,7 +319,7 @@ class CrossSection:
                     #un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
                     #self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
                     #print(asdsf)
-            else:
+            elif not trim_y<max(ny) and self.is_trimmed:
                 #Water level is increasing
                 self.update_total_xc(trim_y, nx, ny)
                 if (max(ny) - min(ny)) < add_factor*self.fd:
