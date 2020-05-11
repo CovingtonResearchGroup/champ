@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.linalg import solve_banded
 from olm.calcite import concCaEqFromPCO2, createPalmerInterpolationFunctions, palmerRate, calc_K_H,\
                         solutionFromCaPCO2, palmerFromSolution
 from olm.general import CtoK
@@ -30,13 +29,13 @@ cm_m = 100.
 
 class CO2_1D:
 
-    def __init__(self, x_arr, z_arr, D_w=30., D_a=30, Q_w=0.1,
+    def __init__(self, x_arr, z_arr, Q_w=0.1,
     pCO2_high=5000*1e-6, pCO2_outside=500*1e-6, f=0.1,
     T_cave=10, T_outside=20., gas_transf_vel=0.1/secs_per_hour,
     abs_tol=1e-5, rel_tol=1e-5, CO2_err_rel_tol=0.001,
     CO2_w_upstream=1., CO2_a_upstream = 0.9, Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
     init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
-    adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.01, dt_erode=1.,
+    impure=True,reduction_factor=0.01, dt_erode=1.,
     downstream_bnd_type='normal', trim=True, variable_gas_transf=False,
     subdivide_factor = 0.2):
         self.n_nodes = x_arr.size
@@ -44,11 +43,7 @@ class CO2_1D:
         self.x_arr = x_arr
         self.z_arr = z_arr#z is zero of xc coords
         self.L_arr = x_arr[1:]- x_arr[:-1]
-        self.D_w = D_w
-        self.D_a = D_a
-        self.adv_disp_stabil_factor = adv_disp_stabil_factor
         #Calculate stable timestep
-        self.dt_ad_dim = adv_disp_stabil_factor*self.L_arr[0]**2./np.min([self.D_w,self.D_a]) #endtime/(ntimes-1)
         self.Q_w = Q_w
         self.Q_a = 0.
         self.pCO2_high = pCO2_high
@@ -85,8 +80,6 @@ class CO2_1D:
         self.D_H_w = np.zeros(self.n_nodes - 1)
         self.D_H_a = np.zeros(self.n_nodes - 1)
         self.W = np.zeros(self.n_nodes - 1)
-        self.Lambda_a = np.zeros(self.n_nodes - 1)
-        self.Lambda_w = np.zeros(self.n_nodes - 1)
 
         self.fd_mids = np.zeros(self.n_nodes-1)
         self.init_offsets = np.ones(self.n_nodes-1) * init_offsets
@@ -100,7 +93,6 @@ class CO2_1D:
         self.K_H = calc_K_H(self.T_cave_K) #Henry's law constant mols dissolved per atm
         self.Ca_eq_0 = concCaEqFromPCO2(self.pCO2_high, T_C=T_cave)
         self.palmer_interp_funcs = createPalmerInterpolationFunctions(impure=impure)
-
 
         #Initialize cross-sections
         self.xcs = []
@@ -124,12 +116,6 @@ class CO2_1D:
         self.CO2_a = np.zeros(self.n_nodes)
         self.CO2_w = np.zeros(self.n_nodes)
         self.Ca = np.zeros(self.n_nodes)
-
-
-        #Create b arrays for each concentration variable
-        self.bCO2_a = np.zeros(self.n_nodes-1)
-        self.bCO2_w = np.zeros(self.n_nodes-1)
-        self.bCa = np.zeros(self.n_nodes-1)
 
 
     def run_one_step(self, T_outside_arr = []):
@@ -404,36 +390,12 @@ class CO2_1D:
                 or np.abs(dCO2_w_exc) > self.subdivide_factor*np.abs(this_CO2_w - this_CO2_a):
                 Q_f = (-1./self.Q_w + 1./self.Q_a)
                 lambda_co2 = 1./(self.gas_transf_vel[i-1]*self.W[i-1]*Q_f)
-#                if self.Q_a<0:
-                #air and water flow in same direction
-                #Use analytical solution for output concentrations
                 CO2_w_out = this_CO2_w + ( (this_CO2_w - this_CO2_a)/(-self.Q_w*Q_f))*(np.exp(self.L_arr[i-1]/lambda_co2)-1. )
                 CO2_a_out = CO2_w_out - (this_CO2_w - this_CO2_a)*np.exp(self.L_arr[i-1]/lambda_co2)
                 dCO2_w_exc = CO2_w_out - this_CO2_w
                 dCO2_a = CO2_a_out - this_CO2_a
-#                else:
-                    #Air and water flow in opposite directions
-                    #Use shooting method analytical solution for outputs
-                    #Started this and then didn't complete. We can't use
-                    #shooting method for internal segments because we don't
-                    #know downstream boundary value. This routine is within
-                    #a shooting method for the opposite flow case. We can just
-                    #always use the solution above (I think).
-#                    Q_r = -self.Q_w*Q_f
-#                    CO2_a_upstream_g1 = 0.5*self.pCO2_high
-#                    CO2_a_upstream_g2 = 0.0
-#                    CO2_w_g1 = sim.CO2_w[-1] +((sim.CO2_w[-1] - CO2_a_L_g1)/(-sim.Q_w*Q_f))*(np.exp((L-x)/lambda_co2)-1. )
-#                    CO2_a_g1 = CO2_w_g1 - (sim.CO2_w[-1] - CO2_a_L_g1)*np.exp((L-x)/lambda_co2)
-
-
-
-            #print('dCO2_w_exc=',dCO2_w_exc)
-            dCO2_w = dCO2_w_exc - R_CO2/self.Q_w/L_per_m3#R_CO2/self.V_w[i-1]
-            #if np.abs(dCO2_w) > np.abs(this_CO2_w - this_CO2_a):
-            #    if this_CO2_a>this_CO2_w:
-
-            dCa = R/self.Q_w/L_per_m3#-self.L_arr[i-1]*R/self.V_w[i-1]
-            #print(dCO2_a,dCO2_w,dCa)
+            dCO2_w = dCO2_w_exc - R_CO2/self.Q_w/L_per_m3
+            dCa = R/self.Q_w/L_per_m3
             self.CO2_a[i-1] = (this_CO2_a + dCO2_a)/self.pCO2_high
             self.CO2_w[i-1] = (this_CO2_w + dCO2_w)/self.pCO2_high
             self.Ca[i-1] = (this_Ca + dCa)/self.Ca_eq_0
@@ -506,7 +468,6 @@ class CO2_1D:
         Sc_CO2 = self.calc_Sc_CO2()
         k_CO2 = k_600*(600/Sc_CO2)**0.5
         self.gas_transf_vel = k_CO2
-
 
     def calc_Sc_CO2(self):
         A = 1742
