@@ -65,8 +65,6 @@ class CrossSection:
                 l[maxidx] = 0.
         P = abs(sum(l))
         return P
-        #self.pp = cumsum(self.l)
-		#self.P = self.pp[-2]
 
 	# Calculates area of the cross-section
     def calcA(self, wantidx=None, total=False, zeroAtUmax=True):
@@ -260,10 +258,6 @@ class CrossSection:
         #Slightly trim high-res XC to remove any connection across top
         self.x2 =x2= nx[ny<ny.max()-0.02*(ny.max()-ny.min())]
         self.y2 =y2= ny[ny<ny.max()-0.02*(ny.max()-ny.min())]
-        #self.x2 =x2= nx[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx<0)]
-        #self.y2 =y2= ny[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx<0)]
-        #self.x3 =x3= nx[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx>0)]
-        #self.y3 =y3= ny[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx>0)]
         self.x4 =x4= self.x_total[np.logical_and(self.x_total>0,self.y_total>ny.max())]
         self.y4 =y4= self.y_total[np.logical_and(self.x_total>0,self.y_total>ny.max())]
         x_total_tmp = np.concatenate([x1,x2,x4])
@@ -305,20 +299,6 @@ class CrossSection:
                 ny = ny[ny<trim_y]
                 if not first_trim:
                     self.update_total_xc(trim_y, nx, ny)
-                    #create new total xc arrays from old and wet portions
-                    #self.x1 =x1= self.x_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
-                    #self.y1 =y1= self.y_total[np.logical_and(self.x_total<0,self.y_total>trim_y)]
-                    #Slightly trim high-res XC to remove any connection across top
-                    #self.x2 =x2= nx[ny<trim_y-0.02*(ny.max()-ny.min())]
-                    #self.y2 =y2= ny[ny<trim_y-0.02*(ny.max()-ny.min())]
-                    #self.x3 =x3= self.x_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
-                    #self.y3 =y3= self.y_total[np.logical_and(self.x_total>0,self.y_total>trim_y)]
-                    #x_total_tmp = np.concatenate([x1,x2,x3])
-                    #y_total_tmp = np.concatenate([y1,y2,y3])
-                    #tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
-                    #un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
-                    #self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
-                    #print(asdsf)
             elif not trim_y<max(ny) and self.is_trimmed:
                 #Water level is increasing
                 self.update_total_xc(trim_y, nx, ny)
@@ -333,21 +313,7 @@ class CrossSection:
                     self.y_total = None
                     self.back_to_total = True
                     resample = False
-                #x1_add = self.x_total[np.logical_and(np.logical_and(self.x_total<0, self.y_total<trim_y), self.y_total>max(ny) )]
-                #y1_add = self.y_total[np.logical_and(np.logical_and(self.x_total<0, self.y_total<trim_y), self.y_total>max(ny) )]
-                #x2_add = nx[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx<0)]
-                #y2_add = ny[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx<0)]
-                #x3_add = nx[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx>0)]
-                #y3_add = ny[logical_and(ny<trim_y-0.02*(ny.max()-ny.min()),nx>0)]
-                #x4_add = self.x_total[np.logical_and(np.logical_and(self.x_total>0, self.y_total<trim_y), self.y_total>max(ny) )]
-                #y4_add = self.y_total[np.logical_and(np.logical_and(self.x_total>0, self.y_total<trim_y), self.y_total>max(ny) )]
-                #nx = np.concatenate([x1_add, x2_add, x3_add, x4_add])
-                #ny = np.concatenate([y1_add, y2_add, y3_add, y4_add])
 
-        #print('trim_y=',trim_y)
-        #print('len nx=', len(nx))
-        #print('tmp ymin=',tmp_ymin)
-        #print('fd=',self.fd)
         #Resample points by fitting spline
         if resample:
             #s = nx.size#+np.sqrt(2*nx.size)
@@ -360,26 +326,14 @@ class CrossSection:
         y_roll = ny.size - ny.argmax()
         nx = roll(nx, y_roll)
         ny = roll(ny, y_roll)
-#        if trim:
-#            nx = nx[ny<trim_y-0.02*(ny.max()-ny.min())]#Slightly trim to remove roof
-#            ny = ny[ny<trim_y-0.02*(ny.max()-ny.min())]
         self.x = nx
         self.y = ny
         self.create_pm()
-#        self.x = (self.xp + self.xm)/2.
-#        self.y = (self.yp + self.ym)/2.
-#        self.create_pm()
         self.ymin = min(ny)
         #only reset ymax if it is increasing
         #if max(ny)>self.ymax:
         self.ymax = max(ny)
         self.n = len(nx)
-
-
-    # Counter clockwise function to determine if we drew points in the correct
-    # direction
-    #def ccw(self, x, y, xm, ym, nx, ny):
-    #    return (x - xm) * (ny - ym) > (y - ym) * (nx - xm)
 
 
     def calcNormalFlow(self,depth, slope,f=0.1, use_interp=True):
@@ -412,23 +366,15 @@ class CrossSection:
         return desiredQ - self.calcNormalFlow(avg_flow_depth,head_slope,f=f)
 
     def crit_flow_depth_residual(self,depth,Q):
-        #wetidx = self.y - self.ymin < depth
-        #print(wetidx)
-        #print(depth)
-        A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
+        A = self.A_interp(depth)
         L,R = self.findLR(depth)
         W = self.x[R] - self.x[L]
-        #print(depth,W,A)
         return A**3/W - Q**2/g
 
     def abs_crit_flow_depth_residual(self,depth,Q):
-        #wetidx = self.y - self.ymin < depth
-        #print(wetidx)
-        #print(depth)
-        A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
+        A = self.A_interp(depth)
         L,R = self.findLR(depth)
         W = self.x[R] - self.x[L]
-        #print(depth,W,A)
         return abs(A**3/W - Q**2/g)
 
 
@@ -441,23 +387,10 @@ class CrossSection:
             upper_bound = old_fd*1.1#25
         calcFullFlow = self.calcNormalFlow(maxdepth,slope, f=f, use_interp=False)
         if Q>=calcFullFlow and not self.ymax>self.y.max():
-            #calc95PerFlow = self.calcNormalFlow(0.95*maxdepth, slope,f=f)
-            #if Q>calc95PerFlow:
-            #    print("Pipe is full.")
             return -1
         else:
-            #dl = self.calcP()/self.n
-            #dQ = abs(self.calcNormalFlow(self.fd+dl,slope,f=f) - self.calcNormalFlow(self.fd,slope,f=f))
-            #print('dQ=',dQ)
-            #sol = root_scalar(self.normal_discharge_residual, args=(slope,f,Q), x0=self.fd, x1=self.fd*0.75,xtol=dQ)
-            #fd = sol.root
-            #print('about to minimize')
             sol = minimize_scalar(self.abs_normal_discharge_residual, bounds=[SMALL,upper_bound], args=(slope,f,Q), method='bounded' )
-            #print('found min')
             fd = sol.x
-#            if fd<0:
-#                fd = brentq(self.normal_discharge_residual, SMALL, maxdepth, args=(slope,f,Q))
-            #print('Q residual for',fd,' =', self.abs_normal_discharge_residual(fd,slope,f,Q))
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1
@@ -470,10 +403,6 @@ class CrossSection:
         upper_bound = fd*1.25
         if upper_bound>0.99*maxdepth:
             upper_bound=0.99*maxdepth
-        #Commented this out when changed to abs(), don't think we need it anymore
-        #if self.crit_flow_depth_residual(fd*0.01,Q)>0:
-        #    return -1
-        #crit_depth = brentq(self.crit_flow_depth_residual, maxdepth*0.01, maxdepth*0.95, args=(Q,))
         sol = minimize_scalar(self.abs_crit_flow_depth_residual, bounds=[SMALL,upper_bound], args=(Q,), method='bounded')
         crit_depth = sol.x
         return crit_depth
