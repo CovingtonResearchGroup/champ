@@ -1,3 +1,16 @@
+"""
+runSim is a convenience function for running simulations and producing
+plot outputs for a desired set of model parameters. This is mostly
+designed to be run from the command line using a yaml that contains the
+desired parameters. The name of the yaml file is included as the first
+command line argument.
+
+For example use:
+
+python runSim.py low-co2-example.yml
+
+"""
+
 from pylab import *
 import pickle
 import sys
@@ -10,6 +23,7 @@ from model_parameter_loader import load_params
 
 from CO2_sim_1D import CO2_1D
 
+
 def runSim(n=5, L=1000, dz=1, r_init=1, endstep=1000,
             plotdir='./default-figs/',
             start_from_snapshot_num =0,
@@ -18,6 +32,50 @@ def runSim(n=5, L=1000, dz=1, r_init=1, endstep=1000,
             plot_every=100,
             T_outside_arr=None,
             CO2_1D_params = {}):
+
+    """Run simulation using specified parameters.
+
+    Parameters
+    ----------
+    n : int
+        Number of nodes.
+    L : float
+        Length of entire channel (meters).
+    dz : float
+        Change in elevation over channel length (meters).
+    r_init : float
+        Initial cross-section radius.
+    endstep : int
+        Timestep on which to end simulation.
+    plotdir : string
+        Path to directory that will hold plots and snapshots. This directory
+        will be created if it does not exist.
+    start_from_snapshot_num : int
+        If set to a nonzero value, then the simulation will be
+        started from that snapshot number within plotdir. If set
+        to zero, then a new simulation is started.
+    dz0_dt : float
+        Rate of change of baselevel. This distance is subtracted
+        from the elevation of the downstream boundary node during
+        each timestep.
+    snapshot_every : int
+        Number of time steps after which to record a pickled CO2_1D object.
+        These snapshots can easily be used to restart a simulation from a
+        previous point.
+    plot_every : int
+        Number of time steps after which to create plots of simulation
+        outputs.
+    T_outside_arr : ndarray
+        An array of outside air temperatures to cycle through during
+        each timestep. If set to None (default) then only the single
+        T_outside value supplied in CO2_1D_params will be used.
+    CO2_1D_params : dict
+        Dictionary of keyword arguments to be supplied to CO2_1D for
+        initialization of simulation object.
+
+
+    """
+
 
     if not os.path.isdir(plotdir):
         os.mkdir(plotdir)

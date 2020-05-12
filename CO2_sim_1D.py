@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.linalg import solve_banded
 from olm.calcite import concCaEqFromPCO2, createPalmerInterpolationFunctions, palmerRate, calc_K_H,\
                         solutionFromCaPCO2, palmerFromSolution
 from olm.general import CtoK
@@ -14,6 +13,9 @@ from scipy.signal import savgol_filter
 g=9.8#m/s^2
 rho_limestone = 2.6#g/cm^3
 rho_w = 998.2#kg/m^3
+R_da = 287.058 #Specific gas constant for dry air, J/(kg*K)
+R_wv = 461.495 #Specific gas constant for water vapor, J/(kg*K)
+p_atm = 101325. # 1 atm in Pa
 D_Ca = 10**-9#m^2/s
 nu = 1.3e-6#m^2/s at 10 C
 Sc_Ca = nu/D_Ca
@@ -23,56 +25,196 @@ secs_per_year =  3.154e7
 secs_per_hour = 60.*60.
 secs_per_day = secs_per_hour*24.
 cm_m = 100.
+cm_per_mm = 0.1
+cm2_per_m2 = 100.*100.
 
 ###
 ## gas trasfer vel, typical values ~10 cm/hr for small streams (Wanningkhof 1990)
 ####
 
 class CO2_1D:
+    """Simulation object for a coupled waterflow, airflow, CO2 exchange, and
+    cave cross-section evolution algorithm
 
-    def __init__(self, x_arr, z_arr, D_w=30., D_a=30, Q_w=0.1,
-    pCO2_high=5000*1e-6, pCO2_outside=500*1e-6, f=0.1,
-    T_cave=10, T_outside=20., gas_transf_vel=0.1/secs_per_hour,
-    abs_tol=1e-5, rel_tol=1e-5, CO2_err_rel_tol=0.001,
-    CO2_w_upstream=1., Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
-    init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
-    adv_disp_stabil_factor=0.9, impure=True,reduction_factor=0.01, dt_erode=1.,
-    downstream_bnd_type='normal', trim=True, variable_gas_transf=False,
-    subdivide_factor = 0.2):
+    The simulation object implements an algorithm for simulating the evolution
+    of a 1D cave channel with an arbitrary number of defined cross-sections.
+
+    Key functionality includes:
+
+    1. Calculating steady discharge within a mixture of open channel and
+    full pipe conditions with arbitrary channel cross-sectional shapes.
+
+    2. Calculating airflow within the air-filled portion of the cave passage.
+
+    3. Calculating CO2 transport and exchange between air and water.
+
+    4. Calculating calcite dissolution rates.
+
+    5. Evolving channel cross-section according to calculated dissolution rates.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from CO2_sim_1D import CO2_1D
+    >>> n=5
+    >>> x = np.linspace(0, 5000,n) # m
+    >>> slope = 0.001
+    >>> z = x*slope
+    >>> r = 1.*np.ones(n-1) # m
+    >>> Q = 1. # m^3/s
+    >>> sim = CO2_1D(x, z, init_radii=r, Q_w = Q, T_outside=20., T_cave=10.,
+    ...              dt_erode=1., Ca_upstream=0.5, CO2_w_upstream =1.,
+    ...              CO2_a_upstream=0.9, pCO2_high=5e-3)
+    >>> nsteps=10
+    >>> for t in np.arange(nsteps):
+    >>>     sim.run_one_step()
+
+    """
+
+    def __init__(self, x_arr, z_arr, Q_w=0.1, f=0.1,
+        init_radii = 0.5, init_offsets = 0., xc_n=1000,
+        pCO2_high=5000*1e-6, pCO2_outside=500*1e-6,
+        CO2_w_upstream=1., CO2_a_upstream = 0.9, Ca_upstream=0.5,
+        gas_transf_vel=0.1/secs_per_hour, variable_gas_transf=True,
+        T_cave=10, T_outside=20., dH=50.,
+        reduction_factor=0.01, dt_erode=1.,impure=True,
+        CO2_err_rel_tol=0.001, trim=True, subdivide_factor = 0.2):
+
+        """
+        Parameters
+        ----------
+        x_arr : ndarray
+            Array of distances in meters along the channel for the node locations.
+        z_arr: ndarray
+            Array of elevations in meters for nodes along the channel. Minimum y
+            values for each cross-section will be added to these elevations
+            during initialization, so that z_arr will represent the channel bottom.
+        Q_w : float, optional
+            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+        f : float, optional
+            Darcy-Weisbach friction factor (unitless), used in both water flow and air
+            flow calculations. Default is 0.1.
+        init_radii : float or ndarray, optional
+            Initial cross-section radii (meters). If a float then all cross-sections
+            will be assigned the same radius. If an array then each element
+            represents the radius of a single cross-section (length should be n-1
+            where n is the number of nodes). Default is 0.5 m.
+        init_offsets : float or ndarray, optional
+            These offsets will be added to y-values within initial cross-sections.
+            By default, y will be zero at the centroid of the initial cross-section.
+            Default value is zero. Should have length of n-1, where n is number of nodes.
+        xc_n : int, optional
+            Number of points that will define the cave passage shape within a cross-section.
+            Default is 1000.
+        pCO2_high : float, optional
+            pCO2 value, in atm, by which all others are normalized. Normally this will
+            be the highest pCO2 value in the simulation, such as the upstream
+            water pCO2. Boundary values of pCO2 are defined as fractions of this
+            value. Default is 5e-3 atm (5000 ppm).
+        pCO2_outside : float, optional
+            pCO2 of outside atmosphere in atm. This is used for cave air boundary
+            condition when airflow is in winter direction. Default is 5e-4 atm (500 ppm).
+        CO2_w_upstream : float, optional
+            The pCO2 within the water at the upstream boundary expressed as a fraction
+            of pCO2_high. Default value is 1.
+        CO2_a_upstream : float, optional
+            The pCO2 of the air at the upstream boundary expressed as a fraction
+            of pCO2_high. Default value is 0.9.
+        Ca_upstream : float, optional
+            Default boundary value for the upstream Ca concentration expressed
+            as a fraction of saturation at a pCO2 of pCO2_high. Default is 0.5.
+        gas_transf_vel : float or ndarray
+            Gas transfer velocity  in m/s. If a constant value, then that value
+            is used for all cross-sections. If an array of length n-1, where n
+            is the number of nodes, then each element sets the gas transfer
+            velocity for a single cross-section. This variable only used if
+            variable_gas_transf=False. Otherwise, gas transfer velocities are
+            set by empirical relationship that uses channel geometry. Default
+            value is 10 cm/hr.
+        variable_gas_transf : boolean, optional
+            Whether gas transfer velocities will be adjusted during the simulation
+            according to empirical relationship based on energy dissipation (Ulseth et al., 2019).
+            If True, then transfer velocities will be adjusted. If False, then
+            transfer velocities will be constant (set by gas_transf_vel).
+            Default value is True.
+        T_cave : float, optional
+            Cave temperature (air and water) in degrees C. Default is 10 C.
+        T_outside: float, optional
+            Initial outside air temperature in degrees C. Simulations run with
+            multiple outside air temperatures use keyword argument within run_one_step().
+            Default value is 20 C.
+        dH : float, optional
+            Elevation difference (m) driving chimney effect airflow. For now this is
+            a constant, but might think about setting it in a more physical way.
+            Default is 50 m.
+        reduction_factor : float, optional
+            Factor by which pure transport-limited dissolution rate will be multiplied.
+            This is used to reduce rates because the transport-limited equation creates
+            unrealistically high rates, even if field evidence suggests that rates are
+            to some extent transport-limited. Default value 0.01.
+        dt_erode : float, optional
+            Erosional time step in years. Default value is 1 year.
+        impure : boolean, optional
+            If the Palmer dissolution rate equation is used, this determines
+            whether to use the equation for impure or pure calcite. Default is True.
+        CO2_err_rel_tol : float, optional
+            Acceptable relative tolerance for match of boundary value for pCO2
+            in air when air and water flow in different directions. This is
+            used to determine if linear shooting method was sucessful. If this
+            tolerance is not met then Brent method is used with this same
+            relative tolerance as the convergence criterium. Default is 0.001.
+        trim : boolean, optional
+            Whether or not cross-sections should be trimmed as much of the
+            cross-section becomes dry. This enables maintenance of a high
+            resolution of the wet portion of the cross-section for simulations
+            with substantial incision. If this is set to False, long-term
+            simulations are likely to become unstable. Default is true.
+        subdivide_factor : float, optional
+            If the change in pCO2 of air or water within a single segment is
+            more than the difference between air and water pCO2 times
+            this factor, then use the analytical solution to calculate the
+            downstream concentration of CO2 for this segment. This avoids
+            too large of a change of CO2 within a single conduit segment, which
+            can lead to unstable solutions. Default is 0.2.
+
+
+        References
+        ----------
+        Ulseth, A.J., Hall, R.O. Jr, Canada, M.B., Madinger, H.L., Niayfar, A.,
+        and T.J. Battin (2019). Distinct air-water gas exchange regimes in low-
+        and high-energy streams. Nature Geoscience, 12, 259-263.
+        https://doi.org/10.1038/s41561-019-0324-8
+
+        """
+
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
         self.z_arr = z_arr#z is zero of xc coords
         self.L_arr = x_arr[1:]- x_arr[:-1]
-        self.D_w = D_w
-        self.D_a = D_a
-        self.adv_disp_stabil_factor = adv_disp_stabil_factor
-        #Calculate stable timestep
-        self.dt_ad_dim = adv_disp_stabil_factor*self.L_arr[0]**2./np.min([self.D_w,self.D_a]) #endtime/(ntimes-1)
+
         self.Q_w = Q_w
         self.Q_a = 0.
         self.pCO2_high = pCO2_high
         self.pCO2_outside = pCO2_outside
-        self.rho_air_cave = rho_air_cave
         self.dH = dH
         self.T_cave = T_cave
         self.T_cave_K = CtoK(T_cave)
         self.T_outside = T_outside
         self.T_outside_K = CtoK(T_outside)
+        self.set_rho_air_cave()
+
         self.gas_transf_vel = np.ones(self.n_nodes-1)*gas_transf_vel
         self.variable_gas_transf = variable_gas_transf
         self.subdivide_factor = subdivide_factor
-        #self.n_subdivide = n_subdivide
 
-        self.abs_tol = abs_tol
-        self.rel_tol = rel_tol
         self.CO2_err_rel_tol = CO2_err_rel_tol
         self.CO2_w_upstream = CO2_w_upstream
+        self.CO2_a_upstream = CO2_a_upstream
         self.Ca_upstream = Ca_upstream
         self.reduction_factor = reduction_factor
         self.dt_erode = dt_erode
         self.xc_n = xc_n
-        self.downstream_bnd_type = downstream_bnd_type
         self.trim = trim
 
         self.V_w = np.zeros(self.n_nodes - 1)
@@ -84,15 +226,15 @@ class CO2_1D:
         self.D_H_w = np.zeros(self.n_nodes - 1)
         self.D_H_a = np.zeros(self.n_nodes - 1)
         self.W = np.zeros(self.n_nodes - 1)
-        self.Lambda_a = np.zeros(self.n_nodes - 1)
-        self.Lambda_w = np.zeros(self.n_nodes - 1)
-
         self.fd_mids = np.zeros(self.n_nodes-1)
         self.init_offsets = np.ones(self.n_nodes-1) * init_offsets
-        self.up_offsets = np.zeros(self.n_nodes-1)
-        self.down_offsets = np.zeros(self.n_nodes-1)
+
+        #Create concentration arrays
+        self.CO2_a = np.zeros(self.n_nodes)
+        self.CO2_w = np.zeros(self.n_nodes)
+        self.Ca = np.zeros(self.n_nodes)
+
         self.h = np.zeros(self.n_nodes)
-        self.h0 = h0
         self.f=f
         self.flow_type = np.zeros(self.n_nodes-1,dtype=object)
 
@@ -100,10 +242,8 @@ class CO2_1D:
         self.Ca_eq_0 = concCaEqFromPCO2(self.pCO2_high, T_C=T_cave)
         self.palmer_interp_funcs = createPalmerInterpolationFunctions(impure=impure)
 
-
         #Initialize cross-sections
         self.xcs = []
-        #self.maxdepths = np.zeros(self.n_nodes-1)
         self.radii = init_radii*np.ones(self.n_nodes-1)
         ymins = []
         for i in np.arange(self.n_nodes-1):
@@ -111,7 +251,6 @@ class CO2_1D:
             y = y + self.init_offsets[i]
             this_xc = CrossSection(x,y)
             self.xcs.append(this_xc)
-            #self.maxdepths[i] = this_xc.ymax - this_xc.ymin
             ymins.append(this_xc.ymin)
         self.ymins = np.array(ymins)
         #Reset z to bottom of cross-sections
@@ -119,20 +258,32 @@ class CO2_1D:
         self.z_arr[0] = self.z_arr[0] + self.ymins[0]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
 
-
-        #Create b arrays for each concentration variable
-        self.bCO2_a = np.zeros(self.n_nodes-1)
-        self.bCO2_w = np.zeros(self.n_nodes-1)
-        self.bCa = np.zeros(self.n_nodes-1)
-
-
     def run_one_step(self, T_outside_arr = []):
+        """Run one time step of simulation.
+
+        Calculates flow depths, air flow, transport, and erosion for
+        a single time step and updates geometry and chemistry.
+
+        Parameters
+        ----------
+        T_outside_arr : ndarray
+            Array of outside air temperatures to use for this timestep.
+            Erosion is calculated for steady state transport for
+            each of these air temperature values and averaged evenly
+            among them. If set to zero length, then current value
+            of T_outside is used instead. Default is [] (use current
+            value ot T_outside).
+
+        """
+
         self.calc_flow_depths()
         if len(T_outside_arr) == 0:
+            #Use single T_outside value
             self.calc_air_flow()
             self.calc_steady_state_transport()
             self.erode_xcs()
         else:
+            #Run erosion for multiple outside air temps
             dt_frac = 1./len(T_outside_arr)
             cum_dz = np.zeros(self.n_nodes-1)
             avg_CO2_w = np.zeros(self.n_nodes)
@@ -151,31 +302,40 @@ class CO2_1D:
             self.CO2_w = avg_CO2_w
             self.CO2_a = avg_CO2_a
             self.Ca = avg_Ca
-            print('dz_cum =',self.dz)
 
     def calc_flow_depths(self):
+        """Calculates flow depths and hydraulic head values along channel.
+
+        Notes
+        -----
+        Starts at downstream end and propagates solution upstream. Flow can
+        be full-pipe, backflooded, partially backflooeded (i.e. deeper than
+        required for normal flow because of downstream conditions), or normal.
+        If full pipe flow occurs in the furthest downstream segment, downstream
+        head is set to the elevation of top of the downstream cross-section.
+        Otherwise, the downstream head is set assuming that flow is normal
+        within the downstream cross-section.
+
+        """
         # Loop through cross-sections and solve for flow depths,
         # starting at downstream end
         for i, xc in enumerate(self.xcs):
             old_fd = self.fd_mids[i]
             if old_fd <=0:
-                #print('zero or neg flow depth')
                 old_fd = xc.ymax - xc.ymin
             xc.create_A_interp()
             xc.create_P_interp()
-            #print('xc=',i)
             #Try calculating flow depth
-            backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+xc.ymin+self.up_offsets[i])>0#Should I really use the offset here?
+            backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+xc.ymin)>0
             over_normal_capacity=False
             if not backflooded:
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f, old_fd=old_fd)
                 if norm_fd==-1:
                     over_normal_capacity=True
-            #print('norm_fd=', norm_fd, '  maxdepth=',xc.ymax - xc.ymin)
             if over_normal_capacity or backflooded:
                 self.flow_type[i] = 'full'
                 if i==0:
-                    #if downstream boundary set head to top of pipe
+                    #if downstream boundary set head to top of cross-section
                     self.h[0]= self.z_arr[0] + xc.ymax - xc.ymin
                 #We have a full pipe, calculate head gradient instead
                 delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
@@ -184,15 +344,15 @@ class CO2_1D:
             else:
                 #crit_fd = xc.calcCritFlowDepth(self.Q_w)
                 y_star = norm_fd#min([crit_fd,norm_fd])
-                y_out = self.h[i] - self.z_arr[i]  + self.down_offsets[i]
+                y_out = self.h[i] - self.z_arr[i]
                 downstream_critical = y_star>y_out and y_star>0# and i>0
-                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]  +self.up_offsets[i]
+                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]
                 downstream_less_normal = norm_fd>y_out
                 if partial_backflood: #upstream node is flooded above normal depth
                     self.flow_type[i] = 'pbflood'
                     y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
                     if y_in>0 and (y_out + y_in)/2. < xc.ymax - xc.ymin:# or could use fraction of y_in
-                        self.h[i+1] = self.z_arr[i+1] + y_in - self.up_offsets[i]
+                        self.h[i+1] = self.z_arr[i+1] + y_in
                         self.fd_mids[i] = (y_out + y_in)/2.
                     else:
                         #We need full pipe to push needed Q
@@ -216,32 +376,30 @@ class CO2_1D:
                 else:
                     self.flow_type[i] = 'norm'
                     if i==0:
-                        self.h[i] = norm_fd + self.z_arr[i]  - self.down_offsets[i]
+                        self.h[i] = norm_fd + self.z_arr[i]
                     #dz = slopes[i]*(x[i+1] - x[i])
-                    self.h[i+1] = self.z_arr[i+1] + norm_fd  - self.up_offsets[i]
+                    self.h[i+1] = self.z_arr[i+1] + norm_fd
                     self.fd_mids[i] = norm_fd
             # Calculate flow areas, wetted perimeters, hydraulic diameters,
             # free surface widths, and velocities
             wetidx = (xc.y - xc.ymin) < self.fd_mids[i]
             self.A_w[i] = xc.calcA(wantidx=wetidx)
-            #print(self.A_w[i])
             self.P_w[i] = xc.calcP(wantidx=wetidx)
             self.V_w[i] = -self.Q_w/self.A_w[i]
             self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
-            #print(self.flow_type[i])
             if self.flow_type[i] != 'full':
-                #print('getting width')
                 L,R = xc.findLR(self.fd_mids[i])
-                #print('got L,R')
                 self.W[i] = xc.x[R] - xc.x[L]
             else:
                 self.W[i] = 0.
             #Set water line in cross-section object
-            #print('setting fd')
             xc.setFD(self.fd_mids[i])
-            #print('done with this xc')
+
 
     def calc_air_flow(self):
+        """Calculates airflow (velocity and discharge) within dry portion of
+        cave passage.
+        """
         dT = self.T_outside - self.T_cave
         dP_tot = self.rho_air_cave*g*self.dH*dT/self.T_outside_K
         R_air = np.zeros(self.n_nodes-1)
@@ -267,9 +425,49 @@ class CO2_1D:
             self.V_a[:] = 0.
         print("Air discharge = ",self.Q_a, ' m^3/s')
 
+
+    def set_concentration_bnd_conditions(self):
+        """Sets boundary conditions for CO2 (air and water) and Ca.
+        """
+        #Determine upstream boundary concentration for air
+        if self.V_a[0]>0:
+            CO2_a_boundary = self.pCO2_outside/self.pCO2_high
+            air_bnd_cond_idx = 0
+        elif self.V_a[0]==0:
+            CO2_a_boundary = self.CO2_w_upstream
+            air_bnd_cond_idx = -1
+        else:
+            CO2_a_boundary = self.CO2_a_upstream
+            air_bnd_cond_idx = -1
+
+        #Asign upstream boundary conditions into concentration arrays
+        self.CO2_a[air_bnd_cond_idx] = CO2_a_boundary
+        self.CO2_w[-1] = self.CO2_w_upstream
+        self.Ca[-1] = self.Ca_upstream
+
+
     def calc_steady_state_transport(self, palmer=False):
-        self.update_dimnless_params()
-        self.initialize_conc_arrays()
+        """Calculates transport of carbonate species and calcite dissolution.
+
+        Parameters
+        ----------
+        palmer : boolean, optional
+            Determines whether the Palmer dissolution rate equation should
+            be used rather than the transport-limited equation. Default
+            value is False (use transport-limited equation).
+
+        Notes
+        -----
+        For case of summer airflow direction, CO2 in the air and water and
+        Ca concentration in the water are calculated starting from upstream
+        boundary. For winter airflow direction, a shooting method is used
+        to find proper upstream air pCO2 value that produces the required
+        downstream (atmospheric) value of pCO2. First a linear shooting
+        method is applied. If this does not meet the tolerance specified by
+        CO2_err_rel_tol, then Brent's method is used.
+
+        """
+        self.set_concentration_bnd_conditions()
 
         if np.sign(self.V_a[0])==np.sign(self.V_w[0]) or self.V_a[0]==0.:
             self.calc_conc_from_upstream( palmer=palmer)
@@ -301,6 +499,9 @@ class CO2_1D:
         return self.CO2_a[0] - self.pCO2_outside/self.pCO2_high
 
     def calc_conc_from_upstream(self, CO2_a_upstream=None, palmer=False):
+        """Calculates CO2 and Ca concentrations and dissolution rates starting
+        from values at upstream boundary.
+        """
         if CO2_a_upstream != None:
             self.CO2_a[-1] = CO2_a_upstream
         if self.A_a.min()>0:
@@ -313,19 +514,16 @@ class CO2_1D:
             K_w = 0.0*self.W
         #Loop backwards through concentration arrays
         F = np.zeros(self.n_nodes - 1)
-
-        #Check this, not sure it's right
-        mm_yr_to_mols_sec = 100.*rho_limestone/g_mol_CaCO3/secs_per_year/100./(self.D_H_w/2.)
-
         for i in np.arange(self.n_nodes-1, 0, -1):
             this_CO2_w = self.CO2_w[i]*self.pCO2_high
             this_CO2_a = self.CO2_a[i]*self.pCO2_high
-            #print("CO2_a=",this_CO2_a,"  CO2_w=",this_CO2_w)
             this_Ca = self.Ca[i]*self.Ca_eq_0
             if palmer:
+                SA = self.P_w[i-1]*self.L_arr[i-1]
+                mm_yr_to_mols_per_m2_sec = (cm_per_mm/secs_per_year)*(rho_limestone/g_mol_CaCO3)*cm2_per_m2
                 sol = solutionFromCaPCO2(this_Ca, this_CO2_w, T_C=self.T_cave)
-                F[i-1] = palmerFromSolution(sol, PCO2=this_CO2_w)
-                R = F[i-1]*mm_yr_to_mols_sec[i-1]
+                F[i-1] = palmerFromSolution(sol, PCO2=this_CO2_w)*mm_yr_to_mols_per_m2_sec
+                R = F[i-1]*SA
             else:
                 this_xc = self.xcs[i-1]
                 if self.flow_type[i-1] == 'norm':
@@ -333,21 +531,14 @@ class CO2_1D:
                     eSlope = self.slopes[i-1]
                 else:
                     eSlope = (self.h[i] - self.h[i-1])/self.L_arr[i-1]
-                #print('xc i=',i-1,'eSlope=',eSlope)
                 this_xc.setEnergySlope(eSlope)
                 this_xc.setMaxVelPoint(self.fd_mids[i-1])
                 this_xc.calcUmax(self.Q_w)
                 T_b = this_xc.calcT_b()
-                #print('i=',i)
-                #print('min T_b=', T_b.min())
-                #print('max T_b=', T_b.max())
-                #print('mean T_b=', T_b.mean())
                 if T_b.min()<0:
                     print(asdf)
                 eps = 5*nu*Sc_Ca**(-1./3.)/np.sqrt(T_b/rho_w)
-                #print('eps=',eps.mean())
                 Ca_Eq = concCaEqFromPCO2(this_CO2_w, T_C=self.T_cave)
-                #print('Ca=',this_Ca,'   Ca_eq=',Ca_Eq)
                 F_xc = self.reduction_factor*D_Ca/eps*(Ca_Eq - this_Ca)*L_per_m3
                 #Smooth F_xc with savgol_filter
                 window = int(np.ceil(len(F_xc)/5)//2*2+1)
@@ -356,10 +547,8 @@ class CO2_1D:
                     #Don't allow precipitation
                     F_xc = F_xc*0.0
                 this_xc.set_F_xc(F_xc)
-                P_w = this_xc.wet_ls.sum()
-                F[i-1] = np.sum(F_xc*this_xc.wet_ls)/P_w #Units of F are mols/m^2/sec
-                #print('F=',F[i-1])
-                R = F[i-1]*P_w*self.L_arr[i-1]#4.*F[i-1]/self.D_H_w[i-1]
+                F[i-1] = np.sum(F_xc*this_xc.wet_ls)/self.P_w[i-1] #Units of F are mols/m^2/sec
+                R = F[i-1]*self.P_w[i-1]*self.L_arr[i-1]
             R_CO2 = R/self.K_H
             #dx is negative, so signs on dC terms flip
             if self.A_a.min()>0:
@@ -367,7 +556,7 @@ class CO2_1D:
                     dCO2_a = -self.L_arr[i-1]*K_a[i-1]/self.V_a[i-1]*(this_CO2_w - this_CO2_a)
                 else:
                     #For zero airflow, CO2_a goes to CO2_w
-                    dCO2_a = 0.#(this_CO2_w - this_CO2_a)
+                    dCO2_a = 0.
                     this_CO2_a = this_CO2_w
                     self.CO2_a[i] = self.CO2_w[i]
             else:
@@ -380,36 +569,12 @@ class CO2_1D:
                 or np.abs(dCO2_w_exc) > self.subdivide_factor*np.abs(this_CO2_w - this_CO2_a):
                 Q_f = (-1./self.Q_w + 1./self.Q_a)
                 lambda_co2 = 1./(self.gas_transf_vel[i-1]*self.W[i-1]*Q_f)
-#                if self.Q_a<0:
-                #air and water flow in same direction
-                #Use analytical solution for output concentrations
                 CO2_w_out = this_CO2_w + ( (this_CO2_w - this_CO2_a)/(-self.Q_w*Q_f))*(np.exp(self.L_arr[i-1]/lambda_co2)-1. )
                 CO2_a_out = CO2_w_out - (this_CO2_w - this_CO2_a)*np.exp(self.L_arr[i-1]/lambda_co2)
                 dCO2_w_exc = CO2_w_out - this_CO2_w
                 dCO2_a = CO2_a_out - this_CO2_a
-#                else:
-                    #Air and water flow in opposite directions
-                    #Use shooting method analytical solution for outputs
-                    #Started this and then didn't complete. We can't use
-                    #shooting method for internal segments because we don't
-                    #know downstream boundary value. This routine is within
-                    #a shooting method for the opposite flow case. We can just
-                    #always use the solution above (I think).
-#                    Q_r = -self.Q_w*Q_f
-#                    CO2_a_upstream_g1 = 0.5*self.pCO2_high
-#                    CO2_a_upstream_g2 = 0.0
-#                    CO2_w_g1 = sim.CO2_w[-1] +((sim.CO2_w[-1] - CO2_a_L_g1)/(-sim.Q_w*Q_f))*(np.exp((L-x)/lambda_co2)-1. )
-#                    CO2_a_g1 = CO2_w_g1 - (sim.CO2_w[-1] - CO2_a_L_g1)*np.exp((L-x)/lambda_co2)
-
-
-
-            #print('dCO2_w_exc=',dCO2_w_exc)
-            dCO2_w = dCO2_w_exc - R_CO2/self.Q_w/L_per_m3#R_CO2/self.V_w[i-1]
-            #if np.abs(dCO2_w) > np.abs(this_CO2_w - this_CO2_a):
-            #    if this_CO2_a>this_CO2_w:
-
-            dCa = R/self.Q_w/L_per_m3#-self.L_arr[i-1]*R/self.V_w[i-1]
-            #print(dCO2_a,dCO2_w,dCa)
+            dCO2_w = dCO2_w_exc - R_CO2/self.Q_w/L_per_m3
+            dCa = R/self.Q_w/L_per_m3
             self.CO2_a[i-1] = (this_CO2_a + dCO2_a)/self.pCO2_high
             self.CO2_w[i-1] = (this_CO2_w + dCO2_w)/self.pCO2_high
             self.Ca[i-1] = (this_Ca + dCa)/self.Ca_eq_0
@@ -419,61 +584,55 @@ class CO2_1D:
                 self.CO2_w[i-1]=0.
             if self.Ca[i-1]<0:
                 self.Ca[i-1]=0.
-
         self.F = F
 
+
     def erode_xcs(self, dt_frac = 1.):
+        """Erode the cross-sections using results from transport calculation.
+
+        Parameters
+        ----------
+        dt_frac : float, optional
+            The fraction of the timestep for which erosion is being calculated.
+            This is used by run_one_step() for calculations of dissolution
+            rates for multiple outside air temperatures within a single
+            timestep.
+        """
         F_to_m_yr = g_mol_CaCO3*secs_per_year/rho_limestone/cm_m**3
         old_ymins = self.ymins.copy()
         for i,xc in enumerate(self.xcs):
             xc.dr = F_to_m_yr*xc.F_xc*self.dt_erode*dt_frac
-            #print('i=',i,'  max dr=', xc.dr.max(), '  max F_xc=',xc.F_xc.max())
-            #xc.dr = savgol_filter(xc.dr,15,3,mode='wrap')
             xc.erode(xc.dr, trim=self.trim)
             self.ymins[i]= xc.ymin
         #Adjust slopes
         dz = self.ymins - old_ymins
         self.dz = dz
-        print('dt_frac=',dt_frac)
-        print('dz=',dz)
         Celerity_times_dt = np.abs(max(dz/self.slopes))
         CFL = Celerity_times_dt/min((self.x_arr[1:] - self.x_arr[:-1]))
         print('CFL=',CFL)
         self.z_arr[1:] = self.z_arr[1:] + dz
-        #bed_elevs = self.z_arr[1:] + ymins
-        #new_slopes = self.slopes
-        #new_slopes[1:-1] = (bed_elevs[2:] - bed_elevs[:-2])/(self.L_arr[2:] + self.L_arr[:-2])
-        #new_slopes[0] = (bed_elevs[0] - self.z_arr[0])/self.L_arr[0]
-        #new_slopes[-1] = new_slopes[-2]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
-        """
-        #        print('ymins=',ymins)
-        #        dys = ymins[0:-1]+self.down_offsets[0:-1] - (ymins[1:]+self.up_offsets[1:])
-                print('dys=',dys)
-                for i,xc in enumerate(self.xcs):
-                    if i==0:
-                        dy_down = 0.
-                    else:
-                        dy_down = -0.5*dys[i-1]
-                    if i==len(self.xcs)-1:
-                        dy_up = 0.
-                    else:
-                        dy_up = 0.5*dys[i]
-                    self.down_offsets[i] -= dy_down
-                    self.up_offsets[i] -= dy_up
-                    dslope = (dy_down - dy_up)/self.L_arr[i]
-                    print('xc=',i,'  dslope=',dslope)
-                    print('down_offset=',self.down_offsets[i],'up_offset=',self.up_offsets[i])
-                    self.slopes[i] = self.slopes[i] + dslope
-                print('dys after=', ymins[0:-1]+self.down_offsets[0:-1] - (ymins[1:]+self.up_offsets[1:]))
-        """
 
     def set_T_outside(self, T_outside_C):
+        """Set outside temperature to a different value.
+
+        Parameters
+        ----------
+        T_outside_C : float
+            New outside temperature.
+        """
         self.T_outside = T_outside_C
         self.T_outside_K = CtoK(T_outside_C)
 
     def calc_gas_transf_vel_from_eD(self):
-        #Relationship from Ulseth et al. (2019), Nat Geosci.
+        """Calculate gas transfer velocities from energy dissipation.
+
+        Notes
+        -----
+        Uses relaitonship from Ulseth et al. (2019) with a break in
+        power law relationship that separates low and high energy
+        streams.
+        """
         eD = g*self.slopes*np.abs(self.V_w)
         k_600_m_d = np.exp(3.10 + 0.35*np.log(eD))
         if eD.max()>0.02:
@@ -483,8 +642,14 @@ class CO2_1D:
         k_CO2 = k_600*(600/Sc_CO2)**0.5
         self.gas_transf_vel = k_CO2
 
-
     def calc_Sc_CO2(self):
+        """Calculate Schmidt Number for CO2 at cave temperature.
+
+        Returns
+        -------
+        Sc_CO2 : float
+            Schmidt Number for CO2.
+        """
         A = 1742
         B= -91.24
         C=2.208
@@ -493,298 +658,17 @@ class CO2_1D:
         Sc_CO2 = A + B*T + C*T**2 + D*T**3
         return Sc_CO2
 
-    def update_adv_disp_M_water(self):
-        #Construct Adv-disp matrix for water
-        dt = self.dt_ad
-        dx = self.dx_ad
-        Pe_w = self.Pe_w
-        M_upper_water = (self.V_w/(4.*dx*self.V_w_mean) - 1./(2.*Pe_w*dx**2.))*np.ones(self.n_nodes-1)
-        M_lower_water = (-self.V_w/(4.*dx*self.V_w_mean) - 1./(2.*Pe_w*dx**2.))*np.ones(self.n_nodes-1)
-        M_mid_water = (1./dt+1./(Pe_w*dx**2.))*np.ones(self.n_nodes-1)
-        M_upper_water[0] = 0.
-        M_lower_water[-1] = 0.
-        #bnds for positive V_w
-        #M_lower_water[-2] = -dt/(2.*dx)
-        #M_mid_water[-1] = 1. + dt/(2*dx)
-        M_upper_water[1] = self.V_w[0]/(2.*dx*self.V_w_mean)
-        M_mid_water[0] = 1./dt - self.V_w[0]/(2*dx*self.V_w_mean)
-        self.M_water = np.vstack((M_upper_water, M_mid_water, M_lower_water))
+    def set_rho_air_cave(self):
+        """Calculate and set cave air density.
 
-    def update_adv_disp_M_air(self):
-        dt = self.dt_ad
-        dx = self.dx_ad
-        Pe_a = self.Pe_a
-        T = self.T
-        M_upper_air = (self.V_a/(4.*dx*self.V_w_mean) - 1./(2.*Pe_a*T*dx**2.))*np.ones(self.n_nodes-1)
-        M_lower_air = (-self.V_a/(4.*dx*self.V_w_mean) - 1./(2.*Pe_a*T*dx**2.))*np.ones(self.n_nodes-1)
-        M_mid_air = (1./dt+1./(Pe_a*T*dx**2.))*np.ones(self.n_nodes-1)
-        M_upper_air[0] = 0.
-        M_lower_air[-1] = 0.
-        if self.V_a[0]>0:
-            M_lower_air[-2] = -self.V_a[-1]/(2.*dx*self.V_w_mean)
-            M_mid_air[-1] = 1./dt + self.V_a[-1]/(2*dx*self.V_w_mean)
-        else:
-            M_upper_air[1] = self.V_a[0]/(2.*dx*self.V_w_mean)
-            M_mid_air[0] = 1./dt - self.V_a[0]/(2*dx*self.V_w_mean)
-        self.M_air = np.vstack((M_upper_air, M_mid_air, M_lower_air))
+        Notes
+        -----
+        Assumes air is saturated with water vapor. Calculates water vapor
+        saturation pressure based on Tetens equation and then calculates
+        density for resulting mixture of ideal gases at 1 atm total pressure.
 
-    def update_bCO2_a(self):
-        #Set up shorter variable names for readability
-        CO2_a = self.CO2_a
-        CO2_w = self.CO2_w
-        dt = self.dt_ad
-        dx = self.dx_ad
-        T = self.T
-        V_a = self.V_a
-        V_w_mean = self.V_w_mean
-        Pe_a = self.Pe_a
-        if self.V_a[0]>0:
-            core_beg = 0
-            core_end = -1
-            conc_bnd = 0
-            diff_bnd = -1
-            diff_bnd2 = -2
-        else:
-            core_beg = 1
-            core_end = self.n_nodes-1
-            conc_bnd = -1
-            diff_bnd = 0
-            diff_bnd2 = 1
-
-        self.bCO2_a[core_beg:core_end] = CO2_a[1:-1]*(1./dt-1./(Pe_a*T*dx**2.)) \
-           + CO2_a[0:-2]*((V_a[core_beg:core_end]/V_w_mean)/(4.*dx) + 1./(2.*Pe_a*T*dx**2.)) \
-           + CO2_a[2:]* ((-V_a[core_beg:core_end]/V_w_mean)/(4.*dx) + 1./(2.*Pe_a*T*dx**2.)) \
-           - self.Lambda_a[core_beg:core_end]*(CO2_a[1:-1] - CO2_w[1:-1]) #Last line here is added to previous C-N solution to include reaction
-        self.bCO2_a[conc_bnd] += ((np.sign(V_a[0])*V_a[conc_bnd]/V_w_mean)/(4.*dx) + 1./(2.*Pe_a*T*dx**2.))*self.CO2_a_upstream
-        self.bCO2_a[diff_bnd] = (1./dt - (np.sign(V_a[0])*V_a[diff_bnd]/V_w_mean)/(2.*dx))*CO2_a[diff_bnd] \
-            + ((np.sign(V_a[0])*V_a[diff_bnd]/V_w_mean)/(2*dx))*CO2_a[diff_bnd2] \
-            - self.Lambda_a[diff_bnd]*(CO2_a[diff_bnd] - CO2_w[diff_bnd])#last term gets added to boundary cond.
-#        else:
-#            self.bCO2_a[1:] = CO2_a[1:-1]*(T-dt/(Pe_a[1:]*dx**2.)) + CO2_a[0:-2]*(np.sign(V_a[1:])*dt/(4.*dx) + dt/(2.*Pe_a[1:]*dx**2.)) \
-#                            + CO2_a[2:]*(-np.sign(V_a[1:])*dt/(4.*dx) + dt/(2.*Pe_a[1:]*dx**2.))\
-#                            - dt*Lambda_a*(CO2_a[1:-1] - C_w[1:-1]) #Last line here is added to previous C-N solution to include reaction
-#            self.bCO2_a[-1] += dt*(1./(4.*dx) + 1./(2.*Pe_a[-1]*dx**2.))*CO2_a_upstream
-#            self.bCO2_a[0] = (T-dt/(2.*dx))*CO2_a[n,0] + (dt/(2*dx))*CO2_a[n,1] - dt*Lambda_a*(CO2_a[n,0] - C_w[n,0])#last term gets added to boundary cond.
-
-
-    def update_bCO2_w(self):
-        #Set up shorter variable names for readability
-        CO2_a = self.CO2_a
-        CO2_w = self.CO2_w
-        dt = self.dt_ad
-        dx = self.dx_ad
-        #T = self.T
-        V_w = self.V_w
-        V_w_mean = self.V_w_mean
-        Pe_w = self.Pe_w
-        if self.V_w[0]>0:
-            core_beg = 0
-            core_end = -1
-            conc_bnd = 0
-            diff_bnd = -1
-            diff_bnd2 = -2
-        else:
-            core_beg = 1
-            core_end = self.n_nodes-1
-            conc_bnd = -1
-            diff_bnd = 0
-            diff_bnd2 = 1
-
-        self.bCO2_w[core_beg:core_end] = CO2_w[1:-1]*(1./dt-1./(Pe_w*dx**2.)) \
-           + CO2_w[0:-2]*((V_w[core_beg:core_end]/V_w_mean)/(4.*dx) + 1./(2.*Pe_w*dx**2.)) \
-           + CO2_w[2:]* ((-V_w[core_beg:core_end]/V_w_mean)/(4.*dx) + 1./(2.*Pe_w*dx**2.)) \
-           + self.Lambda_w[core_beg:core_end]*(CO2_a[1:-1] - CO2_w[1:-1])  \
-           - self.R_CO2[core_beg:core_end]
-        self.bCO2_w[conc_bnd] += ((np.sign(V_w[0])*V_w[conc_bnd]/V_w_mean)/(4.*dx) + 1./(2.*Pe_w*dx**2.))*self.CO2_w_upstream
-        self.bCO2_w[diff_bnd] = (1./dt - np.sign(V_w[0])*(V_w[diff_bnd]/V_w_mean)/(2.*dx))*CO2_w[diff_bnd] \
-            + np.sign(V_w[0])*((V_w[diff_bnd]/V_w_mean)/(2*dx))*CO2_w[diff_bnd2] \
-            + self.Lambda_w[diff_bnd]*(CO2_a[diff_bnd] - CO2_w[diff_bnd])\
-            - self.R_CO2[diff_bnd]
-
-    def update_bCa(self):
-        #Set up shorter variable names for readability
-        Ca = self.Ca
-        dt = self.dt_ad
-        dx = self.dx_ad
-        V_w = self.V_w
-        V_w_mean = self.V_w_mean
-        Pe_w = self.Pe_w
-        if self.V_w[0]>0:
-            core_beg = 0
-            core_end = -1
-            conc_bnd = 0
-            diff_bnd = -1
-            diff_bnd2 = -2
-        else:
-            core_beg = 1
-            core_end = self.n_nodes-1
-            conc_bnd = -1
-            diff_bnd = 0
-            diff_bnd2 = 1
-
-        self.bCa[core_beg:core_end] = Ca[1:-1]*(1./dt-1./(Pe_w*dx**2.)) \
-           + Ca[0:-2]*((V_w[core_beg:core_end]/V_w_mean)/(4.*dx) + 1./(2.*Pe_w*dx**2.)) \
-           + Ca[2:]* ((-V_w[core_beg:core_end]/V_w_mean)/(4.*dx) + 1./(2.*Pe_w*dx**2.)) \
-           + self.R_Ca[core_beg:core_end]
-        self.bCa[conc_bnd] += (np.sign(V_w[0])*(V_w[conc_bnd]/V_w_mean)/(4.*dx) + 1./(2.*Pe_w*dx**2.))*self.Ca_upstream
-        self.bCa[diff_bnd] = (1./dt - (np.sign(V_w[0])*V_w[diff_bnd]/V_w_mean)/(2.*dx))*Ca[diff_bnd] \
-            + (np.sign(V_w[0])*(V_w[diff_bnd]/V_w_mean)/(2*dx))*Ca[diff_bnd2] \
-            + self.R_Ca[diff_bnd]
-
-    """ old b array code
-                    bC_Ca[0:-1] = C_Ca[n,1:-1]*(1.-dt/(Pe_w[0:-1]*dx**2.)) + C_Ca[n,0:-2]*(dt/(4.*dx) + dt/(2.*Pe_w[0:-1]*dx**2.))\
-                                        + C_Ca[n,2:]*(-dt/(4.*dx) + dt/(2.*Pe_w[0:-1]*dx**2.))\
-                                        + dt*R_Ca[0:-1]
-                    bC_Ca[0] += dt*(1./(4.*dx) + 1./(2.*Pe_w[0]*dx**2.))*C_Ca_upstream
-                    bC_Ca[-1] = (1.-dt/(2.*dx))*C_Ca[n,-1] + (dt/(2*dx))*C_Ca[n,-2] + dt*R_Ca[-1]
-    """
-
-
-    def update_dimnless_params(self):
-        L_tot = self.L
-        self.V_w_mean = V_w_mean = np.abs(self.V_w.mean())
-        self.V_a_mean = V_a_mean = np.abs(self.V_a.mean())
-        #Time conversion parameter (between air and water)
-        if V_a_mean>0:
-            self.T = np.abs(V_w_mean/V_a_mean)
-        self.tau = L_tot.sum()/V_w_mean #Total flowthrough time in secs
-        self.Pe_a = L_tot*V_a_mean/self.D_a
-        self.Pe_w = L_tot*V_w_mean/self.D_w
-        openchan = self.A_a > 0
-        self.Lambda_w[openchan] = \
-            (self.gas_transf_vel[openchan]*L_tot/V_w_mean)*self.W[openchan]/self.A_w[openchan]
-        self.Lambda_a[openchan] = \
-            (self.gas_transf_vel[openchan]*L_tot/V_w_mean)*self.W[openchan]/self.A_a[openchan]
-        self.Lambda_w[~openchan] = 0.
-        self.Lambda_a[~openchan] = 0.
-        self.dt_ad = self.dt_ad_dim/self.tau
-        self.dx_ad = self.L_arr[0]/self.L #assume const grid
-
-    def initialize_conc_arrays(self):
-        #Create concentration arrays
-        self.CO2_a = np.zeros(self.n_nodes)
-        self.CO2_w = np.zeros(self.n_nodes)
-        self.Ca = np.zeros(self.n_nodes)
-
-        #Set upstream boundary concentrations for air
-        if self.V_a[0]>0:
-            CO2_a_upstream = self.pCO2_outside/self.pCO2_high
-        elif self.V_a[0]==0:
-            CO2_a_upstream = self.CO2_w_upstream
-        else:
-            CO2_a_upstream = 0.9
-
-        #Set initial conditions for all species
-        self.CO2_a[:] = CO2_a_upstream
-        self.CO2_w[:] = self.CO2_w_upstream
-        self.Ca[:] = self.Ca_upstream
-        self.CO2_a_upstream = CO2_a_upstream
-
-    def calc_steady_adv_disp_reaction(self):
         """
-            D_H_w, D_H_a,
-                            ntimes=1000, endtime=2., nx=1000, xmax=1,
-                            L=1000, D_w=30., D_a=30, Q_a=1., Q_w=0.1,
-                            pCO2_high=5000*1e-6, pCO2_outside=500*1e-6,
-                            T_C=10, Lambda_w=0.5, tol=1e-5, rel_tol=1e-5,
-                            C_w_upstream=1., C_Ca_upstream=0.5):
-        """
-        abs_tol = self.abs_tol
-        rel_tol = self.rel_tol
-        self.update_dimnless_params()
-        if self.V_a_mean>0:
-            self.update_adv_disp_M_air()
-        self.update_adv_disp_M_water()
-        self.initialize_conc_arrays()
-
-        mm_yr_to_mols_sec = 100.*rho_limestone/g_mol_CaCO3/secs_per_year/100./(self.D_H_w/2.)
-
-        air_water_converged = False
-        air_water_Ca_converged = False
-        Ca_initialized = False
-        self.n_iter=0
-        while not air_water_Ca_converged:
-            self.n_iter+=1
-            print('Timestep=',self.n_iter)
-            if air_water_converged:
-                if not Ca_initialized:
-                    #For first iteration we will calculate Ca values based on steady state
-                    #with no interaction between dissolution and CO2 drawdown.
-                    F = np.zeros(self.n_nodes)
-                    for i in np.arange(self.n_nodes-1):
-                        Ca_in = self.Ca[i]
-                        #print(i, Ca_in)
-                        Ca_in_mol_L = self.Ca_eq_0*Ca_in
-                        pCO2_in_atm = self.pCO2_high*self.CO2_w[i]
-                        sol_in = solutionFromCaPCO2(Ca_in_mol_L, pCO2_in_atm, T_C=self.T_cave)
-                        F[i+1] = palmerFromSolution(sol_in, PCO2=pCO2_in_atm)
-                        R = F[i+1]*mm_yr_to_mols_sec[i]
-                        dC_mol = R*self.dx_ad*self.L/self.V_w[i]
-                        Ca_out_mol = Ca_in_mol_L + dC_mol
-                        self.Ca[i+1] = Ca_out_mol/self.Ca_eq_0
-                    Ca_initialized = True
-            #        print(assf)
-                else:
-                    #Calculate calcite dissolution rates in
-                    Ca_mol_L = self.Ca_eq_0*self.Ca
-                    pCO2_atm = self.pCO2_high*self.CO2_w
-                    sols = solutionFromCaPCO2(Ca_mol_L, pCO2_atm, T_C=self.T_cave)
-                    F = palmerFromSolution(sols, PCO2=pCO2_atm)
-            #print('done calculating palmer rates')
-                self.F = F
-                #Convert to mols/sec for conduit segment
-                self.R = F[1:]*mm_yr_to_mols_sec
-                #Convert to dimensionless Ca
-                self.R_Ca = self.R*self.tau/self.Ca_eq_0
-                #Convert to dimensionless pCO2
-                self.R_CO2 = self.R*self.tau/self.K_H/self.pCO2_high
-            else:
-                self.R_Ca=self.R_CO2=np.zeros(self.n_nodes-1)
-
-#            if air_water_converged:
-                #Calculate b matrix for C_Ca
-            if self.V_a_mean>0:
-                self.update_bCO2_a()
-            self.update_bCO2_w()
-            if self.CO2_w.max()>2:
-                print(asf)
-            CO2_w_new = solve_banded((1,1), self.M_water, self.bCO2_w)
-            if self.V_a_mean>0:
-                CO2_a_new = solve_banded((1,1), self.M_air, self.bCO2_a)
-            else:
-                CO2_a_new = CO2_w_new
-            if air_water_converged:
-                self.update_bCa()
-                Ca_new = solve_banded((1,1), self.M_water, self.bCa)
-
-            abs_tol_CO2_w = max(abs(CO2_w_new - self.CO2_w[:-1]))
-            rel_tol_CO2_w = max(abs((CO2_w_new - self.CO2_w[:-1])/self.CO2_w[:-1]) )
-            if self.V_a[0]>0:
-                abs_tol_CO2_a = max(abs(CO2_a_new - self.CO2_a[1:]))
-                rel_tol_CO2_a = max(abs((CO2_a_new - self.CO2_a[1:])/self.CO2_a[1:]) )
-            else:
-                abs_tol_CO2_a = max(abs(CO2_a_new - self.CO2_a[:-1]))
-                rel_tol_CO2_a = max(abs((CO2_a_new - self.CO2_a[:-1])/self.CO2_a[:-1]) )
-#            print('n=',n)
-            print('rel tol CO2_w=', rel_tol_CO2_w, '  abs_tol_CO2_w=',abs_tol_CO2_w)
-            print('rel tol CO2_a=', rel_tol_CO2_a, '  abs_tol_CO2_a=',abs_tol_CO2_a)
-
-            #Overwrite old solutions
-            if self.V_a[0]>0:
-                self.CO2_a[1:] = CO2_a_new
-            else:
-                self.CO2_a[:-1] = CO2_a_new
-            self.CO2_w[:-1] = CO2_w_new
-
-            if not air_water_converged:
-                if (abs_tol_CO2_a < abs_tol and abs_tol_CO2_w < abs_tol and rel_tol_CO2_w<rel_tol and rel_tol_CO2_a<rel_tol):
-                    air_water_converged = True
-                    print("Air-water solution converged, beginning dissolution calculations: n=",self.n_iter)
-            else:
-                abs_tol_Ca = max(abs(Ca_new - self.Ca[:-1]))
-                rel_tol_Ca = max(abs((Ca_new - self.Ca[:-1])/self.Ca[:-1]) )
-                print('rel tol Ca=', rel_tol_Ca, '  abs_tol_Ca=',abs_tol_Ca)
-                self.Ca[:-1] = Ca_new
-                if (abs_tol_CO2_a < abs_tol and abs_tol_CO2_w < abs_tol and abs_tol_Ca<abs_tol and rel_tol_CO2_w<rel_tol and rel_tol_CO2_a<rel_tol and rel_tol_Ca<rel_tol):
-                    print("Full solution converged: n=",self.n_iter)
-                    air_water_Ca_converged = True
+        #Calculate saturation water vapor pressure from Tetens equation
+        p_wv = 1000. *0.61078 *np.exp(17.27*self.T_cave/(self.T_cave + 237.3))#Pa
+        p_da = p_atm - p_wv
+        self.rho_air_cave = (p_da/R_da + p_wv/R_wv)/self.T_cave_K
