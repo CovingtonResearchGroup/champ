@@ -14,8 +14,21 @@ trim_factor = 2. #Trim xc points with y above trim_factor*fd
 add_factor = 1.75 # add xc points back in from total if ceiling less than add_factor*fd
 
 class CrossSection:
+    """Cross-section object that contains functions for calculating geometry
+    and flow.
 
+    """
     def __init__(self, x, y, z0=0.01/30.):#z0=roughness height
+        """
+        Parameters
+        ----------
+        x : ndarray
+            Array of x values (horizontal position) of points that make up cross-section.
+        y : ndarray
+            Array of y values (vertical position) of points that make up cross-section.
+        z0: float, optional
+            Roughness height in meters. Default value is 1/30 of a cm.
+        """
         self.n = len(x)
         self.x = x
         self.y = y
@@ -33,6 +46,8 @@ class CrossSection:
 
     # Create arrays of x+1, y+1, x-1, x+1
     def create_pm(self):
+        """Create rolled arrays of adjacent points in cross-section.
+        """
         self.xm = roll(self.x, 1)
         self.ym = roll(self.y, 1)
         self.xp = roll(self.x, self.x.size-1)
@@ -44,6 +59,27 @@ class CrossSection:
             self.yp_total = roll(self.y_total, self.y_total.size-1)
 
     def calcP(self, wantidx=None, total=False):
+        """Calculate perimeter of cross-section or subset.
+
+        Parameters
+        ----------
+        wantidx : ndarray of boolean, optional
+            An array of boolean values to select cross-section points for
+            including in the perimeter calculation. This is mostly used to
+            calculated wet or dry perimeters. If None, then perimeter is
+            calculated for entire cross-section. Default is None.
+        total : boolean, optional
+            Whether to calculate the perimeter using the total cross-section.
+            This is relevant for cases when the cross-section has been
+            trimmed in order to maintain resolution. The total, untrimmed
+            cross-section is still stored for airflow calculations and showing
+            the full evolution. Default is False.
+
+        Returns
+        -------
+        P : float
+            The perimeter of the selected portion of the cross-section.
+        """
         if total:
             x = self.x_total
             y = self.y_total
@@ -68,6 +104,31 @@ class CrossSection:
 
 	# Calculates area of the cross-section
     def calcA(self, wantidx=None, total=False, zeroAtUmax=True):
+        """Calculate area of cross-section or subset.
+
+        Parameters
+        ----------
+        wantidx : ndarray of boolean, optional
+            An array of boolean values to select cross-section points for
+            including in the area calculation. This is mostly used to
+            calculated wet or dry areas. If None, then area is
+            calculated for entire cross-section. Default is None.
+        total : boolean, optional
+            Whether to calculate the area using the total cross-section.
+            This is relevant for cases when the cross-section has been
+            trimmed in order to maintain resolution. The total, untrimmed
+            cross-section is still stored for airflow calculations and showing
+            the full evolution. Default is False.
+        zeroAtUmax : boolean, optional
+            Use the maximum velocity point as the zero for the coordinate
+            system used to calculate area. Otherwise, areas outside the
+            desired cross-section may be included if only a selection of the
+            points are being used (i.e. wantidx is not None). Default is True.
+        Returns
+        -------
+        A : float
+            The area of the selected portion of the cross-section.
+        """
         if zeroAtUmax:
             y0 = self.ymaxVel
             #This fails in first timestep because we haven't set max vel pos
@@ -99,6 +160,13 @@ class CrossSection:
         return A
 
     def create_A_interp(self, n_points=30):
+        """Create an interpolation function for area as a function of flow depth.
+
+        Parameters
+        ----------
+        n_points : int, optional
+            Number of points along which to interpolate.
+        """
         maxdepth = self.ymax - self.ymin
         max_interp = self.fd*1.5
         if max_interp > maxdepth:
@@ -116,6 +184,13 @@ class CrossSection:
         self.A_interp = A_interp
 
     def create_P_interp(self,n_points=30):
+        """Create an interpolation function for perimeter as a function of flow depth.
+
+        Parameters
+        ----------
+        n_points : int, optional
+            Number of points along which to interpolate.
+        """
         maxdepth = self.ymax - self.ymin
         max_interp = self.fd*1.5
         if max_interp > maxdepth:
@@ -134,9 +209,22 @@ class CrossSection:
         self.P_interp = P_interp
 
 
-	# Find left and right points defining a height above the cross-section
-	# bottom
     def findLR(self, h):
+        """Find the indicies of the left and right points defining the wall
+        at a certain height above the bottom of the cross-section.
+
+        Parameters
+        ----------
+        h : float
+            Height above the bottom of the cross-section at which to find the
+            left and right walls.
+
+        Returns
+        -------
+        L,R : int
+            Indicies of the left and right wall points.
+
+        """
         a_h = self.ymin + h
         condL = logical_and(self.y > a_h, a_h >= self.yp)
         condR = logical_and(self.y < a_h, a_h <= self.yp)
@@ -145,6 +233,8 @@ class CrossSection:
         return L,R
 
     def setFD(self,fd):
+        """Set the flow depth within the cross-section."""
+
         maxdepth = self.ymax - self.ymin
         if fd>maxdepth:
             fd=maxdepth
@@ -152,6 +242,8 @@ class CrossSection:
         self.wetidx = self.y - self.ymin<=fd
 
     def setMaxVelPoint(self,fd):
+        """Set the maximum velocity point."""
+
         self.setFD(fd)
         if fd>(self.ymax-self.ymin)*use_centroid_fraction:
             #Treat as full pipe
@@ -165,6 +257,13 @@ class CrossSection:
         self.ymaxVel = my
 
     def findCentroid(self):
+        """Find the centroid of the cross-section.
+
+        Returns
+        -------
+        cx, cy : float
+            The x and y coordinates of the centroid.
+        """
         m = self.xm*self.y-self.x*self.ym
         A = self.calcA(zeroAtUmax=False)
         cx = (1/(6*A))*((self.x + self.xm)*m).sum()#A was self.sA. not sure if this matters
@@ -172,6 +271,21 @@ class CrossSection:
         return cx, cy
 
     def calcR_l(self, wantidx=None):
+        """Calculate radial distances between wall and max velocity point.
+
+        Parameters
+        ----------
+        wantidx : ndarray of boolean
+            An array of boolean values to select cross-section points for
+            which to calculate distance. Normally, this will be the wet
+            portion of the cross-section. If None, then distances are
+            calculated for all cross-section wall points. Default is None.
+
+        Returns
+        -------
+        r_l : ndarray
+            Array of radial distances from max velocity point to wall.
+        """
         if type(wantidx) != type(None):
             self.r_l = np.hypot(self.x[wantidx]-self.xmaxVel, self.y[wantidx]-self.ymaxVel)
         else:
@@ -180,6 +294,17 @@ class CrossSection:
 
 	# Find the value of U_max by weighted law of the wall
     def calcUmax(self, Q, method="area"):
+        """Calculate maximum velocity using law of the wall.
+
+        Parameters
+        ----------
+        Q : float
+            Discharge through cross-section.
+        method : string, optional
+            Valid options include 'area' (default) and 'line'. This
+            argument determines whether velocities are weighted linearly
+            along the rays or by area.
+        """
         wetidx = self.wetidx#self.y-self.ymin <self.fd
         r_l = self.calcR_l(wantidx=wetidx)
         z0 = self.z0
@@ -202,9 +327,9 @@ class CrossSection:
             u_i = 1./np.log(r_l/z0)*u_top/u_bottom
 
         self.umax = Q/(a_i*u_i).sum()
-        #print("Umax=",self.umax)
 
     def calcT_b(self):
+        """Calculates boundary shear stress within wet cross-section."""
         vgrad2 = self.calcVGrad2()
         #print('max vgrad2=',vgrad2.max())
         psi = self.calcPsi()
@@ -213,31 +338,48 @@ class CrossSection:
         return self.T_b
 
     def calcVGrad2(self):
+        """Calculates the square of the velocity gradient at the roughness height."""
         wetidx=self.wetidx
         phi = np.arctan2(self.ymaxVel - self.y[wetidx],self.xmaxVel -self.x[wetidx])
         alpha = np.arctan2(self.yp[wetidx] - self.ym[wetidx], self.xp[wetidx]-self.xm[wetidx])
         alpha[0] = alpha[1]
         alpha[-1] = alpha[-2]
         self.vgrad2 = ((self.umax/self.z0)*(1./np.log(self.r_l/self.z0))*np.fabs(np.sin(phi-alpha)))**2.
-        #print('min sin term=',np.fabs(np.sin(phi-alpha)).min())
         return self.vgrad2
 
     def calcPsi(self):
+        """Calculates dimensionless force-balancing scale factor."""
         wetidx = self.wetidx
         l = np.hypot(self.x[wetidx] - self.xp[wetidx], self.y[wetidx] - self.yp[wetidx])
-        #print("min l=",l.min(), "max l=",l.max())
         sum = ((self.vgrad2)*l).sum()
         self.wet_ls = l
         self.psi = g*self.eSlope/sum
         return self.psi
 
     def setEnergySlope(self,slope):
+        """Sets the energy slope within the cross-section."""
         self.eSlope = slope
 
     def set_F_xc(self,F_xc):
+        """Sets the by-point dissolutional mass flux from the cross-section
+        wall (mols/m^2/sec)."""
         self.F_xc = F_xc
 
     def erode_power_law(self, a=1., K=1e-5):
+        """Erode wall according to a power law function of shear stress.
+
+        Parameters
+        ----------
+        a : float, optional
+            Exponent in the erosion power law (default is a=1).
+        K : float, optional
+            Multiplicative constant in the power law (default is K=1e-5).
+
+        Notes
+        -----
+        Erodes the wall according to:
+        .. math:: E = K \tau_b^a
+        """
         self.setMaxVelPoint(self.fd)
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
@@ -245,7 +387,16 @@ class CrossSection:
         self.dr = K*T_b**a
         self.erode(self.dr)
 
-    def update_total_xc(self, trim_y, nx, ny):
+    def update_total_xc(self, nx, ny):
+        """Updates total cross-section to include newest part of the actively
+        evolving cross-section.
+
+        Parameters
+        ----------
+        nx, ny : ndarray
+            The new x and y points within the evolved cross-section.
+
+        """
         n=self.n
         #create new total xc arrays from old and wet portions
         self.x1 =x1= self.x_total[np.logical_and(self.x_total<0,self.y_total>ny.max())]
@@ -263,6 +414,22 @@ class CrossSection:
 
 
     def erode(self, dr, resample=True, n=None, trim=True):
+        """Erodes the cross-section radially by specified distance.
+
+        Parameters
+        ----------
+        dr : ndarray of float
+            Specifies the erosion distances for each cross-section point.
+        resample : boolean, optional
+            Whether to resample the x, y coordinates after erosion.
+            Default is True.
+        n : int
+            Number of points that should be in resampled cross-section.
+            Default value is None, in which case self.n is used.
+        trim : boolean
+            Whether to enable trimming of cross-section with substantial
+            fraction above the water level. Default is True.
+        """
         if n==None:
             n=self.n
         wetidx=self.wetidx
@@ -293,10 +460,10 @@ class CrossSection:
                 nx = nx[ny<trim_y]
                 ny = ny[ny<trim_y]
                 if not first_trim:
-                    self.update_total_xc(trim_y, nx, ny)
+                    self.update_total_xc(nx, ny)
             elif not trim_y<max(ny) and self.is_trimmed:
                 #Water level is increasing
-                self.update_total_xc(trim_y, nx, ny)
+                self.update_total_xc(nx, ny)
                 if (max(ny) - min(ny)) < add_factor*self.fd:
                     #Switch to using total
                     print('########################################')
@@ -330,6 +497,22 @@ class CrossSection:
 
 
     def calcNormalFlow(self,depth, slope,f=0.1, use_interp=True):
+        """Calculate normal discharge for given depth and slope.
+
+        Parameters
+        ----------
+        depth : float
+            Flow depth for which to calculate discharge.
+        slope : float
+            Channel slope for which to calculate discharge.
+        f : float, optional
+            Darcy-Weisbach friction factor of channel. Default is f=0.1.
+        use_interp : boolean, optional
+            Whether to use the area and perimeter interpolation functions
+            rather than the cross-section wall points in calculating normal
+            flow. This helps smooth the root-finding. Default value is True.
+
+        """
         if use_interp:
             Pw = self.P_interp(depth)
             A = self.A_interp(depth)
@@ -368,8 +551,35 @@ class CrossSection:
         W = self.x[R] - self.x[L]
         return abs(A**3/W - Q**2/g)
 
+    def calcNormalFlowDepth(self,Q, slope, f=0.1, old_fd=None):
+        """Calculate flow depth for a prescribed discharge.
 
-    def calcNormalFlowDepth(self,Q, slope,f=0.1, old_fd=None):
+        Parameters
+        ----------
+        Q : float
+            Prescribed discharge.
+        slope : float
+            Slope of channel bed.
+        f : float
+            Darcy-Weisbach friction factor. Default is f=0.1.
+        old_fd : float
+            Previous flow depth. This will be used to restrict upper bound
+            on calculated flow depth. Default is None, for which the max depth
+            will be used as upper range.
+
+        Returns
+        -------
+        fd : float
+            Flow depth required for prescribed discharge. -1 is returned if
+            the flow depth exceeds the maximum possible depth in the
+            cross-section.
+
+        Notes
+        -----
+        This function will also set the cross-section flow depth to the
+        calculated value.
+
+        """
         self.Q = Q
         maxdepth = self.ymax - self.ymin
         if type(old_fd) == type(None):
@@ -389,6 +599,19 @@ class CrossSection:
         return self.fd
 
     def calcCritFlowDepth(self,Q):
+        """Calculate depth for critical flow at prescribed discharge.
+
+        Parameters
+        ----------
+        Q : float
+            Prescribed discharge.
+
+        Returns
+        -------
+        crit_depth : float
+            The critical flow depth for prescribed discharge.
+
+        """
         maxdepth = self.ymax - self.ymin
         fd = self.fd
         upper_bound = fd*1.25
@@ -399,6 +622,22 @@ class CrossSection:
         return crit_depth
 
     def calcPipeFullHeadGrad(self,Q,f=0.1):
+        """Calculate head gradient for prescribed discharge under pipe-full
+        conditions.
+
+        Parameters
+        ----------
+        Q : float
+            Prescribed discharge.
+        f : float, optional
+            Darcy-Weisbach friction factor. Default is f=0.1.
+
+        Returns
+        -------
+        delh : float
+            Head gradient.
+
+        """
         self.Q = Q
         Pw = self.calcP()
         A = self.calcA()
@@ -406,6 +645,29 @@ class CrossSection:
         return (Q**2/A**2)*f/(2.*g*D_H)
 
     def calcUpstreamHead(self,Q,slope,y_out, L, f=0.1):
+        """Calculate upstream head to drive prescribed discharge under
+        partially backflooded conditions.
+
+        Parameters
+        ----------
+        Q : float
+            Discharge.
+        slope : float
+            Channel bed slope.
+        y_out : float
+            Flow depth at outlet.
+        L : float
+            Length of channel segment.
+        f : float, optional
+            Darcy-Weisbach friction factor. Default is f=0.1.
+
+        Returns
+        -------
+        y_in : float
+            Upstream flow depth to drive prescribed discharge. Returns -1
+            if valid flow depth is not found.
+
+        """
         maxdepth = self.ymax - self.ymin
         head_res_a = self.head_discharge_residual(SMALL, y_out,L,slope,f,Q)
         head_res_b = self.head_discharge_residual(maxdepth, y_out,L,slope,f,Q)
