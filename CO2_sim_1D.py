@@ -607,8 +607,6 @@ class CO2_1D:
         #Adjust slopes
         dz = self.ymins - old_ymins
         self.dz = dz
-        print('dt_frac=',dt_frac)
-        print('dz=',dz)
         Celerity_times_dt = np.abs(max(dz/self.slopes))
         CFL = Celerity_times_dt/min((self.x_arr[1:] - self.x_arr[:-1]))
         print('CFL=',CFL)
@@ -616,11 +614,25 @@ class CO2_1D:
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
 
     def set_T_outside(self, T_outside_C):
+        """Set outside temperature to a different value.
+
+        Parameters
+        ----------
+        T_outside_C : float
+            New outside temperature.
+        """
         self.T_outside = T_outside_C
         self.T_outside_K = CtoK(T_outside_C)
 
     def calc_gas_transf_vel_from_eD(self):
-        #Relationship from Ulseth et al. (2019), Nat Geosci.
+        """Calculate gas transfer velocities from energy dissipation.
+
+        Notes
+        -----
+        Uses relaitonship from Ulseth et al. (2019) with a break in
+        power law relationship that separates low and high energy
+        streams.
+        """
         eD = g*self.slopes*np.abs(self.V_w)
         k_600_m_d = np.exp(3.10 + 0.35*np.log(eD))
         if eD.max()>0.02:
@@ -631,6 +643,13 @@ class CO2_1D:
         self.gas_transf_vel = k_CO2
 
     def calc_Sc_CO2(self):
+        """Calculate Schmidt Number for CO2 at cave temperature.
+
+        Returns
+        -------
+        Sc_CO2 : float
+            Schmidt Number for CO2.
+        """
         A = 1742
         B= -91.24
         C=2.208
@@ -640,6 +659,15 @@ class CO2_1D:
         return Sc_CO2
 
     def set_rho_air_cave(self):
+        """Calculate and set cave air density.
+
+        Notes
+        -----
+        Assumes air is saturated with water vapor. Calculates water vapor
+        saturation pressure based on Tetens equation and then calculates
+        density for resulting mixture of ideal gases at 1 atm total pressure.
+
+        """
         #Calculate saturation water vapor pressure from Tetens equation
         p_wv = 1000. *0.61078 *np.exp(17.27*self.T_cave/(self.T_cave + 237.3))#Pa
         p_da = p_atm - p_wv
