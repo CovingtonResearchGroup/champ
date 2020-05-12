@@ -11,7 +11,7 @@ rho_w = 998.2 #kg/m^3
 SMALL = 1e-6
 use_centroid_fraction =0.98#switch to  max vel at centroid if over this fraction of ymax
 trim_factor = 2. #Trim xc points with y above trim_factor*fd
-add_factor = 1.75 # add xc points back in from total if ceiling less than 1.75*fd
+add_factor = 1.75 # add xc points back in from total if ceiling less than add_factor*fd
 
 class CrossSection:
 
@@ -104,7 +104,6 @@ class CrossSection:
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
-        #print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
         if num_xc_points<n_points/3.:
             n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
@@ -122,7 +121,6 @@ class CrossSection:
         if max_interp > maxdepth:
             max_interp = maxdepth
         num_xc_points = len(self.y[self.y-self.ymin<max_interp])
-        #print('xc points=',num_xc_points, ' maxdpeth=',maxdepth, '  max_interp=',max_interp)
         if num_xc_points<n_points/3.:
             n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
@@ -142,10 +140,7 @@ class CrossSection:
         a_h = self.ymin + h
         condL = logical_and(self.y > a_h, a_h >= self.yp)
         condR = logical_and(self.y < a_h, a_h <= self.yp)
-        #below_idx = where(self.y<a_h)[0]
-        #L = below_idx[0]
         L=where(condL)[0][0] + 1
-        #R = below_idx[-1]
         R=where(condR)[0][0]
         return L,R
 
@@ -330,25 +325,21 @@ class CrossSection:
         self.y = ny
         self.create_pm()
         self.ymin = min(ny)
-        #only reset ymax if it is increasing
-        #if max(ny)>self.ymax:
         self.ymax = max(ny)
         self.n = len(nx)
 
 
     def calcNormalFlow(self,depth, slope,f=0.1, use_interp=True):
         if use_interp:
-            Pw = self.P_interp(depth)#self.calcP(wantidx=wetidx)
-            A = self.A_interp(depth)#self.calcA(wantidx=wetidx)
+            Pw = self.P_interp(depth)
+            A = self.A_interp(depth)
         else:
             wetidx = self.y-self.ymin<depth
             Pw = self.calcP(wantidx=wetidx)
             A = self.calcA(wantidx=wetidx)
-            #print('Pw=',Pw, '  A=,',A)
         if Pw>0 and A>0 and depth>0:
             D_H = 4.*A/Pw
             Q = sign(slope)*A*sqrt(2.*g*abs(slope)*D_H/f)
-            #print('Q=',Q)
         else:
             Q=0.
         return Q
