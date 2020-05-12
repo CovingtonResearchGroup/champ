@@ -25,6 +25,8 @@ secs_per_year =  3.154e7
 secs_per_hour = 60.*60.
 secs_per_day = secs_per_hour*24.
 cm_m = 100.
+cm_per_mm = 0.1
+cm2_per_m2 = 100.*100.
 
 ###
 ## gas trasfer vel, typical values ~10 cm/hr for small streams (Wanningkhof 1990)
@@ -173,7 +175,7 @@ class CO2_1D:
             this factor, then use the analytical solution to calculate the
             downstream concentration of CO2 for this segment. This avoids
             too large of a change of CO2 within a single conduit segment, which
-            can lead to unstable solutions. Default is 0.2. 
+            can lead to unstable solutions. Default is 0.2.
 
 
         References
@@ -184,17 +186,17 @@ class CO2_1D:
         https://doi.org/10.1038/s41561-019-0324-8
 
         """
+
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
         self.z_arr = z_arr#z is zero of xc coords
         self.L_arr = x_arr[1:]- x_arr[:-1]
-        #Calculate stable timestep
+
         self.Q_w = Q_w
         self.Q_a = 0.
         self.pCO2_high = pCO2_high
         self.pCO2_outside = pCO2_outside
-        #self.rho_air_cave = rho_air_cave
         self.dH = dH
         self.T_cave = T_cave
         self.T_cave_K = CtoK(T_cave)
@@ -224,9 +226,13 @@ class CO2_1D:
         self.D_H_w = np.zeros(self.n_nodes - 1)
         self.D_H_a = np.zeros(self.n_nodes - 1)
         self.W = np.zeros(self.n_nodes - 1)
-
         self.fd_mids = np.zeros(self.n_nodes-1)
         self.init_offsets = np.ones(self.n_nodes-1) * init_offsets
+
+        #Create concentration arrays
+        self.CO2_a = np.zeros(self.n_nodes)
+        self.CO2_w = np.zeros(self.n_nodes)
+        self.Ca = np.zeros(self.n_nodes)
 
         self.h = np.zeros(self.n_nodes)
         self.f=f
@@ -252,19 +258,32 @@ class CO2_1D:
         self.z_arr[0] = self.z_arr[0] + self.ymins[0]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
 
-        #Create concentration arrays
-        self.CO2_a = np.zeros(self.n_nodes)
-        self.CO2_w = np.zeros(self.n_nodes)
-        self.Ca = np.zeros(self.n_nodes)
-
-
     def run_one_step(self, T_outside_arr = []):
+        """Run one time step of simulation.
+
+        Calculates flow depths, air flow, transport, and erosion for
+        a single time step and updates geometry and chemistry.
+
+        Parameters
+        ----------
+        T_outside_arr : ndarray
+            Array of outside air temperatures to use for this timestep.
+            Erosion is calculated for steady state transport for
+            each of these air temperature values and averaged evenly
+            among them. If set to zero length, then current value
+            of T_outside is used instead. Default is [] (use current
+            value ot T_outside).
+
+        """
+
         self.calc_flow_depths()
         if len(T_outside_arr) == 0:
+            #Use single T_outside value
             self.calc_air_flow()
             self.calc_steady_state_transport()
             self.erode_xcs()
         else:
+            #Run erosion for multiple outside air temps
             dt_frac = 1./len(T_outside_arr)
             cum_dz = np.zeros(self.n_nodes-1)
             avg_CO2_w = np.zeros(self.n_nodes)
@@ -283,19 +302,29 @@ class CO2_1D:
             self.CO2_w = avg_CO2_w
             self.CO2_a = avg_CO2_a
             self.Ca = avg_Ca
-            print('dz_cum =',self.dz)
 
     def calc_flow_depths(self):
+        """Calculates flow depths and hydraulic head values along channel.
+
+        Notes
+        -----
+        Starts at downstream end and propagates solution upstream. Flow can
+        be full-pipe, backflooded, partially backflooeded (i.e. deeper than
+        required for normal flow because of downstream conditions), or normal.
+        If full pipe flow occurs in the furthest downstream segment, downstream
+        head is set to the elevation of top of the downstream cross-section.
+        Otherwise, the downstream head is set assuming that flow is normal
+        within the downstream cross-section.
+
+        """
         # Loop through cross-sections and solve for flow depths,
         # starting at downstream end
         for i, xc in enumerate(self.xcs):
             old_fd = self.fd_mids[i]
             if old_fd <=0:
-                #print('zero or neg flow depth')
                 old_fd = xc.ymax - xc.ymin
             xc.create_A_interp()
             xc.create_P_interp()
-            #print('xc=',i)
             #Try calculating flow depth
             backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+xc.ymin)>0
             over_normal_capacity=False
@@ -303,11 +332,10 @@ class CO2_1D:
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f, old_fd=old_fd)
                 if norm_fd==-1:
                     over_normal_capacity=True
-            #print('norm_fd=', norm_fd, '  maxdepth=',xc.ymax - xc.ymin)
             if over_normal_capacity or backflooded:
                 self.flow_type[i] = 'full'
                 if i==0:
-                    #if downstream boundary set head to top of pipe
+                    #if downstream boundary set head to top of cross-section
                     self.h[0]= self.z_arr[0] + xc.ymax - xc.ymin
                 #We have a full pipe, calculate head gradient instead
                 delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
@@ -356,24 +384,22 @@ class CO2_1D:
             # free surface widths, and velocities
             wetidx = (xc.y - xc.ymin) < self.fd_mids[i]
             self.A_w[i] = xc.calcA(wantidx=wetidx)
-            #print(self.A_w[i])
             self.P_w[i] = xc.calcP(wantidx=wetidx)
             self.V_w[i] = -self.Q_w/self.A_w[i]
             self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
-            #print(self.flow_type[i])
             if self.flow_type[i] != 'full':
-                #print('getting width')
                 L,R = xc.findLR(self.fd_mids[i])
-                #print('got L,R')
                 self.W[i] = xc.x[R] - xc.x[L]
             else:
                 self.W[i] = 0.
             #Set water line in cross-section object
-            #print('setting fd')
             xc.setFD(self.fd_mids[i])
-            #print('done with this xc')
+
 
     def calc_air_flow(self):
+        """Calculates airflow (velocity and discharge) within dry portion of
+        cave passage.
+        """
         dT = self.T_outside - self.T_cave
         dP_tot = self.rho_air_cave*g*self.dH*dT/self.T_outside_K
         R_air = np.zeros(self.n_nodes-1)
@@ -401,24 +427,46 @@ class CO2_1D:
 
 
     def set_concentration_bnd_conditions(self):
+        """Sets boundary conditions for CO2 (air and water) and Ca.
+        """
         #Determine upstream boundary concentration for air
         if self.V_a[0]>0:
             CO2_a_boundary = self.pCO2_outside/self.pCO2_high
-            air_upstream_idx = 0
+            air_bnd_cond_idx = 0
         elif self.V_a[0]==0:
             CO2_a_boundary = self.CO2_w_upstream
-            air_upstream_idx = -1
+            air_bnd_cond_idx = -1
         else:
             CO2_a_boundary = self.CO2_a_upstream
-            air_upstream_idx = -1
+            air_bnd_cond_idx = -1
 
         #Asign upstream boundary conditions into concentration arrays
-        self.CO2_a[air_upstream_idx] = CO2_a_boundary
+        self.CO2_a[air_bnd_cond_idx] = CO2_a_boundary
         self.CO2_w[-1] = self.CO2_w_upstream
         self.Ca[-1] = self.Ca_upstream
 
 
     def calc_steady_state_transport(self, palmer=False):
+        """Calculates transport of carbonate species and calcite dissolution.
+
+        Parameters
+        ----------
+        palmer : boolean, optional
+            Determines whether the Palmer dissolution rate equation should
+            be used rather than the transport-limited equation. Default
+            value is False (use transport-limited equation).
+
+        Notes
+        -----
+        For case of summer airflow direction, CO2 in the air and water and
+        Ca concentration in the water are calculated starting from upstream
+        boundary. For winter airflow direction, a shooting method is used
+        to find proper upstream air pCO2 value that produces the required
+        downstream (atmospheric) value of pCO2. First a linear shooting
+        method is applied. If this does not meet the tolerance specified by
+        CO2_err_rel_tol, then Brent's method is used.
+
+        """
         self.set_concentration_bnd_conditions()
 
         if np.sign(self.V_a[0])==np.sign(self.V_w[0]) or self.V_a[0]==0.:
@@ -451,6 +499,9 @@ class CO2_1D:
         return self.CO2_a[0] - self.pCO2_outside/self.pCO2_high
 
     def calc_conc_from_upstream(self, CO2_a_upstream=None, palmer=False):
+        """Calculates CO2 and Ca concentrations and dissolution rates starting
+        from values at upstream boundary.
+        """
         if CO2_a_upstream != None:
             self.CO2_a[-1] = CO2_a_upstream
         if self.A_a.min()>0:
@@ -463,19 +514,16 @@ class CO2_1D:
             K_w = 0.0*self.W
         #Loop backwards through concentration arrays
         F = np.zeros(self.n_nodes - 1)
-
-        #Check this, not sure it's right
-        mm_yr_to_mols_sec = 100.*rho_limestone/g_mol_CaCO3/secs_per_year/100./(self.D_H_w/2.)
-
         for i in np.arange(self.n_nodes-1, 0, -1):
             this_CO2_w = self.CO2_w[i]*self.pCO2_high
             this_CO2_a = self.CO2_a[i]*self.pCO2_high
-            #print("CO2_a=",this_CO2_a,"  CO2_w=",this_CO2_w)
             this_Ca = self.Ca[i]*self.Ca_eq_0
             if palmer:
+                SA = self.P_w[i-1]*self.L_arr[i-1]
+                mm_yr_to_mols_per_m2_sec = (cm_per_mm/secs_per_year)*(rho_limestone/g_mol_CaCO3)*cm2_per_m2
                 sol = solutionFromCaPCO2(this_Ca, this_CO2_w, T_C=self.T_cave)
-                F[i-1] = palmerFromSolution(sol, PCO2=this_CO2_w)
-                R = F[i-1]*mm_yr_to_mols_sec[i-1]
+                F[i-1] = palmerFromSolution(sol, PCO2=this_CO2_w)*mm_yr_to_mols_per_m2_sec
+                R = F[i-1]*SA
             else:
                 this_xc = self.xcs[i-1]
                 if self.flow_type[i-1] == 'norm':
@@ -499,9 +547,8 @@ class CO2_1D:
                     #Don't allow precipitation
                     F_xc = F_xc*0.0
                 this_xc.set_F_xc(F_xc)
-                P_w = this_xc.wet_ls.sum()
-                F[i-1] = np.sum(F_xc*this_xc.wet_ls)/P_w #Units of F are mols/m^2/sec
-                R = F[i-1]*P_w*self.L_arr[i-1]
+                F[i-1] = np.sum(F_xc*this_xc.wet_ls)/self.P_w[i-1] #Units of F are mols/m^2/sec
+                R = F[i-1]*self.P_w[i-1]*self.L_arr[i-1]
             R_CO2 = R/self.K_H
             #dx is negative, so signs on dC terms flip
             if self.A_a.min()>0:
@@ -509,7 +556,7 @@ class CO2_1D:
                     dCO2_a = -self.L_arr[i-1]*K_a[i-1]/self.V_a[i-1]*(this_CO2_w - this_CO2_a)
                 else:
                     #For zero airflow, CO2_a goes to CO2_w
-                    dCO2_a = 0.#(this_CO2_w - this_CO2_a)
+                    dCO2_a = 0.
                     this_CO2_a = this_CO2_w
                     self.CO2_a[i] = self.CO2_w[i]
             else:
@@ -537,10 +584,20 @@ class CO2_1D:
                 self.CO2_w[i-1]=0.
             if self.Ca[i-1]<0:
                 self.Ca[i-1]=0.
-
         self.F = F
 
+
     def erode_xcs(self, dt_frac = 1.):
+        """Erode the cross-sections using results from transport calculation.
+
+        Parameters
+        ----------
+        dt_frac : float, optional
+            The fraction of the timestep for which erosion is being calculated.
+            This is used by run_one_step() for calculations of dissolution
+            rates for multiple outside air temperatures within a single
+            timestep.
+        """
         F_to_m_yr = g_mol_CaCO3*secs_per_year/rho_limestone/cm_m**3
         old_ymins = self.ymins.copy()
         for i,xc in enumerate(self.xcs):
