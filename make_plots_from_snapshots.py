@@ -1,3 +1,11 @@
+"""Functions for creating plots from simulation snapshots. These
+plots involve comparisons of pairs of simulations (normally with and
+without CO2 exhange.) Designed to be run from command line with CO2 plotdir
+as first command line argument and No CO2 exchange plotdir as second command
+line argument. An optional third command line argument specifies the number
+of snapshots to skip while plotting results. 
+"""
+
 from pylab import *
 from glob import glob
 import pickle
@@ -29,6 +37,21 @@ matplotlib.rc('font', **font)
 
 
 def get_results(plotdir):
+    """Load results from snapshot files.
+
+    Parameters
+    ----------
+    plotdir : string
+        Name of directory containing snapshots.
+
+    Returns
+    -------
+    results_dict : dict
+        Dictionary of simulation results.
+
+    """
+
+
     snapshots = glob(plotdir+'*.pkl')
     snapshots.sort()
     erosion = []
