@@ -13,6 +13,9 @@ from scipy.signal import savgol_filter
 g=9.8#m/s^2
 rho_limestone = 2.6#g/cm^3
 rho_w = 998.2#kg/m^3
+R_da = 287.058 #Specific gas constant for dry air, J/(kg*K)
+R_wv = 461.495 #Specific gas constant for water vapor, J/(kg*K)
+p_atm = 101325. # 1 atm in Pa
 D_Ca = 10**-9#m^2/s
 nu = 1.3e-6#m^2/s at 10 C
 Sc_Ca = nu/D_Ca
@@ -66,15 +69,121 @@ class CO2_1D:
 
     """
 
-    def __init__(self, x_arr, z_arr, Q_w=0.1,
-    pCO2_high=5000*1e-6, pCO2_outside=500*1e-6, f=0.1,
-    T_cave=10, T_outside=20., gas_transf_vel=0.1/secs_per_hour,
-    abs_tol=1e-5, rel_tol=1e-5, CO2_err_rel_tol=0.001,
-    CO2_w_upstream=1., CO2_a_upstream = 0.9, Ca_upstream=0.5, h0=0., rho_air_cave = 1.225, dH=50.,
-    init_shape = 'circle', init_radii = 0.5, init_offsets = 0., xc_n=1000,
-    impure=True,reduction_factor=0.01, dt_erode=1.,
-    downstream_bnd_type='normal', trim=True, variable_gas_transf=False,
-    subdivide_factor = 0.2):
+    def __init__(self, x_arr, z_arr, Q_w=0.1, f=0.1,
+        init_radii = 0.5, init_offsets = 0., xc_n=1000,
+        pCO2_high=5000*1e-6, pCO2_outside=500*1e-6,
+        CO2_w_upstream=1., CO2_a_upstream = 0.9, Ca_upstream=0.5,
+        gas_transf_vel=0.1/secs_per_hour, variable_gas_transf=True,
+        T_cave=10, T_outside=20., dH=50.,
+        reduction_factor=0.01, dt_erode=1.,impure=True,
+        CO2_err_rel_tol=0.001, trim=True, subdivide_factor = 0.2):
+
+        """
+        Parameters
+        ----------
+        x_arr : ndarray
+            Array of distances in meters along the channel for the node locations.
+        z_arr: ndarray
+            Array of elevations in meters for nodes along the channel. Minimum y
+            values for each cross-section will be added to these elevations
+            during initialization, so that z_arr will represent the channel bottom.
+        Q_w : float, optional
+            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+        f : float, optional
+            Darcy-Weisbach friction factor (unitless), used in both water flow and air
+            flow calculations. Default is 0.1.
+        init_radii : float or ndarray, optional
+            Initial cross-section radii (meters). If a float then all cross-sections
+            will be assigned the same radius. If an array then each element
+            represents the radius of a single cross-section (length should be n-1
+            where n is the number of nodes). Default is 0.5 m.
+        init_offsets : float or ndarray, optional
+            These offsets will be added to y-values within initial cross-sections.
+            By default, y will be zero at the centroid of the initial cross-section.
+            Default value is zero. Should have length of n-1, where n is number of nodes.
+        xc_n : int, optional
+            Number of points that will define the cave passage shape within a cross-section.
+            Default is 1000.
+        pCO2_high : float, optional
+            pCO2 value, in atm, by which all others are normalized. Normally this will
+            be the highest pCO2 value in the simulation, such as the upstream
+            water pCO2. Boundary values of pCO2 are defined as fractions of this
+            value. Default is 5e-3 atm (5000 ppm).
+        pCO2_outside : float, optional
+            pCO2 of outside atmosphere in atm. This is used for cave air boundary
+            condition when airflow is in winter direction. Default is 5e-4 atm (500 ppm).
+        CO2_w_upstream : float, optional
+            The pCO2 within the water at the upstream boundary expressed as a fraction
+            of pCO2_high. Default value is 1.
+        CO2_a_upstream : float, optional
+            The pCO2 of the air at the upstream boundary expressed as a fraction
+            of pCO2_high. Default value is 0.9.
+        Ca_upstream : float, optional
+            Default boundary value for the upstream Ca concentration expressed
+            as a fraction of saturation at a pCO2 of pCO2_high. Default is 0.5.
+        gas_transf_vel : float or ndarray
+            Gas transfer velocity  in m/s. If a constant value, then that value
+            is used for all cross-sections. If an array of length n-1, where n
+            is the number of nodes, then each element sets the gas transfer
+            velocity for a single cross-section. This variable only used if
+            variable_gas_transf=False. Otherwise, gas transfer velocities are
+            set by empirical relationship that uses channel geometry. Default
+            value is 10 cm/hr.
+        variable_gas_transf : boolean, optional
+            Whether gas transfer velocities will be adjusted during the simulation
+            according to empirical relationship based on energy dissipation (Ulseth et al., 2019).
+            If True, then transfer velocities will be adjusted. If False, then
+            transfer velocities will be constant (set by gas_transf_vel).
+            Default value is True.
+        T_cave : float, optional
+            Cave temperature (air and water) in degrees C. Default is 10 C.
+        T_outside: float, optional
+            Initial outside air temperature in degrees C. Simulations run with
+            multiple outside air temperatures use keyword argument within run_one_step().
+            Default value is 20 C.
+        dH : float, optional
+            Elevation difference (m) driving chimney effect airflow. For now this is
+            a constant, but might think about setting it in a more physical way.
+            Default is 50 m.
+        reduction_factor : float, optional
+            Factor by which pure transport-limited dissolution rate will be multiplied.
+            This is used to reduce rates because the transport-limited equation creates
+            unrealistically high rates, even if field evidence suggests that rates are
+            to some extent transport-limited. Default value 0.01.
+        dt_erode : float, optional
+            Erosional time step in years. Default value is 1 year.
+        impure : boolean, optional
+            If the Palmer dissolution rate equation is used, this determines
+            whether to use the equation for impure or pure calcite. Default is True.
+        CO2_err_rel_tol : float, optional
+            Acceptable relative tolerance for match of boundary value for pCO2
+            in air when air and water flow in different directions. This is
+            used to determine if linear shooting method was sucessful. If this
+            tolerance is not met then Brent method is used with this same
+            relative tolerance as the convergence criterium. Default is 0.001.
+        trim : boolean, optional
+            Whether or not cross-sections should be trimmed as much of the
+            cross-section becomes dry. This enables maintenance of a high
+            resolution of the wet portion of the cross-section for simulations
+            with substantial incision. If this is set to False, long-term
+            simulations are likely to become unstable. Default is true.
+        subdivide_factor : float, optional
+            If the change in pCO2 of air or water within a single segment is
+            more than the difference between air and water pCO2 times
+            this factor, then use the analytical solution to calculate the
+            downstream concentration of CO2 for this segment. This avoids
+            too large of a change of CO2 within a single conduit segment, which
+            can lead to unstable solutions. Default is 0.2. 
+
+
+        References
+        ----------
+        Ulseth, A.J., Hall, R.O. Jr, Canada, M.B., Madinger, H.L., Niayfar, A.,
+        and T.J. Battin (2019). Distinct air-water gas exchange regimes in low-
+        and high-energy streams. Nature Geoscience, 12, 259-263.
+        https://doi.org/10.1038/s41561-019-0324-8
+
+        """
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
@@ -85,18 +194,18 @@ class CO2_1D:
         self.Q_a = 0.
         self.pCO2_high = pCO2_high
         self.pCO2_outside = pCO2_outside
-        self.rho_air_cave = rho_air_cave
+        #self.rho_air_cave = rho_air_cave
         self.dH = dH
         self.T_cave = T_cave
         self.T_cave_K = CtoK(T_cave)
         self.T_outside = T_outside
         self.T_outside_K = CtoK(T_outside)
+        self.set_rho_air_cave()
+
         self.gas_transf_vel = np.ones(self.n_nodes-1)*gas_transf_vel
         self.variable_gas_transf = variable_gas_transf
         self.subdivide_factor = subdivide_factor
 
-        self.abs_tol = abs_tol
-        self.rel_tol = rel_tol
         self.CO2_err_rel_tol = CO2_err_rel_tol
         self.CO2_w_upstream = CO2_w_upstream
         self.CO2_a_upstream = CO2_a_upstream
@@ -104,7 +213,6 @@ class CO2_1D:
         self.reduction_factor = reduction_factor
         self.dt_erode = dt_erode
         self.xc_n = xc_n
-        self.downstream_bnd_type = downstream_bnd_type
         self.trim = trim
 
         self.V_w = np.zeros(self.n_nodes - 1)
@@ -119,10 +227,8 @@ class CO2_1D:
 
         self.fd_mids = np.zeros(self.n_nodes-1)
         self.init_offsets = np.ones(self.n_nodes-1) * init_offsets
-        self.up_offsets = np.zeros(self.n_nodes-1)
-        self.down_offsets = np.zeros(self.n_nodes-1)
+
         self.h = np.zeros(self.n_nodes)
-        self.h0 = h0
         self.f=f
         self.flow_type = np.zeros(self.n_nodes-1,dtype=object)
 
@@ -191,7 +297,7 @@ class CO2_1D:
             xc.create_P_interp()
             #print('xc=',i)
             #Try calculating flow depth
-            backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+xc.ymin+self.up_offsets[i])>0#Should I really use the offset here?
+            backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+xc.ymin)>0
             over_normal_capacity=False
             if not backflooded:
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f, old_fd=old_fd)
@@ -210,15 +316,15 @@ class CO2_1D:
             else:
                 #crit_fd = xc.calcCritFlowDepth(self.Q_w)
                 y_star = norm_fd#min([crit_fd,norm_fd])
-                y_out = self.h[i] - self.z_arr[i]  + self.down_offsets[i]
+                y_out = self.h[i] - self.z_arr[i]
                 downstream_critical = y_star>y_out and y_star>0# and i>0
-                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]  +self.up_offsets[i]
+                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]
                 downstream_less_normal = norm_fd>y_out
                 if partial_backflood: #upstream node is flooded above normal depth
                     self.flow_type[i] = 'pbflood'
                     y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
                     if y_in>0 and (y_out + y_in)/2. < xc.ymax - xc.ymin:# or could use fraction of y_in
-                        self.h[i+1] = self.z_arr[i+1] + y_in - self.up_offsets[i]
+                        self.h[i+1] = self.z_arr[i+1] + y_in
                         self.fd_mids[i] = (y_out + y_in)/2.
                     else:
                         #We need full pipe to push needed Q
@@ -242,9 +348,9 @@ class CO2_1D:
                 else:
                     self.flow_type[i] = 'norm'
                     if i==0:
-                        self.h[i] = norm_fd + self.z_arr[i]  - self.down_offsets[i]
+                        self.h[i] = norm_fd + self.z_arr[i]
                     #dz = slopes[i]*(x[i+1] - x[i])
-                    self.h[i+1] = self.z_arr[i+1] + norm_fd  - self.up_offsets[i]
+                    self.h[i+1] = self.z_arr[i+1] + norm_fd
                     self.fd_mids[i] = norm_fd
             # Calculate flow areas, wetted perimeters, hydraulic diameters,
             # free surface widths, and velocities
@@ -475,3 +581,9 @@ class CO2_1D:
         T = self.T_cave
         Sc_CO2 = A + B*T + C*T**2 + D*T**3
         return Sc_CO2
+
+    def set_rho_air_cave(self):
+        #Calculate saturation water vapor pressure from Tetens equation
+        p_wv = 1000. *0.61078 *np.exp(17.27*self.T_cave/(self.T_cave + 237.3))#Pa
+        p_da = p_atm - p_wv
+        self.rho_air_cave = (p_da/R_da + p_wv/R_wv)/self.T_cave_K
