@@ -330,6 +330,11 @@ class CO2_1D:
             over_normal_capacity=False
             if not backflooded:
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f, old_fd=old_fd)
+                if (norm_fd<xc.ymax-xc.ymin) and i==0:
+                    #Transition downstream head boundary to normal flow depth
+                    # If we don't do this, we can get stuck in full-pipe conditions
+                    # because of downstream boundary head.
+                    self.h[0] = self.z_arr[0] + norm_fd
                 if norm_fd==-1:
                     over_normal_capacity=True
             if over_normal_capacity or backflooded:
