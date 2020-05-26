@@ -634,7 +634,7 @@ class CO2_1D:
 
         Notes
         -----
-        Uses relaitonship from Ulseth et al. (2019) with a break in
+        Uses relationship from Ulseth et al. (2019) with a break in
         power law relationship that separates low and high energy
         streams.
         """

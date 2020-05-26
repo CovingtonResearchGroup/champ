@@ -24,7 +24,8 @@ from model_parameter_loader import load_params
 from CO2_sim_1D import CO2_1D
 
 
-def runSim(n=5, L=1000, dz=1, r_init=1, endstep=1000,
+def runSim(n=5, L=1000, dz=1, z_arr=None,
+            r_init=1, endstep=1000,
             plotdir='./default-figs/',
             start_from_snapshot_num =0,
             dz0_dt = 0.00025,
@@ -43,6 +44,8 @@ def runSim(n=5, L=1000, dz=1, r_init=1, endstep=1000,
         Length of entire channel (meters).
     dz : float
         Change in elevation over channel length (meters).
+    z_arr : ndarray
+        Array of node elevations. If given, then dz is ignored. Default=None.
     r_init : float
         Initial cross-section radius.
     endstep : int
@@ -83,7 +86,14 @@ def runSim(n=5, L=1000, dz=1, r_init=1, endstep=1000,
     if start_from_snapshot_num == 0:
         #Create a new simulation
         x = linspace(0,L,n)
-        z = linspace(1.,1.+dz,n)
+        if type(z_arr) == type(None):
+            z = linspace(1.,1.+dz,n)
+        else:
+            z_arr = np.array(z_arr)
+            z = z_arr
+        if len(z) != len(x):
+            print("Wrong number of elements in z_arr!")
+            return -1
         r = r_init*ones(n-1)
         sim = CO2_1D(x,z, init_radii=r,**CO2_1D_params)
         startstep = 0
