@@ -276,9 +276,9 @@ class CO2_1D:
 
         """
 
-        self.calc_flow_depths()
         if len(T_outside_arr) == 0:
             #Use single T_outside value
+            self.calc_flow_depths()
             self.calc_air_flow()
             self.calc_steady_state_transport()
             self.erode_xcs()
@@ -291,6 +291,7 @@ class CO2_1D:
             avg_Ca = np.zeros(self.n_nodes)
             for this_T in T_outside_arr:
                 self.set_T_outside(this_T)
+                self.calc_flow_depths()
                 self.calc_air_flow()
                 self.calc_steady_state_transport()
                 self.erode_xcs(dt_frac=dt_frac)

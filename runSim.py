@@ -111,8 +111,8 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
         print('t=',t, '**********************')
         sim.run_one_step(T_outside_arr = T_outside_arr)
         sim.z_arr[0] -= dz0_dt
+        timestep_str = '%08d' % (t,)
         if t % plot_every == 0:
-            timestep_str = '%08d' % (t,)
             print("Plotting timestep: ",t)
             figure()
             if type(sim.xcs[0].x_total) != type(None):
@@ -191,6 +191,7 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
             ax.view_init(elev=10, azim=-35)
             savefig(plotdir+'3D-XC-'+timestep_str+'.png')
             close('all')
+
         if t % snapshot_every == 0:
             f = open(plotdir+'/snapshot-'+timestep_str+'.pkl', 'wb')
             pickle.dump(sim, f)
