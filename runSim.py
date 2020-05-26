@@ -95,7 +95,7 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
             print("Wrong number of elements in z_arr!")
             return -1
         r = r_init*ones(n-1)
-        sim = CO2_1D(x,z, init_radii=r,**CO2_1D_params)
+        sim = CO2_1D(x,z, init_radii=r,  **CO2_1D_params)
         startstep = 0
     else:
         #Restart from existing snapshot
@@ -191,9 +191,9 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
             ax.view_init(elev=10, azim=-35)
             savefig(plotdir+'3D-XC-'+timestep_str+'.png')
             close('all')
-            if t % snapshot_every == 0:
-                f = open(plotdir+'/snapshot-'+timestep_str+'.pkl', 'wb')
-                pickle.dump(sim, f)
+        if t % snapshot_every == 0:
+            f = open(plotdir+'/snapshot-'+timestep_str+'.pkl', 'wb')
+            pickle.dump(sim, f)
 
 
 
