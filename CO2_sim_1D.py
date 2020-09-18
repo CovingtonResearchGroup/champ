@@ -3,8 +3,8 @@ from olm.calcite import concCaEqFromPCO2, createPalmerInterpolationFunctions, pa
                         solutionFromCaPCO2, palmerFromSolution
 from olm.general import CtoK
 
-from crossSection import CrossSection
-from ShapeGen import genCirc, genEll
+from .crossSection import CrossSection
+from .ShapeGen import genCirc, genEll
 from numpy.random import rand,seed
 from scipy.optimize import brentq
 from scipy.signal import savgol_filter
