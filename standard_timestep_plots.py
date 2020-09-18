@@ -1,4 +1,4 @@
-from pylab import *
+from pylab import figure, plot, xlabel, ylabel, savefig, legend, close, yscale, tight_layout, xlim, ceil, arange
 
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -60,7 +60,7 @@ def plot_slope_profile(sim, plotdir, timestep_str):
 
 def plot_3D_XCs(sim, plotdir, timestep_str):
     #Create 3d XC fig
-    fig = plt.figure()
+    fig = figure()
     ax = fig.add_subplot(111, projection='3d')
     xLs = []
     xRs = []
