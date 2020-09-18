@@ -1,0 +1,8 @@
+from distutils.core import setup
+
+
+setup(name='subglacial_channel',
+    version='0.1',
+    author='Matt Covington, Celia Trunz',
+    packages=['subglacial_channel',],
+    )
