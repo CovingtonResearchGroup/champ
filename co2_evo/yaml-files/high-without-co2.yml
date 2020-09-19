@@ -3,13 +3,12 @@ L: 5000.
 dz: 2.
 r_init: 1.
 endstep: 200000
-plotdir: './med-var-k-with-CO2-figs/'
-start_from_snapshot_num: 73000
-dz0_dt: 0.00025
+plotdir: './high-without-CO2-figs/'
+start_from_snapshot_num: 0
+dz0_dt: 0.00125
 snapshot_every: 1000
 plot_every: 100
-T_outside_arr: [0., 20.]
-
+T_outside_arr: []
 
 CO2_1D_params:
   Q_w: 0.25
@@ -21,5 +20,3 @@ CO2_1D_params:
   xc_n: 1500
   trim: True
   reduction_factor: 0.01
-  variable_gas_transf: True
-

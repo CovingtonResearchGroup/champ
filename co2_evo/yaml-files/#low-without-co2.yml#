@@ -2,10 +2,10 @@ n: 10
 L: 5000.
 dz: 2.
 r_init: 1.
-endstep: 100000
+endstep: 200000
 plotdir: './low-with-CO2-figs/'
 start_from_snapshot_num: 0
-dz0_dt: 0.0001
+dz0_dt: 0.00005
 snapshot_every: 1000
 plot_every: 100
 T_outside_arr: [0.,20.]
@@ -21,3 +21,4 @@ CO2_1D_params:
   xc_n: 1500
   trim: True
   reduction_factor: 0.01
+  
