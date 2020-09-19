@@ -28,6 +28,7 @@ from CO2_sim_1D import CO2_1D
 def runSim(n=5, L=1000, dz=1, z_arr=None,
             r_init=1, endstep=1000,
             plotdir='./default-figs/',
+            snapdir=None,
             start_from_snapshot_num =0,
             dz0_dt = 0.00025,
             snapshot_every=1000,
@@ -101,7 +102,9 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
     else:
         #Restart from existing snapshot
         start_timestep_str = '%08d' % (start_from_snapshot_num,)
-        snapshot = open(plotdir+'/snapshot-'+start_timestep_str+'.pkl', 'rb')
+        if type(snapdir)==type(None):
+            snapdir=plotdir
+        snapshot = open(snapdir+'/snapshot-'+start_timestep_str+'.pkl', 'rb')
         sim = pickle.load(snapshot)
         startstep = start_from_snapshot_num
 
