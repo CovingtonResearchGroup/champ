@@ -331,18 +331,23 @@ class CO2_1D:
             over_normal_capacity=False
             if not backflooded:
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f, old_fd=old_fd)
-                if (norm_fd<xc.ymax-xc.ymin) and i==0:
+                ### Removed for new changing downstream head bnd
+                #if (norm_fd<xc.ymax-xc.ymin) and i==0:
                     #Transition downstream head boundary to normal flow depth
                     # If we don't do this, we can get stuck in full-pipe conditions
                     # because of downstream boundary head.
-                    self.h[0] = self.z_arr[0] + norm_fd
+                #    self.h[0] = self.z_arr[0] + norm_fd
+                #if i==0 and (self.h[0] < norm_fd + self.z_arr[0]):
+                #    #Set downstream to normal depth
+
                 if norm_fd==-1:
                     over_normal_capacity=True
             if over_normal_capacity or backflooded:
                 self.flow_type[i] = 'full'
-                if i==0:
+                #Removed for new changing downstream head bnd
+                #if i==0:
                     #if downstream boundary set head to top of cross-section
-                    self.h[0]= self.z_arr[0] + xc.ymax - xc.ymin
+                #    self.h[0]= self.z_arr[0] + xc.ymax - xc.ymin
                 #We have a full pipe, calculate head gradient instead
                 delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
                 self.h[i+1] = self.h[i] + delh * self.L_arr[i]
@@ -351,9 +356,9 @@ class CO2_1D:
                 #crit_fd = xc.calcCritFlowDepth(self.Q_w)
                 y_star = norm_fd#min([crit_fd,norm_fd])
                 y_out = self.h[i] - self.z_arr[i]
-                downstream_critical = y_star>y_out and y_star>0# and i>0
+                #downstream_critical = y_star>y_out and y_star>0# and i>0
                 partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]
-                downstream_less_normal = norm_fd>y_out
+                #downstream_less_normal = norm_fd>y_out
                 if partial_backflood: #upstream node is flooded above normal depth
                     self.flow_type[i] = 'pbflood'
                     y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
@@ -381,9 +386,9 @@ class CO2_1D:
                 #    self.fd_mids[i] = (y_out+y_in)/2.
                 else:
                     self.flow_type[i] = 'norm'
-                    if i==0:
-                        self.h[i] = norm_fd + self.z_arr[i]
-                    #dz = slopes[i]*(x[i+1] - x[i])
+                    #### Removed for head bnd test
+                    #if i==0:
+                    #    self.h[i] = norm_fd + self.z_arr[i]
                     self.h[i+1] = self.z_arr[i+1] + norm_fd
                     self.fd_mids[i] = norm_fd
             # Calculate flow areas, wetted perimeters, hydraulic diameters,
@@ -617,6 +622,7 @@ class CO2_1D:
         CFL = Celerity_times_dt/min((self.x_arr[1:] - self.x_arr[:-1]))
         print('CFL=',CFL)
         self.z_arr[1:] = self.z_arr[1:] + dz
+        #self.z_arr[0] = self.z_arr[0] + dz[0]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
 
     def set_T_outside(self, T_outside_C):

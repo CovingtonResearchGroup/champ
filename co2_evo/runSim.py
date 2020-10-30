@@ -114,7 +114,9 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
     for t in np.arange(startstep, endstep+1):
         print('t=',t, '**********************')
         sim.run_one_step(T_outside_arr = T_outside_arr)
-        sim.z_arr[0] -= dz0_dt
+        #sim.z_arr[0] -= dz0_dt
+        sim.h[0] -= dz0_dt
+        sim.z_arr[0] -= np.mean([-sim.dz[0], dz0_dt])
         timestep_str = '%08d' % (t,)
         if t % plot_every == 0:
             print("Plotting timestep: ",t)
