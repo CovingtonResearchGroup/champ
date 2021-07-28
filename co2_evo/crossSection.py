@@ -383,9 +383,45 @@ class CrossSection:
         self.setMaxVelPoint(self.fd)
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
-        #print('max T_b=', T_b.max())
         self.dr = K*T_b**a
         self.erode(self.dr)
+
+    def erode_power_law_layered(self, a=1., K=[1e-5, 2e-5], layer_elevs = [-2] ):
+        """Erode wall according to a power law function of shear stress with erodibility varying by elevation.
+
+        Parameters
+        ----------
+        a : float, optional
+            Exponent in the erosion power law (default is a=1).
+        K : list, optional
+            List containing multiplicative constants in the power law.
+        layer_elevs : list, optional
+            List containing elevations where layer erodibilities change.
+
+        Notes
+        -----
+        Erodes the wall according to:
+        .. math:: E = K \tau_b^a
+        """
+        self.setMaxVelPoint(self.fd)
+        self.calcUmax(self.Q)
+        T_b = self.calcT_b()
+        ywet = self.y[self.wetidx]
+        self.dr = np.zeros(len(ywet))
+        for i, elev in enumerate(layer_elevs):
+            if i == 0:
+                layer_idx = ywet<elev
+                old_elev = elev
+            else:
+                layer_idx = logical_and(ywet<elev, ywet>=old_elev)
+
+            self.dr[layer_idx] = K[i]*T_b[layer_idx]**a 
+        final_layer_idx = ywet>elev 
+        self.dr[final_layer_idx] = K[-1]*T_b[final_layer_idx]**a
+        #self.dr = K*T_b**a
+        self.erode(self.dr)
+
+
 
     def update_total_xc(self, nx, ny):
         """Updates total cross-section to include newest part of the actively

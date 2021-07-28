@@ -131,3 +131,7 @@ class single_XC:
 #        print('max T_b=', T_b.max())
 #        self.xc.dr = K*T_b**a
 #        self.xc.erode(self.xc.dr)
+
+    def erode_power_law_layered(self, a=1., K=[1e-5,2e-5], layer_elevs=[-2]):
+        """Erode cross-section according to power law."""
+        self.xc.erode_power_law_layered(a=a, K=K, layer_elevs=layer_elevs)
