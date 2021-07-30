@@ -22,7 +22,7 @@ import numpy as np
 from model_parameter_loader import load_params
 from standard_timestep_plots import make_all_standard_timestep_plots
 
-from CO2_sim_1D import CO2_1D
+from CO2_sim_1D import CO2_1D, sim_1D
 
 
 def runSim(n=5, L=1000, dz=1, z_arr=None,
@@ -34,7 +34,8 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
             snapshot_every=1000,
             plot_every=100,
             T_outside_arr=None,
-            CO2_1D_params = {}):
+            CO2_1D_params = {},
+            sim_1D_params = None):
 
     """Run simulation using specified parameters.
 
@@ -77,6 +78,9 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
     CO2_1D_params : dict
         Dictionary of keyword arguments to be supplied to CO2_1D for
         initialization of simulation object.
+    sim_1D_params : dict
+        Dictionary of keyword arguments to be supplied to sim_1D for
+        initialization of simulation object.
 
 
     """
@@ -84,6 +88,11 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
 
     if not os.path.isdir(plotdir):
         os.mkdir(plotdir)
+
+    if sim_1D_params == None:
+        CO2_sim = True
+    else:
+        CO2_sim = False
 
     if start_from_snapshot_num == 0:
         #Create a new simulation
@@ -97,7 +106,10 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
             print("Wrong number of elements in z_arr!")
             return -1
         r = r_init*np.ones(n-1)
-        sim = CO2_1D(x,z, init_radii=r,  **CO2_1D_params)
+        if CO2_sim:
+            sim = CO2_1D(x,z, init_radii=r,  **CO2_1D_params)
+        else:
+            sim = sim_1D(x,z,init_radii=r, **sim_1D_params)
         startstep = 0
     else:
         #Restart from existing snapshot
@@ -113,7 +125,11 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
 
     for t in np.arange(startstep, endstep+1):
         print('t=',t, '**********************')
-        sim.run_one_step(T_outside_arr = T_outside_arr)
+        if CO2_sim:
+            sim.run_one_step(T_outside_arr = T_outside_arr)
+        else:
+            sim.run_one_step()
+
         sim.z_arr[0] -= dz0_dt
         timestep_str = '%08d' % (t,)
         if t % plot_every == 0:

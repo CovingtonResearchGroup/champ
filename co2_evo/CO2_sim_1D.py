@@ -75,7 +75,7 @@ class sim_1D:
         K : float or list, optional
             Erodibility in power law erosion rule (default = 1e-5).
             If multiple layers are specified, then this is a list of 
-            erodibilities.
+            erodibilities listed from lowest to highest elevation.
         layer_elevs : list of floats, optional
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with

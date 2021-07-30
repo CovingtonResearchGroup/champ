@@ -2,12 +2,14 @@ from pylab import figure, plot, xlabel, ylabel, savefig, legend, close, yscale, 
 
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from CO2_sim_1D import CO2_1D
 
 
 def make_all_standard_timestep_plots(sim, plotdir, timestep_str):
     plot_overlapping_XCs(sim, plotdir, timestep_str)
     plot_elevation_profile(sim, plotdir, timestep_str)
-    plot_concentration_profile(sim, plotdir, timestep_str)
+    if type(sim) == CO2_1D:
+        plot_concentration_profile(sim, plotdir, timestep_str)
     plot_slope_profile(sim, plotdir, timestep_str)
     plot_3D_XCs(sim, plotdir, timestep_str)
     close('all')
