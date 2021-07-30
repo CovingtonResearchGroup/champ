@@ -28,11 +28,192 @@ cm_m = 100.
 cm_per_mm = 0.1
 cm2_per_m2 = 100.*100.
 
-###
-## gas trasfer vel, typical values ~10 cm/hr for small streams (Wanningkhof 1990)
-####
+class sim_1D:
+    """Simulation object for a 1D profile of cross-sections eroded by a 
+    shear stress power law rule."""
 
-class CO2_1D:
+    def __init__(self, x_arr, z_arr, Q_w=0.1, f=0.1,
+        init_radii = 0.5, init_offsets = 0., xc_n=1000,
+        dt_erode=1., trim=True):
+
+        """
+        Parameters
+        ----------
+        x_arr : ndarray
+            Array of distances in meters along the channel for the node locations.
+        z_arr: ndarray
+            Array of elevations in meters for nodes along the channel. Minimum y
+            values for each cross-section will be added to these elevations
+            during initialization, so that z_arr will represent the channel bottom.
+        Q_w : float, optional
+            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+        f : float, optional
+            Darcy-Weisbach friction factor (unitless), used in both water flow and air
+            flow calculations. Default is 0.1.
+        init_radii : float or ndarray, optional
+            Initial cross-section radii (meters). If a float then all cross-sections
+            will be assigned the same radius. If an array then each element
+            represents the radius of a single cross-section (length should be n-1
+            where n is the number of nodes). Default is 0.5 m.
+        init_offsets : float or ndarray, optional
+            These offsets will be added to y-values within initial cross-sections.
+            By default, y will be zero at the centroid of the initial cross-section.
+            Default value is zero. Should have length of n-1, where n is number of nodes.
+        xc_n : int, optional
+            Number of points that will define the cave passage shape within a cross-section.
+            Default is 1000.
+        dt_erode : float, optional
+            Erosional time step in years. Default value is 1 year.
+        trim : boolean, optional
+            Whether or not cross-sections should be trimmed as much of the
+            cross-section becomes dry. This enables maintenance of a high
+            resolution of the wet portion of the cross-section for simulations
+            with substantial incision. If this is set to False, long-term
+            simulations are likely to become unstable. Default is true.
+        
+        """
+
+        self.n_nodes = x_arr.size
+        self.L = x_arr.max() - x_arr.min()
+        self.x_arr = x_arr
+        self.z_arr = z_arr#z is zero of xc coords
+        self.L_arr = x_arr[1:]- x_arr[:-1]
+
+        self.Q_w = Q_w
+
+        self.dt_erode = dt_erode
+        self.xc_n = xc_n
+        self.trim = trim
+
+        self.V_w = np.zeros(self.n_nodes - 1)
+        self.A_w = np.zeros(self.n_nodes - 1)
+        self.P_w = np.zeros(self.n_nodes - 1)
+        self.D_H_w = np.zeros(self.n_nodes - 1)
+        self.W = np.zeros(self.n_nodes - 1)
+        self.fd_mids = np.zeros(self.n_nodes-1)
+        self.init_offsets = np.ones(self.n_nodes-1) * init_offsets
+      
+        self.h = np.zeros(self.n_nodes)
+        self.f=f
+        self.flow_type = np.zeros(self.n_nodes-1,dtype=object)
+
+        #Initialize cross-sections
+        self.xcs = []
+        self.radii = init_radii*np.ones(self.n_nodes-1)
+        ymins = []
+        for i in np.arange(self.n_nodes-1):
+            x, y = genCirc(self.radii[i],n=xc_n)
+            y = y + self.init_offsets[i]
+            this_xc = CrossSection(x,y)
+            self.xcs.append(this_xc)
+            ymins.append(this_xc.ymin)
+        self.ymins = np.array(ymins)
+        #Reset z to bottom of cross-sections
+        self.z_arr[1:] = self.z_arr[1:] + self.ymins
+        self.z_arr[0] = self.z_arr[0] + self.ymins[0]
+        self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
+
+
+    def calc_flow_depths(self):
+        """Calculates flow depths and hydraulic head values along channel.
+
+        Notes
+        -----
+        Starts at downstream end and propagates solution upstream. Flow can
+        be full-pipe, backflooded, partially backflooeded (i.e. deeper than
+        required for normal flow because of downstream conditions), or normal.
+        If full pipe flow occurs in the furthest downstream segment, downstream
+        head is set to the elevation of top of the downstream cross-section.
+        Otherwise, the downstream head is set assuming that flow is normal
+        within the downstream cross-section.
+
+        """
+        # Loop through cross-sections and solve for flow depths,
+        # starting at downstream end
+        for i, xc in enumerate(self.xcs):
+            old_fd = self.fd_mids[i]
+            if old_fd <=0:
+                old_fd = xc.ymax - xc.ymin
+            xc.create_A_interp()
+            xc.create_P_interp()
+            #Try calculating flow depth
+            backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+xc.ymin)>0
+            over_normal_capacity=False
+            if not backflooded:
+                norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f, old_fd=old_fd)
+                if (norm_fd<xc.ymax-xc.ymin) and i==0:
+                    #Transition downstream head boundary to normal flow depth
+                    # If we don't do this, we can get stuck in full-pipe conditions
+                    # because of downstream boundary head.
+                    self.h[0] = self.z_arr[0] + norm_fd
+                if norm_fd==-1:
+                    over_normal_capacity=True
+            if over_normal_capacity or backflooded:
+                self.flow_type[i] = 'full'
+                if i==0:
+                    #if downstream boundary set head to top of cross-section
+                    self.h[0]= self.z_arr[0] + xc.ymax - xc.ymin
+                #We have a full pipe, calculate head gradient instead
+                delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
+                self.h[i+1] = self.h[i] + delh * self.L_arr[i]
+                self.fd_mids[i] = xc.ymax - xc.ymin
+            else:
+                #crit_fd = xc.calcCritFlowDepth(self.Q_w)
+                y_star = norm_fd#min([crit_fd,norm_fd])
+                y_out = self.h[i] - self.z_arr[i]
+                downstream_critical = y_star>y_out and y_star>0# and i>0
+                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]
+                downstream_less_normal = norm_fd>y_out
+                if partial_backflood: #upstream node is flooded above normal depth
+                    self.flow_type[i] = 'pbflood'
+                    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
+                    if y_in>0 and (y_out + y_in)/2. < xc.ymax - xc.ymin:# or could use fraction of y_in
+                        self.h[i+1] = self.z_arr[i+1] + y_in
+                        self.fd_mids[i] = (y_out + y_in)/2.
+                    else:
+                        #We need full pipe to push needed Q
+                        delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
+                        self.h[i+1] = self.h[i] + delh * self.L_arr[i]
+                        self.fd_mids[i] = xc.ymax - xc.ymin
+                        self.flow_type[i] = 'full'
+                #elif downstream_critical:
+                #    self.flow_type[i] = 'dwnscrit'
+                #    #Use minimum of critical or normal depth for downstream y
+                #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_star,self.L_arr[i],f=self.f)
+                #    self.fd_mids[i] = (y_in + y_star)/2.
+                #    self.h[i+1] = self.z_arr[i+1] + y_in
+                #    if i==0:
+                #        self.h[0]=self.z_arr[0] + y_star#norm_fd #y_star
+                #elif downstream_less_normal:
+                #    self.flow_type[i] = 'dwnslessnorm'
+                #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
+                #    self.h[i+1] = self.z_arr[i+1] + y_in
+                #    self.fd_mids[i] = (y_out+y_in)/2.
+                else:
+                    self.flow_type[i] = 'norm'
+                    if i==0:
+                        self.h[i] = norm_fd + self.z_arr[i]
+                    #dz = slopes[i]*(x[i+1] - x[i])
+                    self.h[i+1] = self.z_arr[i+1] + norm_fd
+                    self.fd_mids[i] = norm_fd
+            # Calculate flow areas, wetted perimeters, hydraulic diameters,
+            # free surface widths, and velocities
+            wetidx = (xc.y - xc.ymin) < self.fd_mids[i]
+            self.A_w[i] = xc.calcA(wantidx=wetidx)
+            self.P_w[i] = xc.calcP(wantidx=wetidx)
+            self.V_w[i] = -self.Q_w/self.A_w[i]
+            self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
+            if self.flow_type[i] != 'full':
+                L,R = xc.findLR(self.fd_mids[i])
+                self.W[i] = xc.x[R] - xc.x[L]
+            else:
+                self.W[i] = 0.
+            #Set water line in cross-section object
+            xc.setFD(self.fd_mids[i])
+
+
+
+class CO2_1D(sim_1D):
     """Simulation object for a coupled waterflow, airflow, CO2 exchange, and
     cave cross-section evolution algorithm
 
@@ -187,14 +368,11 @@ class CO2_1D:
 
         """
 
-        self.n_nodes = x_arr.size
-        self.L = x_arr.max() - x_arr.min()
-        self.x_arr = x_arr
-        self.z_arr = z_arr#z is zero of xc coords
-        self.L_arr = x_arr[1:]- x_arr[:-1]
+        sim_1D.__init__(self, x_arr, z_arr, Q_w=Q_w, f=f,
+            init_radii = init_radii, init_offsets = init_offsets, xc_n=xc_n,
+            dt_erode=dt_erode, trim=trim)
 
-        self.Q_w = Q_w
-        self.Q_a = 0.
+
         self.pCO2_high = pCO2_high
         self.pCO2_outside = pCO2_outside
         self.dH = dH
@@ -213,50 +391,21 @@ class CO2_1D:
         self.CO2_a_upstream = CO2_a_upstream
         self.Ca_upstream = Ca_upstream
         self.reduction_factor = reduction_factor
-        self.dt_erode = dt_erode
-        self.xc_n = xc_n
-        self.trim = trim
 
-        self.V_w = np.zeros(self.n_nodes - 1)
         self.V_a = np.zeros(self.n_nodes - 1)
-        self.A_w = np.zeros(self.n_nodes - 1)
         self.A_a = np.zeros(self.n_nodes - 1)
-        self.P_w = np.zeros(self.n_nodes - 1)
         self.P_a = np.zeros(self.n_nodes - 1)
-        self.D_H_w = np.zeros(self.n_nodes - 1)
         self.D_H_a = np.zeros(self.n_nodes - 1)
-        self.W = np.zeros(self.n_nodes - 1)
-        self.fd_mids = np.zeros(self.n_nodes-1)
-        self.init_offsets = np.ones(self.n_nodes-1) * init_offsets
 
         #Create concentration arrays
         self.CO2_a = np.zeros(self.n_nodes)
         self.CO2_w = np.zeros(self.n_nodes)
         self.Ca = np.zeros(self.n_nodes)
 
-        self.h = np.zeros(self.n_nodes)
-        self.f=f
-        self.flow_type = np.zeros(self.n_nodes-1,dtype=object)
-
         self.K_H = calc_K_H(self.T_cave_K) #Henry's law constant mols dissolved per atm
         self.Ca_eq_0 = concCaEqFromPCO2(self.pCO2_high, T_C=T_cave)
         self.palmer_interp_funcs = createPalmerInterpolationFunctions(impure=impure)
 
-        #Initialize cross-sections
-        self.xcs = []
-        self.radii = init_radii*np.ones(self.n_nodes-1)
-        ymins = []
-        for i in np.arange(self.n_nodes-1):
-            x, y = genCirc(self.radii[i],n=xc_n)
-            y = y + self.init_offsets[i]
-            this_xc = CrossSection(x,y)
-            self.xcs.append(this_xc)
-            ymins.append(this_xc.ymin)
-        self.ymins = np.array(ymins)
-        #Reset z to bottom of cross-sections
-        self.z_arr[1:] = self.z_arr[1:] + self.ymins
-        self.z_arr[0] = self.z_arr[0] + self.ymins[0]
-        self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
 
     def run_one_step(self, T_outside_arr = []):
         """Run one time step of simulation.
@@ -304,103 +453,7 @@ class CO2_1D:
             self.CO2_a = avg_CO2_a
             self.Ca = avg_Ca
 
-    def calc_flow_depths(self):
-        """Calculates flow depths and hydraulic head values along channel.
-
-        Notes
-        -----
-        Starts at downstream end and propagates solution upstream. Flow can
-        be full-pipe, backflooded, partially backflooeded (i.e. deeper than
-        required for normal flow because of downstream conditions), or normal.
-        If full pipe flow occurs in the furthest downstream segment, downstream
-        head is set to the elevation of top of the downstream cross-section.
-        Otherwise, the downstream head is set assuming that flow is normal
-        within the downstream cross-section.
-
-        """
-        # Loop through cross-sections and solve for flow depths,
-        # starting at downstream end
-        for i, xc in enumerate(self.xcs):
-            old_fd = self.fd_mids[i]
-            if old_fd <=0:
-                old_fd = xc.ymax - xc.ymin
-            xc.create_A_interp()
-            xc.create_P_interp()
-            #Try calculating flow depth
-            backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+xc.ymin)>0
-            over_normal_capacity=False
-            if not backflooded:
-                norm_fd = xc.calcNormalFlowDepth(self.Q_w,self.slopes[i],f=self.f, old_fd=old_fd)
-                if (norm_fd<xc.ymax-xc.ymin) and i==0:
-                    #Transition downstream head boundary to normal flow depth
-                    # If we don't do this, we can get stuck in full-pipe conditions
-                    # because of downstream boundary head.
-                    self.h[0] = self.z_arr[0] + norm_fd
-                if norm_fd==-1:
-                    over_normal_capacity=True
-            if over_normal_capacity or backflooded:
-                self.flow_type[i] = 'full'
-                if i==0:
-                    #if downstream boundary set head to top of cross-section
-                    self.h[0]= self.z_arr[0] + xc.ymax - xc.ymin
-                #We have a full pipe, calculate head gradient instead
-                delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
-                self.h[i+1] = self.h[i] + delh * self.L_arr[i]
-                self.fd_mids[i] = xc.ymax - xc.ymin
-            else:
-                #crit_fd = xc.calcCritFlowDepth(self.Q_w)
-                y_star = norm_fd#min([crit_fd,norm_fd])
-                y_out = self.h[i] - self.z_arr[i]
-                downstream_critical = y_star>y_out and y_star>0# and i>0
-                partial_backflood = norm_fd < self.h[i] - self.z_arr[i+1]
-                downstream_less_normal = norm_fd>y_out
-                if partial_backflood: #upstream node is flooded above normal depth
-                    self.flow_type[i] = 'pbflood'
-                    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
-                    if y_in>0 and (y_out + y_in)/2. < xc.ymax - xc.ymin:# or could use fraction of y_in
-                        self.h[i+1] = self.z_arr[i+1] + y_in
-                        self.fd_mids[i] = (y_out + y_in)/2.
-                    else:
-                        #We need full pipe to push needed Q
-                        delh = xc.calcPipeFullHeadGrad(self.Q_w,f=self.f)
-                        self.h[i+1] = self.h[i] + delh * self.L_arr[i]
-                        self.fd_mids[i] = xc.ymax - xc.ymin
-                        self.flow_type[i] = 'full'
-                #elif downstream_critical:
-                #    self.flow_type[i] = 'dwnscrit'
-                #    #Use minimum of critical or normal depth for downstream y
-                #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_star,self.L_arr[i],f=self.f)
-                #    self.fd_mids[i] = (y_in + y_star)/2.
-                #    self.h[i+1] = self.z_arr[i+1] + y_in
-                #    if i==0:
-                #        self.h[0]=self.z_arr[0] + y_star#norm_fd #y_star
-                #elif downstream_less_normal:
-                #    self.flow_type[i] = 'dwnslessnorm'
-                #    y_in = xc.calcUpstreamHead(self.Q_w,self.slopes[i],y_out,self.L_arr[i],f=self.f)
-                #    self.h[i+1] = self.z_arr[i+1] + y_in
-                #    self.fd_mids[i] = (y_out+y_in)/2.
-                else:
-                    self.flow_type[i] = 'norm'
-                    if i==0:
-                        self.h[i] = norm_fd + self.z_arr[i]
-                    #dz = slopes[i]*(x[i+1] - x[i])
-                    self.h[i+1] = self.z_arr[i+1] + norm_fd
-                    self.fd_mids[i] = norm_fd
-            # Calculate flow areas, wetted perimeters, hydraulic diameters,
-            # free surface widths, and velocities
-            wetidx = (xc.y - xc.ymin) < self.fd_mids[i]
-            self.A_w[i] = xc.calcA(wantidx=wetidx)
-            self.P_w[i] = xc.calcP(wantidx=wetidx)
-            self.V_w[i] = -self.Q_w/self.A_w[i]
-            self.D_H_w[i] = 4*self.A_w[i]/self.P_w[i]
-            if self.flow_type[i] != 'full':
-                L,R = xc.findLR(self.fd_mids[i])
-                self.W[i] = xc.x[R] - xc.x[L]
-            else:
-                self.W[i] = 0.
-            #Set water line in cross-section object
-            xc.setFD(self.fd_mids[i])
-
+    
 
     def calc_air_flow(self):
         """Calculates airflow (velocity and discharge) within dry portion of
