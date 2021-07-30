@@ -34,7 +34,7 @@ class sim_1D:
 
     def __init__(self, x_arr, z_arr, Q_w=0.1, f=0.1,
         init_radii = 0.5, init_offsets = 0., xc_n=1000,
-        dt_erode=1., trim=True, a=1., K=1e-5):
+        dt_erode=1., trim=True, a=1., K=1e-5, layer_elevs = None):
 
         """
         Parameters
@@ -70,7 +70,16 @@ class sim_1D:
             resolution of the wet portion of the cross-section for simulations
             with substantial incision. If this is set to False, long-term
             simulations are likely to become unstable. Default is true.
-        
+        a : float, optional
+            Exponent in power law erosion rule (default=1).
+        K : float or list, optional
+            Erodibility in power law erosion rule (default = 1e-5).
+            If multiple layers are specified, then this is a list of 
+            erodibilities.
+        layer_elevs : list of floats, optional
+            Specifies a list of elevations (from low to high), where rock
+            erodibility changes. If specified, K should be a list with
+            one more item than this list.    
         """
 
         self.n_nodes = x_arr.size
@@ -85,9 +94,19 @@ class sim_1D:
         self.xc_n = xc_n
         self.trim = trim
         self.a = a
+        if type(layer_elevs) != type(None):
+            n_layers = len(K)
+            n_transitions = len(layer_elevs)
+            if n_layers != n_transitions + 1:
+                print("Number of K values specified must be one more than number of transition elevations!")
+                raise IndexError
+            else:
+                self.layer_elevs = layer_elevs
+                self.layered_sim = True
+        else:
+            self.layered_sim = False
         self.K = K 
         
-
 
         self.V_w = np.zeros(self.n_nodes - 1)
         self.A_w = np.zeros(self.n_nodes - 1)
@@ -130,6 +149,7 @@ class sim_1D:
 
         self.calc_flow_depths()
         self.erode_xcs()
+        
 
     def calc_flow_depths(self):
         """Calculates flow depths and hydraulic head values along channel.
@@ -242,7 +262,10 @@ class sim_1D:
         """
         old_ymins = self.ymins.copy()
         for i,xc in enumerate(self.xcs):
-            xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode)
+            if not self.layered_sim:
+                xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode)
+            else:
+                xc.erode_power_law_layered(a=self.a, K=self.K, layer_elevs = self.layer_elevs, dt=self.dt_erode)
             self.ymins[i]= xc.ymin
         #Adjust slopes
         dz = self.ymins - old_ymins
