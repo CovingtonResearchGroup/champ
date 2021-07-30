@@ -413,12 +413,14 @@ class CrossSection:
         for i, elev in enumerate(layer_elevs):
             if i == 0:
                 layer_idx = ywet<elev
-                old_elev = elev
             else:
                 layer_idx = logical_and(ywet<elev, ywet>=old_elev)
-
+            #print('i=',i, '  len(layer_idx)=',len(layer_idx[layer_idx==True]))
             self.dr[layer_idx] = dt*K[i]*T_b[layer_idx]**a 
+            old_elev = elev
         final_layer_idx = ywet>elev 
+        #print('len(final_layer_idx)=',len(final_layer_idx[final_layer_idx==True]))
+            
         self.dr[final_layer_idx] = dt*K[-1]*T_b[final_layer_idx]**a
         #self.dr = K*T_b**a
         self.erode(self.dr)
