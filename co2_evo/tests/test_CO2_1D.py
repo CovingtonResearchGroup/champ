@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import *
 
-from CO2_sim_1D import CO2_1D
+from co2_evo.CO2_sim_1D import CO2_1D
 from olm.calcite import calc_K_H
 
 g=9.8
