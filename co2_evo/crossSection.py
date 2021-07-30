@@ -365,7 +365,7 @@ class CrossSection:
         wall (mols/m^2/sec)."""
         self.F_xc = F_xc
 
-    def erode_power_law(self, a=1., K=1e-5):
+    def erode_power_law(self, a=1., K=1e-5, dt=1.):
         """Erode wall according to a power law function of shear stress.
 
         Parameters
@@ -374,7 +374,8 @@ class CrossSection:
             Exponent in the erosion power law (default is a=1).
         K : float, optional
             Multiplicative constant in the power law (default is K=1e-5).
-
+        dt : float, optional
+            Timestep for erosion (in years). Default is 1 year.
         Notes
         -----
         Erodes the wall according to:
@@ -383,10 +384,10 @@ class CrossSection:
         self.setMaxVelPoint(self.fd)
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
-        self.dr = K*T_b**a
+        self.dr = dt*K*T_b**a
         self.erode(self.dr)
 
-    def erode_power_law_layered(self, a=1., K=[1e-5, 2e-5], layer_elevs = [-2] ):
+    def erode_power_law_layered(self, a=1., dt=1., K=[1e-5, 2e-5], layer_elevs = [-2] ):
         """Erode wall according to a power law function of shear stress with erodibility varying by elevation.
 
         Parameters
@@ -397,7 +398,8 @@ class CrossSection:
             List containing multiplicative constants in the power law.
         layer_elevs : list, optional
             List containing elevations where layer erodibilities change.
-
+        dt : float, optional
+            Timestep for erosion (in years). Default is 1 year.
         Notes
         -----
         Erodes the wall according to:
@@ -415,9 +417,9 @@ class CrossSection:
             else:
                 layer_idx = logical_and(ywet<elev, ywet>=old_elev)
 
-            self.dr[layer_idx] = K[i]*T_b[layer_idx]**a 
+            self.dr[layer_idx] = dt*K[i]*T_b[layer_idx]**a 
         final_layer_idx = ywet>elev 
-        self.dr[final_layer_idx] = K[-1]*T_b[final_layer_idx]**a
+        self.dr[final_layer_idx] = dt*K[-1]*T_b[final_layer_idx]**a
         #self.dr = K*T_b**a
         self.erode(self.dr)
 

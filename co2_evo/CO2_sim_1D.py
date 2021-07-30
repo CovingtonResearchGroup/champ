@@ -34,7 +34,7 @@ class sim_1D:
 
     def __init__(self, x_arr, z_arr, Q_w=0.1, f=0.1,
         init_radii = 0.5, init_offsets = 0., xc_n=1000,
-        dt_erode=1., trim=True):
+        dt_erode=1., trim=True, a=1., K=1e-5):
 
         """
         Parameters
@@ -84,6 +84,10 @@ class sim_1D:
         self.dt_erode = dt_erode
         self.xc_n = xc_n
         self.trim = trim
+        self.a = a
+        self.K = K 
+        
+
 
         self.V_w = np.zeros(self.n_nodes - 1)
         self.A_w = np.zeros(self.n_nodes - 1)
@@ -113,6 +117,19 @@ class sim_1D:
         self.z_arr[0] = self.z_arr[0] + self.ymins[0]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
 
+    def run_one_step(self):
+        """Run one time step of simulation.
+
+        Calculates flow depths and erosion for
+        a single time step and updates geometry.
+
+        Parameters
+        ----------
+
+        """
+
+        self.calc_flow_depths()
+        self.erode_xcs()
 
     def calc_flow_depths(self):
         """Calculates flow depths and hydraulic head values along channel.
@@ -210,7 +227,31 @@ class sim_1D:
                 self.W[i] = 0.
             #Set water line in cross-section object
             xc.setFD(self.fd_mids[i])
+            if self.flow_type[i] == 'norm':
+                #use bed slope for energy slope in this case
+                eSlope = self.slopes[i]
+            else:
+                eSlope = (self.h[i+1] - self.h[i])/self.L_arr[i]
+            xc.setEnergySlope(eSlope)
+                
+    def erode_xcs(self):
+        """Erode the cross-sections.
 
+        Parameters
+        ----------
+        """
+        old_ymins = self.ymins.copy()
+        for i,xc in enumerate(self.xcs):
+            xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode)
+            self.ymins[i]= xc.ymin
+        #Adjust slopes
+        dz = self.ymins - old_ymins
+        self.dz = dz
+        Celerity_times_dt = np.abs(max(dz/self.slopes))
+        CFL = Celerity_times_dt/min((self.x_arr[1:] - self.x_arr[:-1]))
+        print('CFL=',CFL)
+        self.z_arr[1:] = self.z_arr[1:] + dz
+        self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
 
 
 class CO2_1D(sim_1D):
@@ -585,12 +626,6 @@ class CO2_1D(sim_1D):
                 R = F[i-1]*SA
             else:
                 this_xc = self.xcs[i-1]
-                if self.flow_type[i-1] == 'norm':
-                    #use bed slope for energy slope in this case
-                    eSlope = self.slopes[i-1]
-                else:
-                    eSlope = (self.h[i] - self.h[i-1])/self.L_arr[i-1]
-                this_xc.setEnergySlope(eSlope)
                 this_xc.setMaxVelPoint(self.fd_mids[i-1])
                 this_xc.calcUmax(self.Q_w)
                 T_b = this_xc.calcT_b()
