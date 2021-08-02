@@ -13,6 +13,8 @@ from olm.calcite import concCaEqFromPCO2
 from matplotlib import ticker
 from scipy.stats import linregress
 
+#from . import CO2_sim_1D
+
 ###################################
 ## Plotting convenience funtions ##
 ###################################
@@ -69,6 +71,7 @@ def get_results(plotdir):
     x = []
     snap_every = 1000
     for snapnum, snapshot in enumerate(snapshots):
+        print('loading snapshot ',snapnum)
         f = open(snapshot, 'rb')
         snap_sim = pickle.load(f)
         f.close()
@@ -426,9 +429,10 @@ def final_step_morphology(plotdir_co2, co2, noco2):
 
 
 
-def make_plots_from_snapshots(plotdir_co2, plotdir_no_co2, every=5):
-
+def make_plots_from_snapshots(plotdir_co2, plotdir_no_co2, every=10):
+    print('Loading results with CO2...')
     co2 = get_results(plotdir_co2)
+    print('Loading results without CO2...')
     noco2 = get_results(plotdir_no_co2)
 
     plot_erosion_slope_width_over_distance(plotdir_co2, co2, noco2, every=every)
