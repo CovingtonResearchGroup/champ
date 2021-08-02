@@ -86,6 +86,9 @@ class sim_1D:
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
         self.z_arr = z_arr#z is zero of xc coords
+        #Store initial z values so that absolute elevation can be calculated from XC y values
+        self.init_z = np.copy(z_arr)
+        #print('init_z=',self.init_z)
         self.L_arr = x_arr[1:]- x_arr[:-1]
 
         self.Q_w = Q_w
@@ -101,7 +104,7 @@ class sim_1D:
                 print("Number of K values specified must be one more than number of transition elevations!")
                 raise IndexError
             else:
-                self.layer_elevs = layer_elevs
+                self.layer_elevs = np.array(layer_elevs)
                 self.layered_sim = True
         else:
             self.layered_sim = False
@@ -265,7 +268,11 @@ class sim_1D:
             if not self.layered_sim:
                 xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode)
             else:
-                xc.erode_power_law_layered(a=self.a, K=self.K, layer_elevs = self.layer_elevs, dt=self.dt_erode)
+                #print('layer_elevs=',self.layer_elevs)
+                #print('init_z=',self.init_z[i+1])
+                absolute_layer_elevs = self.layer_elevs - self.init_z[i+1]
+                #print('i=',i, ' abs_layer_elevs=',absolute_layer_elevs)
+                xc.erode_power_law_layered(a=self.a, K=self.K, layer_elevs = absolute_layer_elevs, dt=self.dt_erode)
             self.ymins[i]= xc.ymin
         #Adjust slopes
         dz = self.ymins - old_ymins

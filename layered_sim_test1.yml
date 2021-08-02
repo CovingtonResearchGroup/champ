@@ -5,7 +5,7 @@ r_init: 1.
 endstep: 200000
 plotdir: './layered-sim-test1-figs/'
 start_from_snapshot_num: 0
-dz0_dt: 0.0005
+dz0_dt: 0.001
 snapshot_every: 1000
 plot_every: 100
 
