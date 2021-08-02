@@ -3,7 +3,7 @@ L: 5000.
 z_arr: [ 0., 0.35714286, 0.71428571, 1.07142857, 1.42857143,
          1.78571429, -2.85714286, -2.5, -2.14285714, -1.78571429,
         -1.42857143, 3.92857143, 4.28571429, 4.64285714, 5.]
-r_init: 0.25
+r_init: 0.5
 endstep: 200000
 plotdir: './phreatic-loop-figs/'
 dz0_dt: 0.0001
@@ -21,4 +21,4 @@ CO2_1D_params:
   xc_n: 1000
   trim: True
   reduction_factor: 0.01
-  variable_gas_transf: False
+  variable_gas_transf: True

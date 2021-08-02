@@ -4,6 +4,7 @@ dz: 2.
 r_init: 1.
 endstep: 400000
 plotdir: './med-trans-high-with-CO2-figs/'
+snapdir: './med-with-CO2-figs/'
 start_from_snapshot_num: 200000
 dz0_dt: 0.00125
 snapshot_every: 1000
