@@ -8,6 +8,7 @@ from co2_evo.ShapeGen import genCirc, genEll
 from numpy.random import rand,seed
 from scipy.optimize import brentq
 from scipy.signal import savgol_filter
+import time
 
 #Constants
 g=9.8#m/s^2
@@ -150,8 +151,14 @@ class sim_1D:
 
         """
 
+        #tic = time.perf_counter()
         self.calc_flow_depths()
+        #toc = time.perf_counter()
+        #print(f"Flow depth calculation took {toc - tic:0.4f} seconds.")
+        #tic = time.perf_counter()
         self.erode_xcs()
+        #toc = time.perf_counter()
+        #print(f"Erosion calculation took {toc - tic:0.4f} seconds.")
         
 
     def calc_flow_depths(self):
@@ -174,8 +181,13 @@ class sim_1D:
             old_fd = self.fd_mids[i]
             if old_fd <=0:
                 old_fd = xc.ymax - xc.ymin
+            #Initial test showed interpolation takes the longest, flow calc is next, remainder is 10x less
+            #tic = time.perf_counter()
             xc.create_A_interp()
             xc.create_P_interp()
+            #toc = time.perf_counter()
+            #print(f"Interpolation took {toc - tic:0.4f} seconds.")
+            #tic = toc
             #Try calculating flow depth
             backflooded= (self.h[i]-self.z_arr[i+1]-xc.ymax+xc.ymin)>0
             over_normal_capacity=False
@@ -236,6 +248,9 @@ class sim_1D:
                     #dz = slopes[i]*(x[i+1] - x[i])
                     self.h[i+1] = self.z_arr[i+1] + norm_fd
                     self.fd_mids[i] = norm_fd
+            #toc = time.perf_counter()
+            #print(f"Calculating flow depth took {toc - tic:0.4f} seconds.")
+            #tic = toc
             # Calculate flow areas, wetted perimeters, hydraulic diameters,
             # free surface widths, and velocities
             wetidx = (xc.y - xc.ymin) < self.fd_mids[i]
@@ -256,7 +271,9 @@ class sim_1D:
             else:
                 eSlope = (self.h[i+1] - self.h[i])/self.L_arr[i]
             xc.setEnergySlope(eSlope)
-                
+            #toc = time.perf_counter()
+            #print(f"Remainder took {toc - tic:0.4f} seconds.") 
+
     def erode_xcs(self):
         """Erode the cross-sections.
 
