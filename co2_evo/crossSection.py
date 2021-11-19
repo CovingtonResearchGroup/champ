@@ -1,10 +1,11 @@
-from numpy import sin, cos, pi, fabs, sign, roll, arctan2, diff, sum, hypot,\
+from numpy import may_share_memory, sin, cos, pi, fabs, sign, roll, arctan2, diff, sum, hypot,\
                     logical_and, where, linspace, sqrt
 import numpy as np
 from scipy import interpolate
 from scipy.optimize import brentq, root_scalar, minimize_scalar
 import matplotlib.pyplot as plt
 import copy
+#import debugpy
 
 g=9.8 #m/s^2
 rho_w = 998.2 #kg/m^3
@@ -448,6 +449,7 @@ class CrossSection:
         self.y4 =y4= self.y_total[np.logical_and(self.x_total>0,self.y_total>ny.max())]
         x_total_tmp = np.concatenate([x1,x2,x4])
         y_total_tmp = np.concatenate([y1,y2,y4])
+        #debugpy.breakpoint()
         tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
         un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
         self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
@@ -492,6 +494,17 @@ class CrossSection:
                 #Initialize total xc arrays if first trimming event
                 if type(self.x_total) == type(None):
                     first_trim = True
+                    #Roll XC positions so that arrays start a top in upper left quad
+                    max_y_idx = np.argmax(ny)
+                    if nx[max_y_idx]>0:
+                        start_found = False                    
+                        while not start_found:
+                            max_y_idx += 1
+                            if nx[max_y_idx]<0:
+                                start_found = True 
+                    #Roll top point in XC to start of array
+                    nx = roll(nx,-max_y_idx)
+                    ny = roll(ny,-max_y_idx)                        
                     self.x_total = nx
                     self.y_total = ny
                     self.is_trimmed = True

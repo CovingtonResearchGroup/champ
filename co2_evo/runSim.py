@@ -16,6 +16,7 @@ import pickle
 import sys
 import os
 import numpy as np
+#import debugpy
 #from mpl_toolkits.mplot3d import Axes3D
 #from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -143,6 +144,10 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
 
 
 if __name__ == '__main__':
+    """debugpy.listen(5678)
+    print("Waiting for debugger attach...")
+    debugpy.wait_for_client()
+    """
     params_file = sys.argv[1]
     run_params = load_params(params_file)
     print('run_params=',run_params)
