@@ -20,10 +20,9 @@ import numpy as np
 #from mpl_toolkits.mplot3d import Axes3D
 #from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from model_parameter_loader import load_params
-from standard_timestep_plots import make_all_standard_timestep_plots
-
-from CO2_sim_1D import CO2_1D, sim_1D
+from co2_evo.model_parameter_loader import load_params
+from co2_evo.standard_timestep_plots import make_all_standard_timestep_plots
+from co2_evo.CO2_sim_1D import CO2_1D, sim_1D
 
 
 def runSim(n=5, L=1000, dz=1, z_arr=None,
