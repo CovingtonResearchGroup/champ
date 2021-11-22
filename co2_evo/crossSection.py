@@ -487,7 +487,7 @@ class CrossSection:
 
         if self.back_to_total:
             if self.fd<0.1*(max(ny) - min(ny)):
-                back_to_total = False
+                self.back_to_total = False
 
         if trim and not self.back_to_total:
             if trim_y<max(ny):

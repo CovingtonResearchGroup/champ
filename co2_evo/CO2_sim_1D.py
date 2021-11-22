@@ -8,7 +8,7 @@ from co2_evo.ShapeGen import genCirc, genEll
 from numpy.random import rand,seed
 from scipy.optimize import brentq
 from scipy.signal import savgol_filter
-import time
+#import time
 
 #Constants
 g=9.8#m/s^2
@@ -296,7 +296,7 @@ class sim_1D:
         self.dz = dz
         Celerity_times_dt = np.abs(max(dz/self.slopes))
         CFL = Celerity_times_dt/min((self.x_arr[1:] - self.x_arr[:-1]))
-        print('CFL=',CFL)
+        #print('CFL=',CFL)
         self.z_arr[1:] = self.z_arr[1:] + dz
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
 
