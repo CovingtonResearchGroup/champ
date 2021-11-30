@@ -1,0 +1,21 @@
+n: 10
+L: 1000.
+dz: 15.
+r_init: 1.
+endstep: 500000
+plotdir: './kp-highK-lowU-lowxc-figs/'
+start_from_snapshot_num: 25000
+dz0_dt: 0.001
+snapshot_every: 1000
+plot_every: 100
+
+
+sim_1D_params:
+  Q_w: 1.
+  dt_erode: 0.1
+  xc_n: 500
+  trim: True
+  a: 1
+  K: 2e-5
+
+
