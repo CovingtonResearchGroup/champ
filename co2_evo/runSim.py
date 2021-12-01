@@ -130,7 +130,7 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
         else:
             sim.run_one_step()
 
-        sim.z_arr[0] -= dz0_dt
+        sim.z_arr[0] -= dz0_dt * sim.dt_erode
         timestep_str = '%08d' % (t,)
         if t % plot_every == 0:
             print("Plotting timestep: ",t)
