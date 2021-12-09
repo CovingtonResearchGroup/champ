@@ -119,6 +119,12 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
         snapshot = open(snapdir+'/snapshot-'+start_timestep_str+'.pkl', 'rb')
         sim = pickle.load(snapshot)
         startstep = start_from_snapshot_num
+        #Update simulation parameters (allows changing yml)
+        ### Note: This won't work for switching between layered and non-layered.
+        ###   would need some extra code to do this.
+        ### Long-term might move this into update_params() function on sim object
+        for param in sim_1D_params.keys():
+            setattr(sim, param, sim_1D_params[param])
 
     #add tag into sim that gives parameter file
     sim.params_file = params_file
