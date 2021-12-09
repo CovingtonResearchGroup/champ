@@ -67,6 +67,7 @@ def get_results(plotdir):
     T_b_max = []
     years = []
     x = []
+    z = []
     snap_every = 1000
     for snapnum, snapshot in enumerate(snapshots):
         print('loading snapshot ',snapnum)
@@ -96,6 +97,7 @@ def get_results(plotdir):
         T_b_mean.append(these_T_b_mean)
         T_b_max.append(these_T_b_max)
         x.append(snap_sim.x_arr)
+        z.append(snap_sim.z_arr)
         if snapnum==0:
             year0 = years[0]
             z_base0 = snap_sim.z_arr[0]
@@ -114,9 +116,10 @@ def get_results(plotdir):
     T_b_max = np.array(T_b_max)
     years = np.array(years)
     x = np.array(x)
+    z = np.array(z)
     return {'erosion':abs(erosion), 'width':width, 'slope':slope,
            'A':A, 'Pw':Pw, 'fd':fd, 'T_b_mean':T_b_mean, 
-           'T_b_max':T_b_max, 'years':years, 'x':x,
+           'T_b_max':T_b_max, 'years':years, 'x':x, 'z':z,
            'dz_dt_base':dz_dt_base}
 
 
