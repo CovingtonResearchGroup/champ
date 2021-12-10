@@ -5,9 +5,8 @@ from scipy import interpolate
 from mayavi import mlab
 
 
-def make_frames(snap_dir):
-    mlab.figure(size=(2000,1400))
-
+def make_frames(snap_dir, contact_elev):
+    mlab.figure(size=(2000,1400), bgcolor=(1,1,1))
     snaplist = glob.glob(os.path.join(snap_dir, 'snap*.pkl'))
     snaplist.sort()
 
@@ -78,10 +77,11 @@ def make_frames(snap_dir):
         zwL = np.ones((2,nxcs))
         zwL = zwL * np.arange(nxcs)/5
 
-        s1 = mlab.mesh(xcx, xcz, xcy, opacity=0.3, colormap='autumn')
-        s2 = mlab.mesh(xcx_wet, xcz, xcy_wet, color=(50/255,131/255,168/255), opacity=0.6)
-        s3 = mlab.mesh(xwL, zwL, ywL, color=(50/255,131/255,168/255), opacity=0.6)
-        minz_arr = xcz[xcy>-5]
+        s1 = mlab.mesh(xcx, xcz, xcy, opacity=0.5, colormap='PuOr', vmax=contact_elev + 1, vmin=contact_elev - 1)
+        #s1.module_manager.scalar_lut_manager.reverse_lut = True
+        s2 = mlab.mesh(xcx_wet, xcz, xcy_wet, color=(50/255,131/255,168/255), opacity=0.9)
+        s3 = mlab.mesh(xwL, zwL, ywL, color=(50/255,131/255,168/255), opacity=0.9)
+        minz_arr = xcz[xcy>contact_elev]
         if len(minz_arr) > 0:
             minz = minz_arr.min()
             plot_contact = True
@@ -91,7 +91,7 @@ def make_frames(snap_dir):
         minx = -5
         maxx = 5
         if plot_contact:
-            s4 = mlab.mesh([[minx,maxx],[minx,maxx]],[[maxz,maxz],[minz,minz]],[[-5,-5],[-5,-5]],
+            s4 = mlab.mesh([[minx,maxx],[minx,maxx]],[[maxz,maxz],[minz,minz]],[[contact_elev, contact_elev],[contact_elev,contact_elev]],
                 color=(184/255, 108/255,28/255), opacity=0.75)
         
         mlab.view(azimuth=300, roll=-60, elevation=70, distance=30)
@@ -106,4 +106,8 @@ def make_frames(snap_dir):
 
 if __name__ == '__main__':
     snap_dir = sys.argv[1]
-    make_frames(snap_dir)
+    if len(sys.argv) > 2:
+        contact_elev = float(sys.argv[2])
+    else:
+        contact_elev = -5.
+    make_frames(snap_dir, contact_elev)

@@ -145,7 +145,7 @@ def plot_erosion_slope_width_over_distance(snapshotdir, res, every=5):
 
     x = (res['x'][0,:-1] + res['x'][0,1:])/2.
 
-    fig, axs = subplots(3,1, figsize=(5,9),
+    fig, axs = subplots(3,1, figsize=(6,9),
                        sharex=True)
 
     axs[0].plot(x, abs(res['erosion'].transpose()[::,::every]))
@@ -156,6 +156,10 @@ def plot_erosion_slope_width_over_distance(snapshotdir, res, every=5):
     axs[0].grid('--', which='both')
     axs[0].tick_params(direction='in', labelsize=10)
     axs[0].plot([x[0], x[-1]], [-res['dz_dt_base'],-res['dz_dt_base']], '--k')
+    cb=colorbar(sMap, ax=axs[0],format=cb_formatter)    
+    cb.set_label('Years')
+
+
 
     axs[1].semilogy(x, abs(res['slope'].transpose()[::,::every]))
     axs[1].set_ylabel('Slope')
@@ -176,6 +180,8 @@ def plot_erosion_slope_width_over_distance(snapshotdir, res, every=5):
     axs[2].set_ylim([ymin,ymax])
     axs[2].grid('--')
     axs[2].tick_params(direction='in', labelsize=10)
+    cb=colorbar(sMap, ax=axs[2],format=cb_formatter)
+    cb.set_label('Years')
 
 
 
