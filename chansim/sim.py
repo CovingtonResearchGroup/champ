@@ -248,26 +248,7 @@ class multiXC:
         self.z_arr[0] = self.z_arr[0] + self.ymins[0]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1])/(self.x_arr[1:] - self.x_arr[:-1])
 
-    def run_one_step(self):
-        """Run one time step of simulation.
-
-        Calculates flow depths and erosion for
-        a single time step and updates geometry.
-
-        Parameters
-        ----------
-
-        """
-
-        #tic = time.perf_counter()
-        self.calc_flow()
-        #toc = time.perf_counter()
-        #print(f"Flow depth calculation took {toc - tic:0.4f} seconds.")
-        #tic = time.perf_counter()
-        self.erode()
-        #toc = time.perf_counter()
-        #print(f"Erosion calculation took {toc - tic:0.4f} seconds.")
-        
+       
 
     def calc_flow(self):
         """Calculates flow depths and hydraulic head values along channel.
