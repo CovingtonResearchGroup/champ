@@ -177,6 +177,7 @@ class CrossSection:
             n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
         As = []
+        #Is this loop the heavy part? Optimize?
         for depth in depth_arr:
             wantidx = self.y-self.ymin<depth
             As.append(self.calcA(wantidx=wantidx))
@@ -201,6 +202,7 @@ class CrossSection:
             n_points = int(np.round(num_xc_points/3.))
         depth_arr = np.linspace(0,max_interp,n_points)
         Ps = []
+        #Is this loop the heavy part? Optimize?
         for depth in depth_arr:
             wantidx = self.y-self.ymin<depth
             l = hypot(self.x[wantidx] - self.xp[wantidx], self.y[wantidx] - self.yp[wantidx])
