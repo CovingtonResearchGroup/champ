@@ -1,0 +1,24 @@
+n: 10
+L: 5000.
+dz: 2.
+r_init: 1.
+endstep: 200000
+plotdir: './low-with-CO2-figs/'
+start_from_snapshot_num: 0
+dz0_dt: 0.00005
+snapshot_every: 1000
+plot_every: 100
+T_outside_arr: [0.,20.]
+
+
+CO2_1D_params:
+  Q_w: 0.25
+  dH: 30
+  Ca_upstream: 0.8
+  T_outside: 10.
+  T_cave: 10.
+  dt_erode: 1.
+  xc_n: 1500
+  trim: True
+  reduction_factor: 0.01
+  

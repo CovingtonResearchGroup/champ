@@ -1,0 +1,24 @@
+n: 15
+L: 5000.
+z_arr: [ 0., 0.35714286, 0.71428571, 1.07142857, 1.42857143,
+         1.78571429, -2.85714286, -2.5, -2.14285714, -1.78571429,
+        -1.42857143, 3.92857143, 4.28571429, 4.64285714, 5.]
+r_init: 0.5
+endstep: 200000
+plotdir: './phreatic-loop-figs/'
+dz0_dt: 0.0001
+snapshot_every: 1000
+plot_every: 100
+T_outside_arr: [0., 20.]
+
+CO2_1D_params:
+  Q_w: 1.0
+  dH: 30
+  Ca_upstream: 0.8
+  T_outside: 10.
+  T_cave: 10.
+  dt_erode: 1.
+  xc_n: 1000
+  trim: True
+  reduction_factor: 0.01
+  variable_gas_transf: True
