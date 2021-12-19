@@ -1,10 +1,11 @@
-from numpy import sin, cos, pi, fabs, sign, roll, arctan2, diff, sum, hypot,\
+from numpy import may_share_memory, sin, cos, pi, fabs, sign, roll, arctan2, diff, sum, hypot,\
                     logical_and, where, linspace, sqrt
 import numpy as np
 from scipy import interpolate
 from scipy.optimize import brentq, root_scalar, minimize_scalar
 import matplotlib.pyplot as plt
 import copy
+#import debugpy
 
 g=9.8 #m/s^2
 rho_w = 998.2 #kg/m^3
@@ -365,7 +366,7 @@ class CrossSection:
         wall (mols/m^2/sec)."""
         self.F_xc = F_xc
 
-    def erode_power_law(self, a=1., K=1e-5):
+    def erode_power_law(self, a=1., K=1e-5, dt=1.):
         """Erode wall according to a power law function of shear stress.
 
         Parameters
@@ -374,7 +375,8 @@ class CrossSection:
             Exponent in the erosion power law (default is a=1).
         K : float, optional
             Multiplicative constant in the power law (default is K=1e-5).
-
+        dt : float, optional
+            Timestep for erosion (in years). Default is 1 year.
         Notes
         -----
         Erodes the wall according to:
@@ -383,9 +385,48 @@ class CrossSection:
         self.setMaxVelPoint(self.fd)
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
-        #print('max T_b=', T_b.max())
-        self.dr = K*T_b**a
+        self.dr = dt*K*T_b**a
         self.erode(self.dr)
+
+    def erode_power_law_layered(self, a=1., dt=1., K=[1e-5, 2e-5], layer_elevs = [-2] ):
+        """Erode wall according to a power law function of shear stress with erodibility varying by elevation.
+
+        Parameters
+        ----------
+        a : float, optional
+            Exponent in the erosion power law (default is a=1).
+        K : list, optional
+            List containing multiplicative constants in the power law.
+        layer_elevs : list, optional
+            List containing elevations where layer erodibilities change.
+        dt : float, optional
+            Timestep for erosion (in years). Default is 1 year.
+        Notes
+        -----
+        Erodes the wall according to:
+        .. math:: E = K \tau_b^a
+        """
+        self.setMaxVelPoint(self.fd)
+        self.calcUmax(self.Q)
+        T_b = self.calcT_b()
+        ywet = self.y[self.wetidx]
+        self.dr = np.zeros(len(ywet))
+        for i, elev in enumerate(layer_elevs):
+            if i == 0:
+                layer_idx = ywet<elev
+            else:
+                layer_idx = logical_and(ywet<elev, ywet>=old_elev)
+            #print('i=',i, '  len(layer_idx)=',len(layer_idx[layer_idx==True]))
+            self.dr[layer_idx] = dt*K[i]*T_b[layer_idx]**a 
+            old_elev = elev
+        final_layer_idx = ywet>elev 
+        #print('len(final_layer_idx)=',len(final_layer_idx[final_layer_idx==True]))
+            
+        self.dr[final_layer_idx] = dt*K[-1]*T_b[final_layer_idx]**a
+        #self.dr = K*T_b**a
+        self.erode(self.dr)
+
+
 
     def update_total_xc(self, nx, ny):
         """Updates total cross-section to include newest part of the actively
@@ -408,6 +449,7 @@ class CrossSection:
         self.y4 =y4= self.y_total[np.logical_and(self.x_total>0,self.y_total>ny.max())]
         x_total_tmp = np.concatenate([x1,x2,x4])
         y_total_tmp = np.concatenate([y1,y2,y4])
+        #debugpy.breakpoint()
         tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.)
         un = linspace(u.min(), u.max(), n)# if n!=nx.size else nx.size)
         self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
@@ -445,13 +487,24 @@ class CrossSection:
 
         if self.back_to_total:
             if self.fd<0.1*(max(ny) - min(ny)):
-                back_to_total = False
+                self.back_to_total = False
 
         if trim and not self.back_to_total:
             if trim_y<max(ny):
                 #Initialize total xc arrays if first trimming event
                 if type(self.x_total) == type(None):
                     first_trim = True
+                    #Roll XC positions so that arrays start a top in upper left quad
+                    max_y_idx = np.argmax(ny)
+                    if nx[max_y_idx]>0:
+                        start_found = False                    
+                        while not start_found:
+                            max_y_idx += 1
+                            if nx[max_y_idx]<0:
+                                start_found = True 
+                    #Roll top point in XC to start of array
+                    nx = roll(nx,-max_y_idx)
+                    ny = roll(ny,-max_y_idx)                        
                     self.x_total = nx
                     self.y_total = ny
                     self.is_trimmed = True

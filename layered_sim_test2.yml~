@@ -1,0 +1,21 @@
+n: 20
+L: 1000.
+dz: 50.
+r_init: 1.
+endstep: 200000
+plotdir: './layered-sim-test2-figs/'
+start_from_snapshot_num: 0
+dz0_dt: 0.001
+snapshot_every: 1000
+plot_every: 100
+
+
+sim_1D_params:
+  Q_w: 0.25
+  dt_erode: 1.
+  xc_n: 1000
+  trim: True
+  a: 1
+  K: [1e-5,4e-5,1e-5,4e-5]
+  layer_elevs: [-75,-50,-25]
+

@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.testing import *
 
-from crossSection import CrossSection
-from ShapeGen import genCirc, genEll
+from co2_evo.crossSection import CrossSection
+from co2_evo.ShapeGen import genCirc, genEll
 
 r = 1.
 n=1000
