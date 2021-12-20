@@ -32,7 +32,7 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
             dz0_dt = 0.00025,
             snapshot_every=1000,
             plot_every=100,
-            sim_params = None):
+            sim_params = {}):
 
     """Run simulation using specified parameters.
 

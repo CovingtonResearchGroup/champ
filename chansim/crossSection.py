@@ -182,6 +182,9 @@ class CrossSection:
             wantidx = self.y-self.ymin<depth
             As.append(self.calcA(wantidx=wantidx))
         As = np.array(As)
+        #Is this interp function the fastest we can work with? Is it a wrapper for FITPACK or all in python?
+        # Might we use splrep? This is direct FITPACK interface. Requires unique x values.
+        #Other suggestions include np.interp or scipy CubicSpline or make_interp_spline
         A_interp = interpolate.interp1d(depth_arr,As,kind='cubic',bounds_error=False,fill_value=(As[0],As[-1]))
         self.A_interp = A_interp
 
@@ -645,6 +648,7 @@ class CrossSection:
         if Q>=calcFullFlow and not self.ymax>self.y.max():
             return -1
         else:
+            #This minimization is a big time sink (particularly call to calcNormalFlow())
             sol = minimize_scalar(self.abs_normal_discharge_residual, bounds=[SMALL,upper_bound], args=(slope,f,Q), method='bounded' )
             fd = sol.x
             if fd >= maxdepth:
