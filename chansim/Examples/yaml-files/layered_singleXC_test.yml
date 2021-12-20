@@ -1,0 +1,19 @@
+n: 1
+r_init: 2.
+endstep: 10000
+plotdir: './layered-singleXC-test-figs/'
+start_from_snapshot_num: 0
+snapshot_every: 1000
+plot_every: 100
+
+
+sim_params:
+  Q_w: 1.
+  dt_erode: 1
+  slope: 0.005
+  xc_n: 1500
+  trim: True
+  a: 1
+  K: [0.5e-5,2e-5]
+  layer_elevs: [-3.5]
+

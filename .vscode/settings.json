@@ -1,3 +1,7 @@
 {
-    "python.pythonPath": "/home/mcoving/anaconda3/bin/python"
+    "python.pythonPath": "/home/mcoving/anaconda3/bin/python",
+    "files.watcherExclude": {
+        "**/co2_evo/*-figs/**": true,
+        "**/co2_evo/newsim*/**": true
+    }
 }

@@ -122,17 +122,17 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
         print('t=',t, '**********************')
         sim.run_one_step()
 
-    if not single_XC_sim:
-        sim.z_arr[0] -= dz0_dt * sim.dt_erode
+        if not single_XC_sim:
+            sim.z_arr[0] -= dz0_dt * sim.dt_erode
 
-    timestep_str = '%08d' % (t,)
-    if t % plot_every == 0:
-        print("Plotting timestep: ",t)
-        make_all_standard_timestep_plots(sim, plotdir, timestep_str)
+        timestep_str = '%08d' % (t,)
+        if t % plot_every == 0:
+            print("Plotting timestep: ",t)
+            make_all_standard_timestep_plots(sim, plotdir, timestep_str)
 
-    if t % snapshot_every == 0:
-        f = open(plotdir+'/snapshot-'+timestep_str+'.pkl', 'wb')
-        pickle.dump(sim, f)
+        if t % snapshot_every == 0:
+            f = open(plotdir+'/snapshot-'+timestep_str+'.pkl', 'wb')
+            pickle.dump(sim, f)
 
 if __name__ == '__main__':
     """debugpy.listen(5678)

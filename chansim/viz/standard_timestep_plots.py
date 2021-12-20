@@ -6,27 +6,36 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def make_all_standard_timestep_plots(sim, plotdir, timestep_str):
     plot_overlapping_XCs(sim, plotdir, timestep_str)
-    plot_elevation_profile(sim, plotdir, timestep_str)
-    plot_slope_profile(sim, plotdir, timestep_str)
-    plot_3D_XCs(sim, plotdir, timestep_str)
+    if not sim.singleXC:
+        plot_elevation_profile(sim, plotdir, timestep_str)
+        plot_slope_profile(sim, plotdir, timestep_str)
+        plot_3D_XCs(sim, plotdir, timestep_str)
     close('all')
 
 
 
 def plot_overlapping_XCs(sim, plotdir, timestep_str):
     figure()
-    n = len(sim.xcs)
-    if type(sim.xcs[0].x_total) != type(None):
-        plot(sim.xcs[0].x_total ,sim.xcs[0].y_total)
-    plot(sim.xcs[0].x ,sim.xcs[0].y)
-    wl = sim.fd_mids[0]+ sim.xcs[0].y.min()
-    plot([-.5,.5], [wl,wl])
-    if type(sim.xcs[int(ceil(n/2.))].x_total) != type(None):
-        plot(sim.xcs[int(ceil(n/2.))].x_total ,sim.xcs[int(ceil(n/2.))].y_total)
-    plot(sim.xcs[int(ceil(n/2.))].x ,sim.xcs[int(ceil(n/2.))].y)
-    if type(sim.xcs[-1].x_total) != type(None):
-        plot(sim.xcs[-1].x_total ,sim.xcs[-1].y_total)
-    plot(sim.xcs[-1].x ,sim.xcs[-1].y)
+    if not sim.singleXC:
+        n = len(sim.xcs)
+        if type(sim.xcs[0].x_total) != type(None):
+            plot(sim.xcs[0].x_total ,sim.xcs[0].y_total)
+        plot(sim.xcs[0].x ,sim.xcs[0].y)
+        wl = sim.fd_mids[0]+ sim.xcs[0].y.min()
+        plot([-.5,.5], [wl,wl])
+        if type(sim.xcs[int(ceil(n/2.))].x_total) != type(None):
+            plot(sim.xcs[int(ceil(n/2.))].x_total ,sim.xcs[int(ceil(n/2.))].y_total)
+        plot(sim.xcs[int(ceil(n/2.))].x ,sim.xcs[int(ceil(n/2.))].y)
+        if type(sim.xcs[-1].x_total) != type(None):
+            plot(sim.xcs[-1].x_total ,sim.xcs[-1].y_total)
+        plot(sim.xcs[-1].x ,sim.xcs[-1].y)
+    else:
+        if type(sim.xc.x_total) != type(None):
+            plot(sim.xc.x_total, sim.xc.y_total)
+        plot(sim.xc.x, sim.xc.y)
+        wl = sim.xc.fd + sim.xc.y.min()
+        plot([-.5,.5],[wl,wl])
+
     savefig(plotdir+'XC-'+timestep_str+'.png')
 
 def plot_elevation_profile(sim, plotdir, timestep_str):

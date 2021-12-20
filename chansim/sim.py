@@ -83,7 +83,7 @@ class singleXC(sim):
             one more item than this list.    
         
         """
-
+        self.singleXC = True
         self.init_radius = init_radius
         self.Q_w = Q_w
         self.slope = slope
@@ -190,7 +190,7 @@ class multiXC:
             erodibility changes. If specified, K should be a list with
             one more item than this list.    
         """
-
+        self.singleXC = False
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
