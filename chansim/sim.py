@@ -137,7 +137,7 @@ class singleXC(sim):
 
 
 
-class multiXC:
+class multiXC(sim):
     """Simulation object for a channel profile with multiple cross-sections eroded by a 
     shear stress power law rule."""
 
