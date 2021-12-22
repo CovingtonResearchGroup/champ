@@ -11,7 +11,6 @@ python runSim.py example-params.yml
 
 """
 
-#from pylab import *
 import pickle
 import sys
 import os
@@ -25,15 +24,21 @@ from chansim.sim import singleXC, multiXC
 params_file = None
 
 
-def runSim(n=5, L=1000, dz=1, z_arr=None,
-            r_init=1, endstep=1000,
-            plotdir='./default-figs/',
-            snapdir=None,
-            start_from_snapshot_num =0,
-            dz0_dt = 0.00025,
-            snapshot_every=1000,
-            plot_every=100,
-            sim_params = {}):
+def runSim(
+    n=5,
+    L=1000,
+    dz=1,
+    z_arr=None,
+    r_init=1,
+    endstep=1000,
+    snapdir=None,
+    plotdir="./default-figs/",
+    start_from_snapshot_num=0,
+    dz0_dt=0.00025,
+    snapshot_every=1000,
+    plot_every=100,
+    sim_params={},
+):
 
     """Run simulation using specified parameters.
 
@@ -73,69 +78,68 @@ def runSim(n=5, L=1000, dz=1, z_arr=None,
         Dictionary of keyword arguments to be supplied to singleXC or multiXC for
         initialization of simulation object.
 
-
     """
-
 
     if not os.path.isdir(plotdir):
         os.mkdir(plotdir)
 
-    if n==1:
+    if n == 1:
         single_XC_sim = True
     else:
         single_XC_sim = False
 
     if start_from_snapshot_num == 0:
-        #Create a new simulation
+        # Create a new simulation
         startstep = 0
         if single_XC_sim:
             sim = singleXC(init_radius=r_init, **sim_params)
         else:
-            x = np.linspace(0,L,n)
-            if type(z_arr) == type(None):
-                z = np.linspace(1.,1.+dz,n)
+            x = np.linspace(0, L, n)
+            if z_arr is None:
+                z = np.linspace(1.0, 1.0 + dz, n)
             else:
                 z_arr = np.array(z_arr)
                 z = z_arr
             if len(z) != len(x):
                 print("Wrong number of elements in z_arr!")
                 return -1
-            r = r_init*np.ones(n-1)
-            sim = multiXC(x,z,init_radii=r, **sim_params)
+            r = r_init * np.ones(n - 1)
+            sim = multiXC(x, z, init_radii=r, **sim_params)
     else:
-        #Restart from existing snapshot
-        start_timestep_str = '%08d' % (start_from_snapshot_num,)
-        if type(snapdir)==type(None):
-            snapdir=plotdir
-        snapshot = open(snapdir+'/snapshot-'+start_timestep_str+'.pkl', 'rb')
+        # Restart from existing snapshot
+        start_timestep_str = "%08d" % (start_from_snapshot_num,)
+        if snapdir is None:
+            snapdir = plotdir
+        snapshot = open(snapdir + "/snapshot-" + start_timestep_str + ".pkl", "rb")
         sim = pickle.load(snapshot)
         startstep = start_from_snapshot_num
-        #Update simulation parameters (allows changing yml)
+        # Update simulation parameters (allows changing yml)
         sim.update_params(sim_params)
-        ### Note: This won't work for switching between layered and non-layered.
-        ###   would need some extra code to do this.
+        # Note: This won't work for switching between layered and non-layered.
+        # would need some extra code to do this.
 
-    #add tag into sim that gives parameter file
-    if type(params_file) != type(None):
+    # add tag into sim that gives parameter file
+    if params_file is not None:
         sim.params_file = params_file
 
-    for t in np.arange(startstep, endstep+1):
-        print('t=',t, '**********************')
+    for t in np.arange(startstep, endstep + 1):
+        print("t=", t, "**********************")
         sim.run_one_step()
 
         if not single_XC_sim:
             sim.z_arr[0] -= dz0_dt * sim.dt_erode
 
-        timestep_str = '%08d' % (t,)
+        timestep_str = "%08d" % (t,)
         if t % plot_every == 0:
-            print("Plotting timestep: ",t)
+            print("Plotting timestep: ", t)
             make_all_standard_timestep_plots(sim, plotdir, timestep_str)
 
         if t % snapshot_every == 0:
-            f = open(plotdir+'/snapshot-'+timestep_str+'.pkl', 'wb')
+            f = open(plotdir + "/snapshot-" + timestep_str + ".pkl", "wb")
             pickle.dump(sim, f)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     """debugpy.listen(5678)
     print("Waiting for debugger attach...")
     debugpy.wait_for_client()
@@ -143,7 +147,7 @@ if __name__ == '__main__':
     start_time = time.time()
     params_file = sys.argv[1]
     run_params = load_params(params_file)
-    print('run_params=',run_params)
+    print("run_params=", run_params)
     runSim(**run_params)
     end_time = time.time()
     print(f"Simulation took {end_time-start_time:.2f} seconds to run.")
