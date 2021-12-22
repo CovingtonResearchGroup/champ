@@ -16,6 +16,7 @@ import pickle
 import sys
 import os
 import numpy as np
+import time
 
 from chansim.utils.model_parameter_loader import load_params
 from chansim.viz.standard_timestep_plots import make_all_standard_timestep_plots
@@ -139,7 +140,10 @@ if __name__ == '__main__':
     print("Waiting for debugger attach...")
     debugpy.wait_for_client()
     """
+    start_time = time.time()
     params_file = sys.argv[1]
     run_params = load_params(params_file)
     print('run_params=',run_params)
     runSim(**run_params)
+    end_time = time.time()
+    print(f"Simulation took {end_time-start_time:.2f} seconds to run.")
