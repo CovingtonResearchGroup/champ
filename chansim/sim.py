@@ -7,6 +7,7 @@ from chansim.utils.ShapeGen import genCirc
 class sim:
     def __init__(self):
         self.elapsed_time = 0.0
+        self.timestep = 0
 
     def update_params(self, sim_params):
         """
@@ -37,6 +38,7 @@ class sim:
         self.calc_flow()
         self.erode()
         self.elapsed_time += self.dt_erode
+        self.timestep += 1
 
     # Dummy functions that will be defined in child classes
     def calc_flow(self):
@@ -54,9 +56,9 @@ class singleXC(sim):
         slope=0.001,
         dt_erode=1.0,
         adaptive_step=False,
-        max_frac_erode=0.001,
+        max_frac_erode=0.005,
         f=0.1,
-        xc_n=1500,
+        xc_n=500,
         trim=True,
         a=1.0,
         K=1e-5,
@@ -73,8 +75,9 @@ class singleXC(sim):
         init_radius : float, optional
             Initial cross-section radius (meters). Default is 1 m.
         xc_n : int, optional
-            Number of points that will define the cave passage shape within a
-            cross-section. Default is 1000.
+            Number of points that will define the channel cross-section shape.
+            Higher numbers of points can produce numerical instability, requiring
+            smaller values of dt_erode or max_frac_erode. Default number is 500.
         slope : float
             Prescribed channel slope. Default is 0.001.
         dt_erode : float, optional
@@ -82,10 +85,14 @@ class singleXC(sim):
         adaptive_step : boolean, optional
             Whether or not to adjust timestep dynamically. Default is False.
         max_frac_erode : float, optional
-            Maximum fraction of radial distance to erode within a single timestep.
-            If erosion exceeds this fraction, then the timestep will be reduced.
-            If erosion is much less than this fraction, then the timestep will be
-            increased. Default = 0.001.
+            Maximum fraction of radial distance to erode within a single timestep
+            under adaptive time-stepping. If erosion exceeds this fraction, then
+            the timestep will be reduced. If erosion is much less than this fraction,
+            then the timestep will be increased. We have not conducted a detailed
+            stability analysis. However, initial tests show 0.01 leads to instability,
+            whereas the default value is stable. If instabilities occur, and adaptive
+            time-stepping is enabled, decreasing this fraction may help.
+            Default = 0.005.
         trim : boolean, optional
             Whether or not cross-sections should be trimmed as much of the
             cross-section becomes dry. This enables maintenance of a high
@@ -102,6 +109,22 @@ class singleXC(sim):
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with
             one more item than this list.
+        Notes
+        -----
+        To maximize efficiency, use adapative time-stepping. Our tests of stability
+        suggest that increasing the number of points in the cross-section (xc_n)
+        decreases numerical stability, though it also increases accuracy with which
+        the cross-sectional shape is represented. Our default values of xc_n=500 and
+        max_frac_erode=0.005 are near the stability threshold for the example cases
+        we have run. In our judgment, these values are near optimum for balancing
+        fidelity and stability. Increasing xc_n requires a decrease in max_frac_erode.
+        Similarly, if the precise shape of the cross-section is not of much concern,
+        one could decrease xc_n and increase max_frac_erode, while still maintaining
+        numerical stability. Note that this will speed up the simulations for two
+        reasons: 1) It decreases the number of points for which erosion must be
+        calculated, and 2) The timestep will adjust to a larger value, enabling
+        faster simulation of a certain duration of time.
+
         """
         super(singleXC, self).__init__()
         self.singleXC = True
