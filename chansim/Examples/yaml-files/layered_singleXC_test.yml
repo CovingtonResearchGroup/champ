@@ -10,6 +10,7 @@ plot_every: 100
 sim_params:
   Q_w: 1.
   dt_erode: 1
+  adaptive_step: True
   slope: 0.005
   xc_n: 1500
   trim: True

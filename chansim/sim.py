@@ -53,7 +53,7 @@ class singleXC(sim):
         Q_w=1.0,
         slope=0.001,
         dt_erode=1.0,
-        adjustable_step=False,
+        adaptive_step=False,
         max_frac_erode=0.001,
         f=0.1,
         xc_n=1500,
@@ -79,7 +79,7 @@ class singleXC(sim):
             Prescribed channel slope. Default is 0.001.
         dt_erode : float, optional
             Erosional time step in years. Default value is 1 year.
-        adjustable_step : boolean, optional
+        adaptive_step : boolean, optional
             Whether or not to adjust timestep dynamically. Default is False.
         max_frac_erode : float, optional
             Maximum fraction of radial distance to erode within a single timestep.
@@ -109,7 +109,7 @@ class singleXC(sim):
         self.Q_w = Q_w
         self.slope = slope
         self.dt_erode = dt_erode
-        self.adjustable_step = adjustable_step
+        self.adaptive_step = adaptive_step
         self.max_frac_erode = max_frac_erode
         self.f = f
         self.xc_n = xc_n
@@ -164,7 +164,7 @@ class singleXC(sim):
             self.xc.erode_power_law_layered(
                 a=self.a, K=self.K, layer_elevs=self.layer_elevs, dt=self.dt_erode
             )
-        if self.adjustable_step:
+        if self.adaptive_step:
             # Check for percent change in radial distance
             frac_erode = self.xc.dr / self.xc.r_l
             if frac_erode.max() > self.max_frac_erode:
