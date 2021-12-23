@@ -30,13 +30,16 @@ def runSim(
     dz=1,
     z_arr=None,
     r_init=1,
-    endstep=1000,
+    endtime=1000,
+    endstep=None,
     snapdir=None,
     plotdir="./default-figs/",
     start_from_snapshot_num=0,
     dz0_dt=0.00025,
     snapshot_every=1000,
     plot_every=100,
+    snapshot_by_years=True,
+    plot_by_years=True,
     sim_params={},
 ):
 
@@ -54,8 +57,10 @@ def runSim(
         Array of node elevations. If given, then dz is ignored. Default=None.
     r_init : float
         Initial cross-section radius.
+    endtime : int
+        Time (years) at which to end simulation. Default=1000.
     endstep : int
-        Timestep on which to end simulation.
+        Timestep on which to end simulation. Default=None.
     plotdir : string
         Path to directory that will hold plots and snapshots. This directory
         will be created if it does not exist.
@@ -68,12 +73,18 @@ def runSim(
         from the elevation of the downstream boundary node during
         each timestep.
     snapshot_every : int
-        Number of time steps after which to record a pickled CO2_1D object.
+        Number of years/timesteps after which to record a pickled CO2_1D object.
         These snapshots can easily be used to restart a simulation from a
         previous point.
     plot_every : int
-        Number of time steps after which to create plots of simulation
+        Number of years/timesteps after which to create plots of simulation
         outputs.
+    snapshot_by_years : boolean
+        Whether shapshots should be taken after a certain number of years of simulation
+        (True) or after a certain number of timesteps (False). Default is True.
+    plot_by_years : boolean
+        Whether plots should be created after a certain number of years of simulation
+        (True) or after a certain number of timesteps (False). Default is True.
     sim_params : dict
         Dictionary of keyword arguments to be supplied to singleXC or multiXC for
         initialization of simulation object.
@@ -90,7 +101,6 @@ def runSim(
 
     if start_from_snapshot_num == 0:
         # Create a new simulation
-        startstep = 0
         if single_XC_sim:
             sim = singleXC(init_radius=r_init, **sim_params)
         else:
@@ -112,7 +122,6 @@ def runSim(
             snapdir = plotdir
         snapshot = open(snapdir + "/snapshot-" + start_timestep_str + ".pkl", "rb")
         sim = pickle.load(snapshot)
-        startstep = start_from_snapshot_num
         # Update simulation parameters (allows changing yml)
         sim.update_params(sim_params)
         # Note: This won't work for switching between layered and non-layered.
@@ -122,21 +131,76 @@ def runSim(
     if params_file is not None:
         sim.params_file = params_file
 
-    for t in np.arange(startstep, endstep + 1):
-        print("t=", t, "**********************")
+    finished = False
+    oldtimestep = None
+    while not finished:
         sim.run_one_step()
+        print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
+        # Reset timestep if we have adjusted for plot or snapshot
+        if oldtimestep is not None:
+            sim.dt_erode = oldtimestep
+            oldtimestep = None
+
+        # Check whether we have reached end of simulation
+        if sim.elapsed_time >= endtime:
+            finished = True
+        if endstep is not None:
+            if sim.timestep >= endstep:
+                finished = True
 
         if not single_XC_sim:
             sim.z_arr[0] -= dz0_dt * sim.dt_erode
 
-        timestep_str = "%08d" % (t,)
-        if t % plot_every == 0:
-            print("Plotting timestep: ", t)
-            make_all_standard_timestep_plots(sim, plotdir, timestep_str)
+        # Output plots/snapshots by even timesteps or years
+        if not plot_by_years:
+            tstep = int(np.round(sim.timestep))
+            if tstep % plot_every == 0:
+                timestep_str = "%08d" % (tstep,)
+                print("Plotting timestep: ", tstep)
+                make_all_standard_timestep_plots(sim, plotdir, timestep_str)
+        else:
+            t = int(np.round(sim.elapsed_time))
+            if t % plot_every == 0:
+                time_str = "%08d" % (t,)
+                print("Plotting at time: ", t)
+                make_all_standard_timestep_plots(sim, plotdir, time_str)
+        if not snapshot_by_years:
+            tstep = int(np.round(sim.timestep))
+            if tstep % snapshot_every == 0:
+                timestep_str = "%08d" % (tstep,)
+                print("Snapshot at timestep: ", tstep)
+                f = open(plotdir + "/snapshot-" + timestep_str + ".pkl", "wb")
+                pickle.dump(sim, f)
+        else:
+            t = int(np.round(sim.elapsed_time))
+            if t % snapshot_every == 0:
+                time_str = "%08d" % (t,)
+                print("Snapshot at timestep: ", t)
+                f = open(plotdir + "/snapshot-" + time_str + ".pkl", "wb")
+                pickle.dump(sim, f)
 
-        if t % snapshot_every == 0:
-            f = open(plotdir + "/snapshot-" + timestep_str + ".pkl", "wb")
-            pickle.dump(sim, f)
+        # Timestep adjustments for time-based plots and snapshots
+        if plot_by_years:
+            # Check whether we need to adjust timestep to hit next plot
+            time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
+            if sim.dt_erode > time_to_next_plot:
+                oldtimestep = sim.dt_erode
+                sim.dt_erode = time_to_next_plot
+
+        if snapshot_by_years:
+            # Check whether we need to adjust timestep to hit next snapshot
+            time_to_next_snap = snapshot_every - (sim.elapsed_time % snapshot_every)
+            if sim.dt_erode > time_to_next_snap:
+                if plot_by_years:
+                    if time_to_next_snap > time_to_next_plot:
+                        # We will hit the snapshot later and get plot now
+                        pass
+                    else:
+                        oldtimestep = sim.dt_erode
+                        sim.dt_erode = time_to_next_snap
+                else:
+                    oldtimestep = sim.dt_erode
+                    sim.dt_erode = time_to_next_snap
 
 
 if __name__ == "__main__":

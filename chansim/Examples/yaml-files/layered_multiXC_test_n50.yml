@@ -1,8 +1,11 @@
-n: 1
-r_init: 2.
+n: 50
+L: 1000.
+dz: 15.
+r_init: 0.5
 endtime: 10000
-plotdir: './layered-singleXC-test-figs/'
+plotdir: './layered-multiXC-test-n50-figs/'
 start_from_snapshot_num: 0
+dz0_dt: 0.0001
 snapshot_every: 1000
 plot_every: 100
 
@@ -11,11 +14,10 @@ sim_params:
   Q_w: 1.
   dt_erode: 1
   adaptive_step: True
-  max_frac_erode: 0.005
-  slope: 0.005
+  max_frac_erode: 0.02
   xc_n: 500
   trim: True
   a: 1
-  K: [0.5e-5,5e-5]
-  layer_elevs: [-3.5]
+  K: [0.5e-5,2e-5]
+  layer_elevs: [-1]
 
