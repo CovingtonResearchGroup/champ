@@ -1,9 +1,9 @@
-n: 10
+n: 50
 L: 1000.
 dz: 15.
 r_init: 0.5
 endtime: 10000
-plotdir: './layered-multiXC-test-figs/'
+plotdir: './layered-multiXC-test-n50-figs/'
 start_from_snapshot_num: 0
 dz0_dt: 0.0001
 snapshot_every: 1000

@@ -138,7 +138,6 @@ def runSim(
         print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
         # Reset timestep if we have adjusted for plot or snapshot
         if oldtimestep is not None:
-            print("Resetting timestep to ", oldtimestep)
             sim.dt_erode = oldtimestep
             oldtimestep = None
 
@@ -184,16 +183,9 @@ def runSim(
         if plot_by_years:
             # Check whether we need to adjust timestep to hit next plot
             time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
-            print("time_to_next=", time_to_next_plot)
             if sim.dt_erode > time_to_next_plot:
                 oldtimestep = sim.dt_erode
                 sim.dt_erode = time_to_next_plot
-                print(
-                    "Adjusting timestep for plot: dt=",
-                    sim.dt_erode,
-                    "next time =",
-                    sim.dt_erode + sim.elapsed_time,
-                )
 
         if snapshot_by_years:
             # Check whether we need to adjust timestep to hit next snapshot

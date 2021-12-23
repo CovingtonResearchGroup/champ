@@ -213,8 +213,10 @@ class multiXC(sim):
         f=0.1,
         init_radii=0.5,
         init_offsets=0.0,
-        xc_n=1000,
+        xc_n=500,
         dt_erode=1.0,
+        adaptive_step=False,
+        max_frac_erode=0.005,
         trim=True,
         a=1.0,
         K=1e-5,
@@ -250,6 +252,17 @@ class multiXC(sim):
             cross-section. Default is 1000.
         dt_erode : float, optional
             Erosional time step in years. Default value is 1 year.
+        adaptive_step : boolean, optional
+            Whether or not to adjust timestep dynamically. Default is False.
+        max_frac_erode : float, optional
+            Maximum fraction of radial distance to erode within a single timestep
+            under adaptive time-stepping. If erosion exceeds this fraction, then
+            the timestep will be reduced. If erosion is much less than this fraction,
+            then the timestep will be increased. We have not conducted a detailed
+            stability analysis. However, initial tests show 0.01 leads to instability,
+            whereas the default value is stable. If instabilities occur, and adaptive
+            time-stepping is enabled, decreasing this fraction may help.
+            Default = 0.005.
         trim : boolean, optional
             Whether or not cross-sections should be trimmed as much of the
             cross-section becomes dry. This enables maintenance of a high
@@ -266,7 +279,28 @@ class multiXC(sim):
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with
             one more item than this list.
+
+        Notes
+        -----
+        To maximize efficiency, use adapative time-stepping. Our tests of stability
+        suggest that increasing the number of points in the cross-section (xc_n)
+        decreases numerical stability, though it also increases accuracy with which
+        the cross-sectional shape is represented. Our default values of xc_n=500 and
+        max_frac_erode=0.005 are near the stability threshold for single cross-section
+        simulations we have run. Surprisingly, multiXC simulations seem somewhat more
+        stable. That is, a larger value of max_frac_erode will still be numerically
+        stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
+        of cross-sections can enhance instability, though normally large numbers of
+        cross-sections are needed to see this effect.
+        Increasing xc_n requires a decrease in max_frac_erode.
+        Similarly, if the precise shape of the cross-section is not of much concern,
+        one could decrease xc_n and increase max_frac_erode, while still maintaining
+        numerical stability. Note that this will speed up the simulations for two
+        reasons: 1) It decreases the number of points for which erosion must be
+        calculated, and 2) The timestep will adjust to a larger value, enabling
+        faster simulation of a certain duration of time. 
         """
+        super(multiXC, self).__init__()
         self.singleXC = False
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
@@ -281,6 +315,8 @@ class multiXC(sim):
         self.Q_w = Q_w
 
         self.dt_erode = dt_erode
+        self.adaptive_step = adaptive_step
+        self.max_frac_erode = max_frac_erode
         self.xc_n = xc_n
         self.trim = trim
         self.a = a
@@ -476,6 +512,7 @@ class multiXC(sim):
                     dt=self.dt_erode,
                 )
             self.ymins[i] = xc.ymin
+
         # Adjust slopes
         dz = self.ymins - old_ymins
         self.dz = dz
@@ -486,3 +523,21 @@ class multiXC(sim):
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / (
             self.x_arr[1:] - self.x_arr[:-1]
         )
+
+        if self.adaptive_step:
+            # Check for percent change in radial distance
+            sim_max_frac_erode = 0.0
+            for xc in self.xcs:
+                frac_erode = xc.dr / xc.r_l
+                xc_max_frac_erode = frac_erode.max()
+                if xc_max_frac_erode > sim_max_frac_erode:
+                    sim_max_frac_erode = xc_max_frac_erode
+
+            if sim_max_frac_erode > self.max_frac_erode:
+                # Timestep is too big, reduce it
+                self.dt_erode = self.dt_erode / 1.5
+                print("Reducing timestep to " + str(self.dt_erode))
+            elif sim_max_frac_erode < 0.5 * self.max_frac_erode:
+                # Timestep is too small, increase it
+                self.dt_erode = self.dt_erode * 1.5
+                print("Increasing timestep to " + str(self.dt_erode))
