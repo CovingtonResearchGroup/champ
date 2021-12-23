@@ -5,6 +5,9 @@ from chansim.utils.ShapeGen import genCirc
 
 
 class sim:
+    def __init__(self):
+        self.elapsed_time = 0.0
+
     def update_params(self, sim_params):
         """
         Update parameters of simulation.
@@ -33,6 +36,7 @@ class sim:
 
         self.calc_flow()
         self.erode()
+        self.elapsed_time += self.dt_erode
 
     # Dummy functions that will be defined in child classes
     def calc_flow(self):
@@ -49,6 +53,8 @@ class singleXC(sim):
         Q_w=1.0,
         slope=0.001,
         dt_erode=1.0,
+        adjustable_step=False,
+        max_frac_erode=0.001,
         f=0.1,
         xc_n=1500,
         trim=True,
@@ -73,6 +79,13 @@ class singleXC(sim):
             Prescribed channel slope. Default is 0.001.
         dt_erode : float, optional
             Erosional time step in years. Default value is 1 year.
+        adjustable_step : boolean, optional
+            Whether or not to adjust timestep dynamically. Default is False.
+        max_frac_erode : float, optional
+            Maximum fraction of radial distance to erode within a single timestep.
+            If erosion exceeds this fraction, then the timestep will be reduced.
+            If erosion is much less than this fraction, then the timestep will be
+            increased. Default = 0.001.
         trim : boolean, optional
             Whether or not cross-sections should be trimmed as much of the
             cross-section becomes dry. This enables maintenance of a high
@@ -90,12 +103,14 @@ class singleXC(sim):
             erodibility changes. If specified, K should be a list with
             one more item than this list.
         """
-
+        super(singleXC, self).__init__()
         self.singleXC = True
         self.init_radius = init_radius
         self.Q_w = Q_w
         self.slope = slope
         self.dt_erode = dt_erode
+        self.adjustable_step = adjustable_step
+        self.max_frac_erode = max_frac_erode
         self.f = f
         self.xc_n = xc_n
 
@@ -149,6 +164,17 @@ class singleXC(sim):
             self.xc.erode_power_law_layered(
                 a=self.a, K=self.K, layer_elevs=self.layer_elevs, dt=self.dt_erode
             )
+        if self.adjustable_step:
+            # Check for percent change in radial distance
+            frac_erode = self.xc.dr / self.xc.r_l
+            if frac_erode.max() > self.max_frac_erode:
+                # Timestep is too big, reduce it
+                self.dt_erode = self.dt_erode / 1.5
+                print("Reducing timestep to " + str(self.dt_erode))
+            elif frac_erode.max() < 0.5 * self.max_frac_erode:
+                # Timestep is too small, increase it
+                self.dt_erode = self.dt_erode * 1.5
+                print("Increasing timestep to " + str(self.dt_erode))
 
 
 class multiXC(sim):

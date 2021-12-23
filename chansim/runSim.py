@@ -123,7 +123,7 @@ def runSim(
         sim.params_file = params_file
 
     for t in np.arange(startstep, endstep + 1):
-        print("t=", t, "**********************")
+        print("time=", sim.elapsed_time)
         sim.run_one_step()
 
         if not single_XC_sim:
