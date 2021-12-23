@@ -35,10 +35,10 @@ class sim:
 
         """
 
-        self.calc_flow()
-        self.erode()
         self.elapsed_time += self.dt_erode
         self.timestep += 1
+        self.calc_flow()
+        self.erode()
 
     # Dummy functions that will be defined in child classes
     def calc_flow(self):
@@ -109,6 +109,7 @@ class singleXC(sim):
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with
             one more item than this list.
+
         Notes
         -----
         To maximize efficiency, use adapative time-stepping. Our tests of stability

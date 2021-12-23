@@ -1,6 +1,6 @@
 n: 1
 r_init: 2.
-endstep: 10000
+endtime: 10000
 plotdir: './layered-singleXC-test-figs/'
 start_from_snapshot_num: 0
 snapshot_every: 1000
