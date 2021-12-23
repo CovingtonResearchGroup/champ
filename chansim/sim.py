@@ -298,7 +298,7 @@ class multiXC(sim):
         numerical stability. Note that this will speed up the simulations for two
         reasons: 1) It decreases the number of points for which erosion must be
         calculated, and 2) The timestep will adjust to a larger value, enabling
-        faster simulation of a certain duration of time. 
+        faster simulation of a certain duration of time.
         """
         super(multiXC, self).__init__()
         self.singleXC = False

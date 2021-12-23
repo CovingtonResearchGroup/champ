@@ -28,21 +28,21 @@ def plot_overlapping_XCs(sim, plotdir, timestep_str):
     figure()
     if not sim.singleXC:
         n = len(sim.xcs)
-        if type(sim.xcs[0].x_total) != type(None):
+        if sim.xcs[0].x_total is not None:
             plot(sim.xcs[0].x_total, sim.xcs[0].y_total)
         plot(sim.xcs[0].x, sim.xcs[0].y)
         wl = sim.fd_mids[0] + sim.xcs[0].y.min()
         plot([-0.5, 0.5], [wl, wl])
-        if type(sim.xcs[int(ceil(n / 2.0))].x_total) != type(None):
+        if sim.xcs[int(ceil(n / 2.0))].x_total is not None:
             plot(
                 sim.xcs[int(ceil(n / 2.0))].x_total, sim.xcs[int(ceil(n / 2.0))].y_total
             )
         plot(sim.xcs[int(ceil(n / 2.0))].x, sim.xcs[int(ceil(n / 2.0))].y)
-        if type(sim.xcs[-1].x_total) != type(None):
+        if sim.xcs[-1].x_total is not None:
             plot(sim.xcs[-1].x_total, sim.xcs[-1].y_total)
         plot(sim.xcs[-1].x, sim.xcs[-1].y)
     else:
-        if type(sim.xc.x_total) != type(None):
+        if sim.xc.x_total is not None:
             plot(sim.xc.x_total, sim.xc.y_total)
         plot(sim.xc.x, sim.xc.y)
         wl = sim.xc.fd + sim.xc.y.min()
@@ -91,7 +91,7 @@ def plot_3D_XCs(sim, plotdir, timestep_str):
     xcs = sim.xcs
     n = len(sim.xcs)
     for i in arange(n - 1):
-        if type(xcs[i].x_total) != type(None):
+        if xcs[i].x_total is not None:
             x_xc_plot = xcs[i].x_total
             y_xc_plot = xcs[i].y_total - xcs[i].y_total.min() + sim.z_arr[i + 1]
         else:
