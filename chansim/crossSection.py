@@ -457,6 +457,7 @@ class CrossSection:
         T_b = self.calcT_b()
         ywet = self.y[self.wetidx]
         self.dr = np.zeros(len(ywet))
+        old_elev = None
         for i, elev in enumerate(layer_elevs):
             if i == 0:
                 layer_idx = ywet < elev
