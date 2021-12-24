@@ -152,15 +152,79 @@ def test_calcT_b():
     assert_approx_equal(T_b_avg, T_avg_analytical, significant=3)
 
 
+def test_erode_power_law():
+    A = 0.5 * np.pi * r ** 2.0
+    P_w = np.pi * r
+    a = 1.0
+    K = 1e-5
+    dt = 1.0
+    f = 0.1
+    slope = 0.001
+    xc_Circ.create_A_interp()
+    xc_Circ.create_P_interp()
+    xc_Circ.Q = xc_Circ.calcNormalFlow(r, slope=slope, f=f)
+    rho = 1000.0  # kg/m^3
+    g = 9.8  # m/s^2
+    T_avg_analytical = rho * g * A * slope / P_w
+    erode_avg = dt * K * T_avg_analytical ** a
+    xc_Circ.erode_power_law(a=a, dt=dt, K=K)
+    dr_avg = np.mean(xc_Circ.dr)
+    assert_approx_equal(dr_avg, erode_avg, significant=2)
+
+
+# Recreate XC after erosion
+r = 1.0
+n = 1000
+x, y = genCirc(r, n=n)
+xc_Circ = CrossSection(x, y)
+
+
+def test_erode_power_law_layered():
+    # Recreate XC after erosion
+    r = 1.0
+    n = 1000
+    x, y = genCirc(r, n=n)
+    xc_Circ = CrossSection(x, y)
+    a = 1.0
+    dt = 1.0
+    f = 0.1
+    slope = 0.001
+    Q = 5.0
+    xc_Circ.create_A_interp()
+    xc_Circ.create_P_interp()
+    delh = xc_Circ.calcPipeFullHeadGrad(Q)
+    xc_Circ.setEnergySlope(delh)
+    xc_Circ.calcNormalFlowDepth(Q, slope, f=f)
+    # Zero erosion step rearranges x and y values so they will
+    # align with dr after next erosion step.
+    xc_Circ.erode_power_law_layered(a=a, dt=dt, K=[0, 0], layer_elevs=[0.0])
+    xc_Circ.erode_power_law_layered(a=a, dt=dt, K=[1e-5, 2e-5], layer_elevs=[0.0])
+    upper_avg_erosion = xc_Circ.dr[xc_Circ.y > 0].mean()
+    lower_avg_erosion = xc_Circ.dr[xc_Circ.y < 0].mean()
+    assert_approx_equal(upper_avg_erosion / 2, lower_avg_erosion, significant=3)
+
+
 def test_calcNormalFlow():
+    # Recreate XC after erosion
+    r = 1.0
+    n = 1000
+    x, y = genCirc(r, n=n)
+    xc_Circ = CrossSection(x, y)
+    xc_Circ.create_A_interp()
+    xc_Circ.create_P_interp()
     fd = r
     slope = 0.001
     Q_calc = xc_Circ.calcNormalFlow(fd, slope, f=0.1, use_interp=False)
     Q_by_hand = 0.98347  # Calculated by hand from D-W eqn
-    assert_approx_equal(Q_calc, Q_by_hand, significant=3)
+    assert_approx_equal(Q_calc, Q_by_hand, significant=2)
 
 
 def test_calcNormalFlow_with_interp():
+    # Recreate XC after erosion
+    r = 1.0
+    n = 1000
+    x, y = genCirc(r, n=n)
+    xc_Circ = CrossSection(x, y)
     fd = r
     slope = 0.001
     xc_Circ.setMaxVelPoint(fd)
@@ -172,6 +236,13 @@ def test_calcNormalFlow_with_interp():
 
 
 def test_calcNormalFlowDepth():
+    # Recreate XC after erosion
+    r = 1.0
+    n = 1000
+    x, y = genCirc(r, n=n)
+    xc_Circ = CrossSection(x, y)
+    xc_Circ.create_A_interp()
+    xc_Circ.create_P_interp()
     Q = 0.98347  # by hand half full circular pipe
     slope = 0.001
     fd = xc_Circ.calcNormalFlowDepth(Q, slope, f=0.1)
@@ -179,6 +250,11 @@ def test_calcNormalFlowDepth():
 
 
 def test_calcPipeFullHeadGrad():
+    # Recreate XC after erosion
+    r = 1.0
+    n = 1000
+    x, y = genCirc(r, n=n)
+    xc_Circ = CrossSection(x, y)
     Q = 1.0
     dh_calc = xc_Circ.calcPipeFullHeadGrad(Q, f=0.1)
     dh_by_hand = 0.00025847
@@ -186,6 +262,11 @@ def test_calcPipeFullHeadGrad():
 
 
 def test_erode():
+    # Recreate XC after erosion
+    r = 1.0
+    n = 1000
+    x, y = genCirc(r, n=n)
+    xc_Circ = CrossSection(x, y)
     x, y = genCirc(r, n=n)
     xc_Circ = CrossSection(x, y)
     erode_factor = 0.05
@@ -201,6 +282,11 @@ def test_erode():
 
 
 def test_erode_half():
+    # Recreate XC after erosion
+    r = 1.0
+    n = 1000
+    x, y = genCirc(r, n=n)
+    xc_Circ = CrossSection(x, y)
     x, y = genCirc(r, n=n)
     xc_Circ = CrossSection(x, y)
     erode_factor = 0.05
