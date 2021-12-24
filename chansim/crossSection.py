@@ -406,11 +406,6 @@ class CrossSection:
         """Sets the energy slope within the cross-section."""
         self.eSlope = slope
 
-    def set_F_xc(self, F_xc):
-        """Sets the by-point dissolutional mass flux from the cross-section
-        wall (mols/m^2/sec)."""
-        self.F_xc = F_xc
-
     def erode_power_law(self, a=1.0, K=1e-5, dt=1.0):
         """Erode wall according to a power law function of shear stress.
 
