@@ -201,6 +201,7 @@ def runSim(
                 else:
                     oldtimestep = sim.dt_erode
                     sim.dt_erode = time_to_next_snap
+    return sim
 
 
 if __name__ == "__main__":
