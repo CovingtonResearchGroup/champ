@@ -14,7 +14,9 @@ from numpy import (
 import numpy as np
 from scipy import interpolate
 from scipy.optimize import root_scalar, minimize_scalar
+from chansim.utils.fastCalcA import calcA as fcalcA
 import copy
+
 
 # import debugpy
 
@@ -120,63 +122,20 @@ class CrossSection:
         return P
 
     # Calculates area of the cross-section
-    def calcA(self, wantidx=None, total=False, zeroAtUmax=True):
-        """Calculate area of cross-section or subset.
+    def calcA(self, depth=-1.0):
+        """Calculate area of cross-section or subset. Calls cython for fast computation.
 
         Parameters
         ----------
-        wantidx : ndarray of boolean, optional
-            An array of boolean values to select cross-section points for
-            including in the area calculation. This is mostly used to
-            calculated wet or dry areas. If None, then area is
-            calculated for entire cross-section. Default is None.
-        total : boolean, optional
-            Whether to calculate the area using the total cross-section.
-            This is relevant for cases when the cross-section has been
-            trimmed in order to maintain resolution. The total, untrimmed
-            cross-section is still stored for airflow calculations and showing
-            the full evolution. Default is False.
-        zeroAtUmax : boolean, optional
-            Use the maximum velocity point as the zero for the coordinate
-            system used to calculate area. Otherwise, areas outside the
-            desired cross-section may be included if only a selection of the
-            points are being used (i.e. wantidx is not None). Default is True.
+        depth : float, optional
+            Flow depth at which to calculate area.
         Returns
         -------
         A : float
             The area of the selected portion of the cross-section.
         """
-        if zeroAtUmax:
-            y0 = self.ymaxVel
-            # This fails in first timestep because we haven't set max vel pos
-            if wantidx is not None:
-                if len(self.y[wantidx]) > 0:
-                    this_max_y = np.max(self.y[wantidx])
-                    if this_max_y < y0:
-                        y0 = this_max_y
-        else:
-            y0 = 0.0
-        if total:
-            x = self.x_total
-            y = self.y_total
-            xm = self.xm_total
-            ym = self.ym_total
-        else:
-            x = self.x
-            y = self.y
-            xm = self.xm
-            ym = self.ym
-        if wantidx is not None:
-            if len(y[wantidx] > 0):
-                self.sA = (
-                    xm[wantidx] * (y[wantidx] - y0) - x[wantidx] * (ym[wantidx] - y0)
-                ).sum() * 0.5
-            else:
-                return 0.0
-        else:
-            self.sA = (xm * (y - y0) - x * (ym - y0)).sum() * 0.5
-        A = fabs(self.sA)
-        return A
+
+        return fcalcA(self.x, self.xm, self.y, self.ym, depth)
 
     def create_A_interp(self, n_points=30):
         """Create an interpolation function for area as a function of flow depth.
@@ -198,7 +157,7 @@ class CrossSection:
         # Is this loop the heavy part? Optimize?
         for depth in depth_arr:
             wantidx = self.y - self.ymin < depth
-            As.append(self.calcA(wantidx=wantidx))
+            As.append(self.calcA(depth=depth))
         As = np.array(As)
         # Is this interp function the fastest we can work with? Is it a wrapper for
         # FITPACK or all in python?
@@ -296,7 +255,7 @@ class CrossSection:
             The x and y coordinates of the centroid.
         """
         m = self.xm * self.y - self.x * self.ym
-        A = self.calcA(zeroAtUmax=False)
+        A = self.calcA()
         cx = (1 / (6 * A)) * (
             (self.x + self.xm) * m
         ).sum()  # A was self.sA. not sure if this matters
@@ -373,7 +332,7 @@ class CrossSection:
         vgrad2 = self.calcVGrad2()
         # print('max vgrad2=',vgrad2.max())
         psi = self.calcPsi()
-        Awet = self.calcA(wantidx=self.wetidx)
+        Awet = self.calcA(depth=self.fd)
         self.T_b = psi * rho_w * Awet * vgrad2
         return self.T_b
 
@@ -617,7 +576,7 @@ class CrossSection:
         else:
             wetidx = self.y - self.ymin < depth
             Pw = self.calcP(wantidx=wetidx)
-            A = self.calcA(wantidx=wetidx)
+            A = self.calcA(depth=depth)
         if Pw > 0 and A > 0 and depth > 0:
             D_H = 4.0 * A / Pw
             Q = sign(slope) * A * sqrt(2.0 * g * abs(slope) * D_H / f)
