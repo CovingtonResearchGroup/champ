@@ -6,7 +6,7 @@ from numpy import get_include
 
 ext_modules = [
     Extension(
-        "fastCalcA",
+        "chansim/utils/fastCalcA",
         ["chansim/utils/fastCalcA.pyx"],
     )
 ]
@@ -20,4 +20,5 @@ setup(name='chansim',
       ext_modules = cythonize(ext_modules,
               compiler_directives={'language_level':3,}
           ),
+      zip_safe=False,
       )
