@@ -6,7 +6,7 @@ from numpy import get_include
 
 ext_modules = [
     Extension(
-        "chansim/utils/fastCalcA",
+        "fastCalcA",
         ["chansim/utils/fastCalcA.pyx"],
     )
 ]
