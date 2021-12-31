@@ -149,7 +149,7 @@ def test_calcT_b():
     T_avg_analytical = rho * g * A * slope / P_w
     T_b = xc_Circ.calcT_b()
     T_b_avg = T_b.mean()
-    assert_approx_equal(T_b_avg, T_avg_analytical, significant=3)
+    assert_approx_equal(T_b_avg, T_avg_analytical, significant=2)
 
 
 def test_erode_power_law():
