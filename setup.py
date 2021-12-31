@@ -7,7 +7,13 @@ from numpy import get_include
 ext_modules = [
     Extension(
         "fastCalcA",
+<<<<<<< HEAD
         ["chansim/utils/fastCalcA.pyx"]
+=======
+        ["chansim/utils/fastCalcA.pyx"],
+        extra_compile_args=['-fopenmp'],
+        extra_link_args=['-fopenmp'],
+>>>>>>> 00d67f6938c247ea440e663a41eaf8ccb2269cd6
     )
 ]
 
