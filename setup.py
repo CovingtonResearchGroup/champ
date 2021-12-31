@@ -6,7 +6,7 @@ from numpy import get_include
 
 ext_modules = [
     Extension(
-        "chansim/utils/fastCalcA",
+        "chansim.utils.fastCalcA",
         ["chansim/utils/fastCalcA.pyx"],
         define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
     ),
