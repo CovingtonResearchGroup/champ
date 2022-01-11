@@ -3,14 +3,14 @@ from scipy.linalg import solve_banded
 from _fastInterp import interp
 
 class fast1DCubicSpline(object):
-    def __init__(self, x, y, bounds_error=True, fill_value=nan):
+    def __init__(self, x, y, bounds_error=True, fill_value=np.nan):
 
         assert type(bounds_error) == type(True), "bounds_error must be True/False"
 
         self.b_e = bounds_error
 
         self.f_v = fill_value
-        if self.f_v != nan:
+        if self.f_v != np.nan:
             assert len(fill_value) == 2, "fill_value must have 2 elements"
 
         self.x = x
