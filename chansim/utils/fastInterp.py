@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.linalg import solve_banded
-from _fastInterp import interp
+from ._fastInterp import interp, interpf
 
 class fast1DCubicSpline(object):
     def __init__(self, x, y, bounds_error=True, fill_value=np.nan):
@@ -46,9 +46,23 @@ class fast1DCubicSpline(object):
 
     def __call__(self, x):
 
+        assert type(x) == np.ndarray or type(x) == np.float64 or type(x) == float
+
         if self.b_e:
             assert np.any(np.logical_or(x<self.xmin,x>self.xmax)) == True, "Interpolant out of bounds"
 
-        ret = np.zeros_like(x)
-        interp(x, ret, self.coeffs, self.xmin, self.xmax, self.f_v)
+        ret = 0
+
+        if type(x) == np.ndarray:
+            ret = np.zeros_like(x)
+            interp(x, ret, self.coeffs, self.xmin, self.xmax, self.f_v)
+
+        elif type(x) == float or type(x) == np.float64:
+            if x < self.xmin:
+                ret = self.f_v[0]
+            elif x > self.xmax:
+                ret = self.f_v[1]
+            else:
+                ret = interpf(x, self.coeffs, self.n, self.xmin, self.xmax)
+
         return(ret)

@@ -15,6 +15,7 @@ import numpy as np
 from scipy import interpolate
 from scipy.optimize import root_scalar, minimize_scalar
 from chansim.utils.fastCalcA import calcA as fcalcA
+from chansim.utils.fastInterp import fast1DCubicSpline as finterp1d
 import copy
 
 
@@ -156,7 +157,7 @@ class CrossSection:
         As = []
         # Is this loop the heavy part? Optimize?
         for depth in depth_arr:
-            wantidx = self.y - self.ymin < depth
+            #wantidx = self.y - self.ymin < depth
             As.append(self.calcA(depth=depth))
         As = np.array(As)
         # Is this interp function the fastest we can work with? Is it a wrapper for
@@ -164,8 +165,11 @@ class CrossSection:
         # Might we use splrep? This is direct FITPACK interface.
         # Requires unique x values.
         # Other suggestions include np.interp or scipy CubicSpline or make_interp_spline
-        A_interp = interpolate.interp1d(
-            depth_arr, As, kind="cubic", bounds_error=False, fill_value=(As[0], As[-1])
+        #A_interp = interpolate.interp1d(
+        #    depth_arr, As, kind="cubic", bounds_error=False, fill_value=(As[0], As[-1])
+        #)
+        A_interp = finterp1d(
+            depth_arr, As, bounds_error=False, fill_value=(As[0],As[-1])
         )
         self.A_interp = A_interp
 
@@ -194,8 +198,11 @@ class CrossSection:
             )
             Ps.append(abs(l.sum()))
         Ps = np.array(Ps)
-        P_interp = interpolate.interp1d(
-            depth_arr, Ps, kind="cubic", bounds_error=False, fill_value=(Ps[0], Ps[-1])
+        #P_interp = interpolate.interp1d(
+        #    depth_arr, Ps, kind="cubic", bounds_error=False, fill_value=(Ps[0], Ps[-1])
+        #)
+        P_interp = finterp1d(
+            depth_arr, Ps, bounds_error=False, fill_value=(Ps[0],Ps[-1])
         )
         self.P_interp = P_interp
 

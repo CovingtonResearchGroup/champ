@@ -3,13 +3,19 @@
 /* BEGIN: Cython Metadata
 {
     "distutils": {
+        "define_macros": [
+            [
+                "NPY_NO_DEPRECATED_API",
+                "NPY_1_7_API_VERSION"
+            ]
+        ],
         "depends": [],
-        "name": "_fastInterp",
+        "name": "chansim.utils._fastInterp",
         "sources": [
-            "_fastInterp.pyx"
+            "chansim/utils/_fastInterp.pyx"
         ]
     },
-    "module_name": "_fastInterp"
+    "module_name": "chansim.utils._fastInterp"
 }
 END: Cython Metadata */
 
@@ -625,8 +631,8 @@ static CYTHON_INLINE float __PYX_NAN() {
   #endif
 #endif
 
-#define __PYX_HAVE___fastInterp
-#define __PYX_HAVE_API___fastInterp
+#define __PYX_HAVE__chansim__utils___fastInterp
+#define __PYX_HAVE_API__chansim__utils___fastInterp
 /* Early includes */
 #include <math.h>
 #include "pythread.h"
@@ -842,7 +848,7 @@ static const char *__pyx_filename;
 
 
 static const char *__pyx_f[] = {
-  "_fastInterp.pyx",
+  "chansim/utils/_fastInterp.pyx",
   "stringsource",
 };
 /* MemviewSliceStruct.proto */
@@ -962,7 +968,7 @@ struct __pyx_memoryviewslice_obj;
 struct __pyx_ctuple_double__and_double;
 typedef struct __pyx_ctuple_double__and_double __pyx_ctuple_double__and_double;
 
-/* "_fastInterp.pyx":7
+/* "chansim/utils/_fastInterp.pyx":7
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
@@ -1679,14 +1685,14 @@ static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_dou
 /* FromPyCTupleUtility.proto */
 static __pyx_ctuple_double__and_double __pyx_convert__from_py___pyx_ctuple_double__and_double(PyObject *);
 
-/* MemviewDtypeToObject.proto */
-static CYTHON_INLINE PyObject *__pyx_memview_get_double(const char *itemp);
-static CYTHON_INLINE int __pyx_memview_set_double(const char *itemp, PyObject *obj);
-
 /* GCCDiagnostics.proto */
 #if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
 #define __Pyx_HAS_GCC_DIAGNOSTIC
 #endif
+
+/* MemviewDtypeToObject.proto */
+static CYTHON_INLINE PyObject *__pyx_memview_get_double(const char *itemp);
+static CYTHON_INLINE int __pyx_memview_set_double(const char *itemp, PyObject *obj);
 
 /* MemviewSliceCopyTemplate.proto */
 static __Pyx_memviewslice
@@ -1733,7 +1739,7 @@ static PyObject *__pyx_memoryviewslice_assign_item_from_object(struct __pyx_memo
 
 /* Module declarations from 'libc.math' */
 
-/* Module declarations from '_fastInterp' */
+/* Module declarations from 'chansim.utils._fastInterp' */
 static PyTypeObject *__pyx_array_type = 0;
 static PyTypeObject *__pyx_MemviewEnum_type = 0;
 static PyTypeObject *__pyx_memoryview_type = 0;
@@ -1745,7 +1751,7 @@ static PyObject *contiguous = 0;
 static PyObject *indirect_contiguous = 0;
 static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
-static double __pyx_f_11_fastInterp__interp(double, __Pyx_memviewslice, int, double, double); /*proto*/
+static double __pyx_f_7chansim_5utils_11_fastInterp__interp(double, __Pyx_memviewslice, int, double, double); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static void *__pyx_align_pointer(void *, size_t); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -1780,11 +1786,11 @@ static void __pyx_memoryview_slice_assign_scalar(__Pyx_memviewslice *, int, size
 static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize_t *, int, size_t, void *); /*proto*/
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
 static __Pyx_TypeInfo __Pyx_TypeInfo_double = { "double", NULL, sizeof(double), { 0 }, 0, 'R', 0, 0 };
-#define __Pyx_MODULE_NAME "_fastInterp"
-extern int __pyx_module_is_main__fastInterp;
-int __pyx_module_is_main__fastInterp = 0;
+#define __Pyx_MODULE_NAME "chansim.utils._fastInterp"
+extern int __pyx_module_is_main_chansim__utils___fastInterp;
+int __pyx_module_is_main_chansim__utils___fastInterp = 0;
 
-/* Implementation of '_fastInterp' */
+/* Implementation of 'chansim.utils._fastInterp' */
 static PyObject *__pyx_builtin_xrange;
 static PyObject *__pyx_builtin_ValueError;
 static PyObject *__pyx_builtin_MemoryError;
@@ -1838,6 +1844,7 @@ static const char __pyx_k_unpack[] = "unpack";
 static const char __pyx_k_update[] = "update";
 static const char __pyx_k_xrange[] = "xrange";
 static const char __pyx_k_fortran[] = "fortran";
+static const char __pyx_k_interpf[] = "interpf";
 static const char __pyx_k_memview[] = "memview";
 static const char __pyx_k_Ellipsis[] = "Ellipsis";
 static const char __pyx_k_getstate[] = "__getstate__";
@@ -1850,7 +1857,6 @@ static const char __pyx_k_pyx_state[] = "__pyx_state";
 static const char __pyx_k_reduce_ex[] = "__reduce_ex__";
 static const char __pyx_k_IndexError[] = "IndexError";
 static const char __pyx_k_ValueError[] = "ValueError";
-static const char __pyx_k_fastInterp[] = "_fastInterp";
 static const char __pyx_k_pyx_result[] = "__pyx_result";
 static const char __pyx_k_pyx_vtable[] = "__pyx_vtable__";
 static const char __pyx_k_MemoryError[] = "MemoryError";
@@ -1859,7 +1865,6 @@ static const char __pyx_k_pyx_checksum[] = "__pyx_checksum";
 static const char __pyx_k_stringsource[] = "stringsource";
 static const char __pyx_k_pyx_getbuffer[] = "__pyx_getbuffer";
 static const char __pyx_k_reduce_cython[] = "__reduce_cython__";
-static const char __pyx_k_fastInterp_pyx[] = "_fastInterp.pyx";
 static const char __pyx_k_View_MemoryView[] = "View.MemoryView";
 static const char __pyx_k_allocate_buffer[] = "allocate_buffer";
 static const char __pyx_k_dtype_is_object[] = "dtype_is_object";
@@ -1875,7 +1880,9 @@ static const char __pyx_k_MemoryView_of_r_at_0x_x[] = "<MemoryView of %r at 0x%x
 static const char __pyx_k_contiguous_and_indirect[] = "<contiguous and indirect>";
 static const char __pyx_k_Cannot_index_with_type_s[] = "Cannot index with type '%s'";
 static const char __pyx_k_Invalid_shape_in_axis_d_d[] = "Invalid shape in axis %d: %d.";
+static const char __pyx_k_chansim_utils__fastInterp[] = "chansim.utils._fastInterp";
 static const char __pyx_k_itemsize_0_for_cython_array[] = "itemsize <= 0 for cython.array";
+static const char __pyx_k_chansim_utils__fastInterp_pyx[] = "chansim/utils/_fastInterp.pyx";
 static const char __pyx_k_unable_to_allocate_array_data[] = "unable to allocate array data.";
 static const char __pyx_k_strided_and_direct_or_indirect[] = "<strided and direct or indirect>";
 static const char __pyx_k_Buffer_view_does_not_expose_stri[] = "Buffer view does not expose strides";
@@ -1920,6 +1927,8 @@ static PyObject *__pyx_n_s_b;
 static PyObject *__pyx_n_s_base;
 static PyObject *__pyx_n_s_c;
 static PyObject *__pyx_n_u_c;
+static PyObject *__pyx_n_s_chansim_utils__fastInterp;
+static PyObject *__pyx_kp_s_chansim_utils__fastInterp_pyx;
 static PyObject *__pyx_n_s_class;
 static PyObject *__pyx_n_s_cline_in_traceback;
 static PyObject *__pyx_n_s_coeffs;
@@ -1931,8 +1940,6 @@ static PyObject *__pyx_n_s_encode;
 static PyObject *__pyx_n_s_enumerate;
 static PyObject *__pyx_n_s_error;
 static PyObject *__pyx_n_s_f_v;
-static PyObject *__pyx_n_s_fastInterp;
-static PyObject *__pyx_kp_s_fastInterp_pyx;
 static PyObject *__pyx_n_s_flags;
 static PyObject *__pyx_n_s_format;
 static PyObject *__pyx_n_s_fortran;
@@ -1943,6 +1950,7 @@ static PyObject *__pyx_n_s_i;
 static PyObject *__pyx_n_s_id;
 static PyObject *__pyx_n_s_import;
 static PyObject *__pyx_n_s_interp;
+static PyObject *__pyx_n_s_interpf;
 static PyObject *__pyx_n_s_itemsize;
 static PyObject *__pyx_kp_s_itemsize_0_for_cython_array;
 static PyObject *__pyx_n_s_main;
@@ -1990,7 +1998,8 @@ static PyObject *__pyx_n_s_unpack;
 static PyObject *__pyx_n_s_update;
 static PyObject *__pyx_n_s_x;
 static PyObject *__pyx_n_s_xrange;
-static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_x, __Pyx_memviewslice __pyx_v_ret, __Pyx_memviewslice __pyx_v_coeffs, double __pyx_v_a, double __pyx_v_b, __pyx_ctuple_double__and_double __pyx_v_f_v); /* proto */
+static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_x, __Pyx_memviewslice __pyx_v_ret, __Pyx_memviewslice __pyx_v_coeffs, double __pyx_v_a, double __pyx_v_b, __pyx_ctuple_double__and_double __pyx_v_f_v); /* proto */
+static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_2interpf(CYTHON_UNUSED PyObject *__pyx_self, double __pyx_v_x, __Pyx_memviewslice __pyx_v_coeffs, int __pyx_v_n, double __pyx_v_a, double __pyx_v_b); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __pyx_array_obj *__pyx_v_self, PyObject *__pyx_v_shape, Py_ssize_t __pyx_v_itemsize, PyObject *__pyx_v_format, PyObject *__pyx_v_mode, int __pyx_v_allocate_buffer); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array_2__getbuffer__(struct __pyx_array_obj *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_array___pyx_pf_15View_dot_MemoryView_5array_4__dealloc__(struct __pyx_array_obj *__pyx_v_self); /* proto */
@@ -2061,16 +2070,18 @@ static PyObject *__pyx_tuple__17;
 static PyObject *__pyx_tuple__18;
 static PyObject *__pyx_tuple__19;
 static PyObject *__pyx_tuple__21;
-static PyObject *__pyx_tuple__22;
 static PyObject *__pyx_tuple__23;
 static PyObject *__pyx_tuple__24;
 static PyObject *__pyx_tuple__25;
 static PyObject *__pyx_tuple__26;
+static PyObject *__pyx_tuple__27;
+static PyObject *__pyx_tuple__28;
 static PyObject *__pyx_codeobj__20;
-static PyObject *__pyx_codeobj__27;
+static PyObject *__pyx_codeobj__22;
+static PyObject *__pyx_codeobj__29;
 /* Late includes */
 
-/* "_fastInterp.pyx":7
+/* "chansim/utils/_fastInterp.pyx":7
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
@@ -2079,9 +2090,9 @@ static PyObject *__pyx_codeobj__27;
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_11_fastInterp_1interp(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyMethodDef __pyx_mdef_11_fastInterp_1interp = {"interp", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_11_fastInterp_1interp, METH_VARARGS|METH_KEYWORDS, 0};
-static PyObject *__pyx_pw_11_fastInterp_1interp(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+static PyObject *__pyx_pw_7chansim_5utils_11_fastInterp_1interp(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_7chansim_5utils_11_fastInterp_1interp = {"interp", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_7chansim_5utils_11_fastInterp_1interp, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_7chansim_5utils_11_fastInterp_1interp(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   __Pyx_memviewslice __pyx_v_x = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_ret = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_coeffs = { 0, 0, { 0 }, { 0 }, { 0 } };
@@ -2176,18 +2187,18 @@ static PyObject *__pyx_pw_11_fastInterp_1interp(PyObject *__pyx_self, PyObject *
   __pyx_L5_argtuple_error:;
   __Pyx_RaiseArgtupleInvalid("interp", 1, 6, 6, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 7, __pyx_L3_error)
   __pyx_L3_error:;
-  __Pyx_AddTraceback("_fastInterp.interp", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("chansim.utils._fastInterp.interp", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_11_fastInterp_interp(__pyx_self, __pyx_v_x, __pyx_v_ret, __pyx_v_coeffs, __pyx_v_a, __pyx_v_b, __pyx_v_f_v);
+  __pyx_r = __pyx_pf_7chansim_5utils_11_fastInterp_interp(__pyx_self, __pyx_v_x, __pyx_v_ret, __pyx_v_coeffs, __pyx_v_a, __pyx_v_b, __pyx_v_f_v);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_x, __Pyx_memviewslice __pyx_v_ret, __Pyx_memviewslice __pyx_v_coeffs, double __pyx_v_a, double __pyx_v_b, __pyx_ctuple_double__and_double __pyx_v_f_v) {
+static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_x, __Pyx_memviewslice __pyx_v_ret, __Pyx_memviewslice __pyx_v_coeffs, double __pyx_v_a, double __pyx_v_b, __pyx_ctuple_double__and_double __pyx_v_f_v) {
   int __pyx_v_nump;
   int __pyx_v_n;
   Py_ssize_t __pyx_v_i;
@@ -2206,7 +2217,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("interp", 0);
 
-  /* "_fastInterp.pyx":8
+  /* "chansim/utils/_fastInterp.pyx":8
  * @cython.cdivision(True)
  * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):
  *     cdef int nump = <int>x.size             # <<<<<<<<<<<<<<
@@ -2222,7 +2233,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_v_nump = ((int)__pyx_t_3);
 
-  /* "_fastInterp.pyx":9
+  /* "chansim/utils/_fastInterp.pyx":9
  * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):
  *     cdef int nump = <int>x.size
  *     cdef int n = <int>coeffs.size - 3             # <<<<<<<<<<<<<<
@@ -2238,7 +2249,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_n = (((int)__pyx_t_3) - 3);
 
-  /* "_fastInterp.pyx":12
+  /* "chansim/utils/_fastInterp.pyx":12
  *     cdef Py_ssize_t i
  * 
  *     for i in xrange(nump):             # <<<<<<<<<<<<<<
@@ -2250,7 +2261,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
   for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_4; __pyx_t_5+=1) {
     __pyx_v_i = __pyx_t_5;
 
-    /* "_fastInterp.pyx":14
+    /* "chansim/utils/_fastInterp.pyx":14
  *     for i in xrange(nump):
  * 
  *         if x[i] < a:             # <<<<<<<<<<<<<<
@@ -2261,7 +2272,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
     __pyx_t_7 = (((*((double *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) ))) < __pyx_v_a) != 0);
     if (__pyx_t_7) {
 
-      /* "_fastInterp.pyx":15
+      /* "chansim/utils/_fastInterp.pyx":15
  * 
  *         if x[i] < a:
  *             ret[i] = f_v[0]             # <<<<<<<<<<<<<<
@@ -2271,7 +2282,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
       __pyx_t_6 = __pyx_v_i;
       *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_6 * __pyx_v_ret.strides[0]) )) = __pyx_v_f_v.f0;
 
-      /* "_fastInterp.pyx":14
+      /* "chansim/utils/_fastInterp.pyx":14
  *     for i in xrange(nump):
  * 
  *         if x[i] < a:             # <<<<<<<<<<<<<<
@@ -2281,7 +2292,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
       goto __pyx_L5;
     }
 
-    /* "_fastInterp.pyx":16
+    /* "chansim/utils/_fastInterp.pyx":16
  *         if x[i] < a:
  *             ret[i] = f_v[0]
  *         elif x[i] > b:             # <<<<<<<<<<<<<<
@@ -2292,7 +2303,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
     __pyx_t_7 = (((*((double *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) ))) > __pyx_v_b) != 0);
     if (__pyx_t_7) {
 
-      /* "_fastInterp.pyx":17
+      /* "chansim/utils/_fastInterp.pyx":17
  *             ret[i] = f_v[0]
  *         elif x[i] > b:
  *             ret[i] = f_v[1]             # <<<<<<<<<<<<<<
@@ -2302,7 +2313,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
       __pyx_t_6 = __pyx_v_i;
       *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_6 * __pyx_v_ret.strides[0]) )) = __pyx_v_f_v.f1;
 
-      /* "_fastInterp.pyx":16
+      /* "chansim/utils/_fastInterp.pyx":16
  *         if x[i] < a:
  *             ret[i] = f_v[0]
  *         elif x[i] > b:             # <<<<<<<<<<<<<<
@@ -2312,7 +2323,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
       goto __pyx_L5;
     }
 
-    /* "_fastInterp.pyx":19
+    /* "chansim/utils/_fastInterp.pyx":19
  *             ret[i] = f_v[1]
  *         else:
  *             ret[i] = _interp(x[i], coeffs, n, a, b)             # <<<<<<<<<<<<<<
@@ -2322,24 +2333,24 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
     /*else*/ {
       __pyx_t_6 = __pyx_v_i;
       __pyx_t_8 = __pyx_v_i;
-      *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_8 * __pyx_v_ret.strides[0]) )) = __pyx_f_11_fastInterp__interp((*((double *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) ))), __pyx_v_coeffs, __pyx_v_n, __pyx_v_a, __pyx_v_b);
+      *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_8 * __pyx_v_ret.strides[0]) )) = __pyx_f_7chansim_5utils_11_fastInterp__interp((*((double *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) ))), __pyx_v_coeffs, __pyx_v_n, __pyx_v_a, __pyx_v_b);
     }
     __pyx_L5:;
   }
 
-  /* "_fastInterp.pyx":21
+  /* "chansim/utils/_fastInterp.pyx":21
  *             ret[i] = _interp(x[i], coeffs, n, a, b)
  * 
  *     return(True)             # <<<<<<<<<<<<<<
  * 
- * @cython.boundscheck(False)
+ * def interpf(double x, double [:] coeffs, int n, double a, double b):
  */
   __Pyx_XDECREF(__pyx_r);
   __Pyx_INCREF(Py_True);
   __pyx_r = Py_True;
   goto __pyx_L0;
 
-  /* "_fastInterp.pyx":7
+  /* "chansim/utils/_fastInterp.pyx":7
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
@@ -2351,7 +2362,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_2);
-  __Pyx_AddTraceback("_fastInterp.interp", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("chansim.utils._fastInterp.interp", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __PYX_XDEC_MEMVIEW(&__pyx_v_x, 1);
@@ -2362,7 +2373,156 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
   return __pyx_r;
 }
 
-/* "_fastInterp.pyx":26
+/* "chansim/utils/_fastInterp.pyx":23
+ *     return(True)
+ * 
+ * def interpf(double x, double [:] coeffs, int n, double a, double b):             # <<<<<<<<<<<<<<
+ *     return(_interp(x, coeffs, n, a, b))
+ * 
+ */
+
+/* Python wrapper */
+static PyObject *__pyx_pw_7chansim_5utils_11_fastInterp_3interpf(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyMethodDef __pyx_mdef_7chansim_5utils_11_fastInterp_3interpf = {"interpf", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_7chansim_5utils_11_fastInterp_3interpf, METH_VARARGS|METH_KEYWORDS, 0};
+static PyObject *__pyx_pw_7chansim_5utils_11_fastInterp_3interpf(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  double __pyx_v_x;
+  __Pyx_memviewslice __pyx_v_coeffs = { 0, 0, { 0 }, { 0 }, { 0 } };
+  int __pyx_v_n;
+  double __pyx_v_a;
+  double __pyx_v_b;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("interpf (wrapper)", 0);
+  {
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_x,&__pyx_n_s_coeffs,&__pyx_n_s_n,&__pyx_n_s_a,&__pyx_n_s_b,0};
+    PyObject* values[5] = {0,0,0,0,0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
+      switch (pos_args) {
+        case  5: values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+        CYTHON_FALLTHROUGH;
+        case  4: values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+        CYTHON_FALLTHROUGH;
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
+        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+        CYTHON_FALLTHROUGH;
+        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        CYTHON_FALLTHROUGH;
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = PyDict_Size(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_x)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+        CYTHON_FALLTHROUGH;
+        case  1:
+        if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_coeffs)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("interpf", 1, 5, 5, 1); __PYX_ERR(0, 23, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_n)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("interpf", 1, 5, 5, 2); __PYX_ERR(0, 23, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  3:
+        if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_a)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("interpf", 1, 5, 5, 3); __PYX_ERR(0, 23, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  4:
+        if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_b)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("interpf", 1, 5, 5, 4); __PYX_ERR(0, 23, __pyx_L3_error)
+        }
+      }
+      if (unlikely(kw_args > 0)) {
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "interpf") < 0)) __PYX_ERR(0, 23, __pyx_L3_error)
+      }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 5) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+      values[3] = PyTuple_GET_ITEM(__pyx_args, 3);
+      values[4] = PyTuple_GET_ITEM(__pyx_args, 4);
+    }
+    __pyx_v_x = __pyx_PyFloat_AsDouble(values[0]); if (unlikely((__pyx_v_x == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 23, __pyx_L3_error)
+    __pyx_v_coeffs = __Pyx_PyObject_to_MemoryviewSlice_ds_double(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_coeffs.memview)) __PYX_ERR(0, 23, __pyx_L3_error)
+    __pyx_v_n = __Pyx_PyInt_As_int(values[2]); if (unlikely((__pyx_v_n == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 23, __pyx_L3_error)
+    __pyx_v_a = __pyx_PyFloat_AsDouble(values[3]); if (unlikely((__pyx_v_a == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 23, __pyx_L3_error)
+    __pyx_v_b = __pyx_PyFloat_AsDouble(values[4]); if (unlikely((__pyx_v_b == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 23, __pyx_L3_error)
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("interpf", 1, 5, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 23, __pyx_L3_error)
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("chansim.utils._fastInterp.interpf", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  __pyx_r = __pyx_pf_7chansim_5utils_11_fastInterp_2interpf(__pyx_self, __pyx_v_x, __pyx_v_coeffs, __pyx_v_n, __pyx_v_a, __pyx_v_b);
+
+  /* function exit code */
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_2interpf(CYTHON_UNUSED PyObject *__pyx_self, double __pyx_v_x, __Pyx_memviewslice __pyx_v_coeffs, int __pyx_v_n, double __pyx_v_a, double __pyx_v_b) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("interpf", 0);
+
+  /* "chansim/utils/_fastInterp.pyx":24
+ * 
+ * def interpf(double x, double [:] coeffs, int n, double a, double b):
+ *     return(_interp(x, coeffs, n, a, b))             # <<<<<<<<<<<<<<
+ * 
+ * @cython.boundscheck(False)
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = PyFloat_FromDouble(__pyx_f_7chansim_5utils_11_fastInterp__interp(__pyx_v_x, __pyx_v_coeffs, __pyx_v_n, __pyx_v_a, __pyx_v_b)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 24, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* "chansim/utils/_fastInterp.pyx":23
+ *     return(True)
+ * 
+ * def interpf(double x, double [:] coeffs, int n, double a, double b):             # <<<<<<<<<<<<<<
+ *     return(_interp(x, coeffs, n, a, b))
+ * 
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("chansim.utils._fastInterp.interpf", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __PYX_XDEC_MEMVIEW(&__pyx_v_coeffs, 1);
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "chansim/utils/_fastInterp.pyx":29
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * cdef double _interp(double x, double [:] coeffs, int n, double a, double b) nogil:             # <<<<<<<<<<<<<<
@@ -2370,7 +2530,7 @@ static PyObject *__pyx_pf_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_sel
  *     cdef int i
  */
 
-static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice __pyx_v_coeffs, int __pyx_v_n, double __pyx_v_a, double __pyx_v_b) {
+static double __pyx_f_7chansim_5utils_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice __pyx_v_coeffs, int __pyx_v_n, double __pyx_v_a, double __pyx_v_b) {
   double __pyx_v_h;
   int __pyx_v_i;
   int __pyx_v_l;
@@ -2385,7 +2545,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
   int __pyx_t_4;
   Py_ssize_t __pyx_t_5;
 
-  /* "_fastInterp.pyx":27
+  /* "chansim/utils/_fastInterp.pyx":30
  * @cython.cdivision(True)
  * cdef double _interp(double x, double [:] coeffs, int n, double a, double b) nogil:
  *     cdef double h = (b-a)/<double>n             # <<<<<<<<<<<<<<
@@ -2394,7 +2554,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
  */
   __pyx_v_h = ((__pyx_v_b - __pyx_v_a) / ((double)__pyx_v_n));
 
-  /* "_fastInterp.pyx":29
+  /* "chansim/utils/_fastInterp.pyx":32
  *     cdef double h = (b-a)/<double>n
  *     cdef int i
  *     cdef int l = <int>( (x-a)//h ) + 1             # <<<<<<<<<<<<<<
@@ -2403,7 +2563,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
  */
   __pyx_v_l = (((int)floor((__pyx_v_x - __pyx_v_a) / __pyx_v_h)) + 1);
 
-  /* "_fastInterp.pyx":30
+  /* "chansim/utils/_fastInterp.pyx":33
  *     cdef int i
  *     cdef int l = <int>( (x-a)//h ) + 1
  *     cdef int m = <int>fmin( l+3, n+3 )             # <<<<<<<<<<<<<<
@@ -2412,7 +2572,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
  */
   __pyx_v_m = ((int)fmin((__pyx_v_l + 3), (__pyx_v_n + 3)));
 
-  /* "_fastInterp.pyx":32
+  /* "chansim/utils/_fastInterp.pyx":35
  *     cdef int m = <int>fmin( l+3, n+3 )
  *     cdef double t, u
  *     cdef double s = 0             # <<<<<<<<<<<<<<
@@ -2421,7 +2581,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
  */
   __pyx_v_s = 0.0;
 
-  /* "_fastInterp.pyx":34
+  /* "chansim/utils/_fastInterp.pyx":37
  *     cdef double s = 0
  * 
  *     for i in xrange(l, m+1):             # <<<<<<<<<<<<<<
@@ -2433,7 +2593,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
   for (__pyx_t_3 = __pyx_v_l; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "_fastInterp.pyx":35
+    /* "chansim/utils/_fastInterp.pyx":38
  * 
  *     for i in xrange(l, m+1):
  *         t = fabs( (x-a)/h - (i-2) )             # <<<<<<<<<<<<<<
@@ -2442,7 +2602,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
  */
     __pyx_v_t = fabs((((__pyx_v_x - __pyx_v_a) / __pyx_v_h) - (__pyx_v_i - 2)));
 
-    /* "_fastInterp.pyx":37
+    /* "chansim/utils/_fastInterp.pyx":40
  *         t = fabs( (x-a)/h - (i-2) )
  * 
  *         if t <= 1:             # <<<<<<<<<<<<<<
@@ -2452,7 +2612,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
     __pyx_t_4 = ((__pyx_v_t <= 1.0) != 0);
     if (__pyx_t_4) {
 
-      /* "_fastInterp.pyx":38
+      /* "chansim/utils/_fastInterp.pyx":41
  * 
  *         if t <= 1:
  *             u = 4 - 6*t**2 + 3*t**3             # <<<<<<<<<<<<<<
@@ -2461,7 +2621,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
  */
       __pyx_v_u = ((4.0 - (6.0 * pow(__pyx_v_t, 2.0))) + (3.0 * pow(__pyx_v_t, 3.0)));
 
-      /* "_fastInterp.pyx":37
+      /* "chansim/utils/_fastInterp.pyx":40
  *         t = fabs( (x-a)/h - (i-2) )
  * 
  *         if t <= 1:             # <<<<<<<<<<<<<<
@@ -2471,7 +2631,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
       goto __pyx_L5;
     }
 
-    /* "_fastInterp.pyx":39
+    /* "chansim/utils/_fastInterp.pyx":42
  *         if t <= 1:
  *             u = 4 - 6*t**2 + 3*t**3
  *         elif t <= 2:             # <<<<<<<<<<<<<<
@@ -2481,7 +2641,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
     __pyx_t_4 = ((__pyx_v_t <= 2.0) != 0);
     if (__pyx_t_4) {
 
-      /* "_fastInterp.pyx":40
+      /* "chansim/utils/_fastInterp.pyx":43
  *             u = 4 - 6*t**2 + 3*t**3
  *         elif t <= 2:
  *             u = (2-t)**3             # <<<<<<<<<<<<<<
@@ -2490,7 +2650,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
  */
       __pyx_v_u = pow((2.0 - __pyx_v_t), 3.0);
 
-      /* "_fastInterp.pyx":39
+      /* "chansim/utils/_fastInterp.pyx":42
  *         if t <= 1:
  *             u = 4 - 6*t**2 + 3*t**3
  *         elif t <= 2:             # <<<<<<<<<<<<<<
@@ -2500,7 +2660,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
       goto __pyx_L5;
     }
 
-    /* "_fastInterp.pyx":42
+    /* "chansim/utils/_fastInterp.pyx":45
  *             u = (2-t)**3
  *         else:
  *             u = 0             # <<<<<<<<<<<<<<
@@ -2512,7 +2672,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
     }
     __pyx_L5:;
 
-    /* "_fastInterp.pyx":44
+    /* "chansim/utils/_fastInterp.pyx":47
  *             u = 0
  * 
  *         s += coeffs[i-1] * u             # <<<<<<<<<<<<<<
@@ -2523,7 +2683,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
     __pyx_v_s = (__pyx_v_s + ((*((double *) ( /* dim=0 */ (__pyx_v_coeffs.data + __pyx_t_5 * __pyx_v_coeffs.strides[0]) ))) * __pyx_v_u));
   }
 
-  /* "_fastInterp.pyx":46
+  /* "chansim/utils/_fastInterp.pyx":49
  *         s += coeffs[i-1] * u
  * 
  *     return(s)             # <<<<<<<<<<<<<<
@@ -2531,7 +2691,7 @@ static double __pyx_f_11_fastInterp__interp(double __pyx_v_x, __Pyx_memviewslice
   __pyx_r = __pyx_v_s;
   goto __pyx_L0;
 
-  /* "_fastInterp.pyx":26
+  /* "chansim/utils/_fastInterp.pyx":29
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * cdef double _interp(double x, double [:] coeffs, int n, double a, double b) nogil:             # <<<<<<<<<<<<<<
@@ -15684,7 +15844,7 @@ static PyBufferProcs __pyx_tp_as_buffer_array = {
 
 static PyTypeObject __pyx_type___pyx_array = {
   PyVarObject_HEAD_INIT(0, 0)
-  "_fastInterp.array", /*tp_name*/
+  "chansim.utils._fastInterp.array", /*tp_name*/
   sizeof(struct __pyx_array_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_array, /*tp_dealloc*/
@@ -15803,7 +15963,7 @@ static PyMethodDef __pyx_methods_Enum[] = {
 
 static PyTypeObject __pyx_type___pyx_MemviewEnum = {
   PyVarObject_HEAD_INIT(0, 0)
-  "_fastInterp.Enum", /*tp_name*/
+  "chansim.utils._fastInterp.Enum", /*tp_name*/
   sizeof(struct __pyx_MemviewEnum_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_Enum, /*tp_dealloc*/
@@ -16064,7 +16224,7 @@ static PyBufferProcs __pyx_tp_as_buffer_memoryview = {
 
 static PyTypeObject __pyx_type___pyx_memoryview = {
   PyVarObject_HEAD_INIT(0, 0)
-  "_fastInterp.memoryview", /*tp_name*/
+  "chansim.utils._fastInterp.memoryview", /*tp_name*/
   sizeof(struct __pyx_memoryview_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc_memoryview, /*tp_dealloc*/
@@ -16202,7 +16362,7 @@ static struct PyGetSetDef __pyx_getsets__memoryviewslice[] = {
 
 static PyTypeObject __pyx_type___pyx_memoryviewslice = {
   PyVarObject_HEAD_INIT(0, 0)
-  "_fastInterp._memoryviewslice", /*tp_name*/
+  "chansim.utils._fastInterp._memoryviewslice", /*tp_name*/
   sizeof(struct __pyx_memoryviewslice_obj), /*tp_basicsize*/
   0, /*tp_itemsize*/
   __pyx_tp_dealloc__memoryviewslice, /*tp_dealloc*/
@@ -16352,6 +16512,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_base, __pyx_k_base, sizeof(__pyx_k_base), 0, 0, 1, 1},
   {&__pyx_n_s_c, __pyx_k_c, sizeof(__pyx_k_c), 0, 0, 1, 1},
   {&__pyx_n_u_c, __pyx_k_c, sizeof(__pyx_k_c), 0, 1, 0, 1},
+  {&__pyx_n_s_chansim_utils__fastInterp, __pyx_k_chansim_utils__fastInterp, sizeof(__pyx_k_chansim_utils__fastInterp), 0, 0, 1, 1},
+  {&__pyx_kp_s_chansim_utils__fastInterp_pyx, __pyx_k_chansim_utils__fastInterp_pyx, sizeof(__pyx_k_chansim_utils__fastInterp_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_class, __pyx_k_class, sizeof(__pyx_k_class), 0, 0, 1, 1},
   {&__pyx_n_s_cline_in_traceback, __pyx_k_cline_in_traceback, sizeof(__pyx_k_cline_in_traceback), 0, 0, 1, 1},
   {&__pyx_n_s_coeffs, __pyx_k_coeffs, sizeof(__pyx_k_coeffs), 0, 0, 1, 1},
@@ -16363,8 +16525,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_enumerate, __pyx_k_enumerate, sizeof(__pyx_k_enumerate), 0, 0, 1, 1},
   {&__pyx_n_s_error, __pyx_k_error, sizeof(__pyx_k_error), 0, 0, 1, 1},
   {&__pyx_n_s_f_v, __pyx_k_f_v, sizeof(__pyx_k_f_v), 0, 0, 1, 1},
-  {&__pyx_n_s_fastInterp, __pyx_k_fastInterp, sizeof(__pyx_k_fastInterp), 0, 0, 1, 1},
-  {&__pyx_kp_s_fastInterp_pyx, __pyx_k_fastInterp_pyx, sizeof(__pyx_k_fastInterp_pyx), 0, 0, 1, 0},
   {&__pyx_n_s_flags, __pyx_k_flags, sizeof(__pyx_k_flags), 0, 0, 1, 1},
   {&__pyx_n_s_format, __pyx_k_format, sizeof(__pyx_k_format), 0, 0, 1, 1},
   {&__pyx_n_s_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 0, 1, 1},
@@ -16375,6 +16535,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_id, __pyx_k_id, sizeof(__pyx_k_id), 0, 0, 1, 1},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
   {&__pyx_n_s_interp, __pyx_k_interp, sizeof(__pyx_k_interp), 0, 0, 1, 1},
+  {&__pyx_n_s_interpf, __pyx_k_interpf, sizeof(__pyx_k_interpf), 0, 0, 1, 1},
   {&__pyx_n_s_itemsize, __pyx_k_itemsize, sizeof(__pyx_k_itemsize), 0, 0, 1, 1},
   {&__pyx_kp_s_itemsize_0_for_cython_array, __pyx_k_itemsize_0_for_cython_array, sizeof(__pyx_k_itemsize_0_for_cython_array), 0, 0, 1, 0},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
@@ -16639,7 +16800,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__18);
   __Pyx_GIVEREF(__pyx_tuple__18);
 
-  /* "_fastInterp.pyx":7
+  /* "chansim/utils/_fastInterp.pyx":7
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
@@ -16649,7 +16810,19 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_tuple__19 = PyTuple_Pack(9, __pyx_n_s_x, __pyx_n_s_ret, __pyx_n_s_coeffs, __pyx_n_s_a, __pyx_n_s_b, __pyx_n_s_f_v, __pyx_n_s_nump, __pyx_n_s_n, __pyx_n_s_i); if (unlikely(!__pyx_tuple__19)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__19);
   __Pyx_GIVEREF(__pyx_tuple__19);
-  __pyx_codeobj__20 = (PyObject*)__Pyx_PyCode_New(6, 0, 9, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__19, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_fastInterp_pyx, __pyx_n_s_interp, 7, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__20)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_codeobj__20 = (PyObject*)__Pyx_PyCode_New(6, 0, 9, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__19, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_chansim_utils__fastInterp_pyx, __pyx_n_s_interp, 7, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__20)) __PYX_ERR(0, 7, __pyx_L1_error)
+
+  /* "chansim/utils/_fastInterp.pyx":23
+ *     return(True)
+ * 
+ * def interpf(double x, double [:] coeffs, int n, double a, double b):             # <<<<<<<<<<<<<<
+ *     return(_interp(x, coeffs, n, a, b))
+ * 
+ */
+  __pyx_tuple__21 = PyTuple_Pack(5, __pyx_n_s_x, __pyx_n_s_coeffs, __pyx_n_s_n, __pyx_n_s_a, __pyx_n_s_b); if (unlikely(!__pyx_tuple__21)) __PYX_ERR(0, 23, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__21);
+  __Pyx_GIVEREF(__pyx_tuple__21);
+  __pyx_codeobj__22 = (PyObject*)__Pyx_PyCode_New(5, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__21, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_chansim_utils__fastInterp_pyx, __pyx_n_s_interpf, 23, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__22)) __PYX_ERR(0, 23, __pyx_L1_error)
 
   /* "View.MemoryView":286
  *         return self.name
@@ -16658,9 +16831,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * cdef strided = Enum("<strided and direct>") # default
  * cdef indirect = Enum("<strided and indirect>")
  */
-  __pyx_tuple__21 = PyTuple_Pack(1, __pyx_kp_s_strided_and_direct_or_indirect); if (unlikely(!__pyx_tuple__21)) __PYX_ERR(1, 286, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__21);
-  __Pyx_GIVEREF(__pyx_tuple__21);
+  __pyx_tuple__23 = PyTuple_Pack(1, __pyx_kp_s_strided_and_direct_or_indirect); if (unlikely(!__pyx_tuple__23)) __PYX_ERR(1, 286, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__23);
+  __Pyx_GIVEREF(__pyx_tuple__23);
 
   /* "View.MemoryView":287
  * 
@@ -16669,9 +16842,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * cdef indirect = Enum("<strided and indirect>")
  * 
  */
-  __pyx_tuple__22 = PyTuple_Pack(1, __pyx_kp_s_strided_and_direct); if (unlikely(!__pyx_tuple__22)) __PYX_ERR(1, 287, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__22);
-  __Pyx_GIVEREF(__pyx_tuple__22);
+  __pyx_tuple__24 = PyTuple_Pack(1, __pyx_kp_s_strided_and_direct); if (unlikely(!__pyx_tuple__24)) __PYX_ERR(1, 287, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__24);
+  __Pyx_GIVEREF(__pyx_tuple__24);
 
   /* "View.MemoryView":288
  * cdef generic = Enum("<strided and direct or indirect>")
@@ -16680,9 +16853,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * 
  */
-  __pyx_tuple__23 = PyTuple_Pack(1, __pyx_kp_s_strided_and_indirect); if (unlikely(!__pyx_tuple__23)) __PYX_ERR(1, 288, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__23);
-  __Pyx_GIVEREF(__pyx_tuple__23);
+  __pyx_tuple__25 = PyTuple_Pack(1, __pyx_kp_s_strided_and_indirect); if (unlikely(!__pyx_tuple__25)) __PYX_ERR(1, 288, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__25);
+  __Pyx_GIVEREF(__pyx_tuple__25);
 
   /* "View.MemoryView":291
  * 
@@ -16691,9 +16864,9 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * cdef indirect_contiguous = Enum("<contiguous and indirect>")
  * 
  */
-  __pyx_tuple__24 = PyTuple_Pack(1, __pyx_kp_s_contiguous_and_direct); if (unlikely(!__pyx_tuple__24)) __PYX_ERR(1, 291, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__24);
-  __Pyx_GIVEREF(__pyx_tuple__24);
+  __pyx_tuple__26 = PyTuple_Pack(1, __pyx_kp_s_contiguous_and_direct); if (unlikely(!__pyx_tuple__26)) __PYX_ERR(1, 291, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__26);
+  __Pyx_GIVEREF(__pyx_tuple__26);
 
   /* "View.MemoryView":292
  * 
@@ -16702,19 +16875,19 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * 
  */
-  __pyx_tuple__25 = PyTuple_Pack(1, __pyx_kp_s_contiguous_and_indirect); if (unlikely(!__pyx_tuple__25)) __PYX_ERR(1, 292, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__25);
-  __Pyx_GIVEREF(__pyx_tuple__25);
+  __pyx_tuple__27 = PyTuple_Pack(1, __pyx_kp_s_contiguous_and_indirect); if (unlikely(!__pyx_tuple__27)) __PYX_ERR(1, 292, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__27);
+  __Pyx_GIVEREF(__pyx_tuple__27);
 
   /* "(tree fragment)":1
  * def __pyx_unpickle_Enum(__pyx_type, long __pyx_checksum, __pyx_state):             # <<<<<<<<<<<<<<
  *     cdef object __pyx_PickleError
  *     cdef object __pyx_result
  */
-  __pyx_tuple__26 = PyTuple_Pack(5, __pyx_n_s_pyx_type, __pyx_n_s_pyx_checksum, __pyx_n_s_pyx_state, __pyx_n_s_pyx_PickleError, __pyx_n_s_pyx_result); if (unlikely(!__pyx_tuple__26)) __PYX_ERR(1, 1, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__26);
-  __Pyx_GIVEREF(__pyx_tuple__26);
-  __pyx_codeobj__27 = (PyObject*)__Pyx_PyCode_New(3, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__26, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_stringsource, __pyx_n_s_pyx_unpickle_Enum, 1, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__27)) __PYX_ERR(1, 1, __pyx_L1_error)
+  __pyx_tuple__28 = PyTuple_Pack(5, __pyx_n_s_pyx_type, __pyx_n_s_pyx_checksum, __pyx_n_s_pyx_state, __pyx_n_s_pyx_PickleError, __pyx_n_s_pyx_result); if (unlikely(!__pyx_tuple__28)) __PYX_ERR(1, 1, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__28);
+  __Pyx_GIVEREF(__pyx_tuple__28);
+  __pyx_codeobj__29 = (PyObject*)__Pyx_PyCode_New(3, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__28, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_stringsource, __pyx_n_s_pyx_unpickle_Enum, 1, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__29)) __PYX_ERR(1, 1, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -17032,14 +17205,14 @@ if (!__Pyx_RefNanny) {
   #if PY_MAJOR_VERSION < 3 && (__PYX_DEFAULT_STRING_ENCODING_IS_ASCII || __PYX_DEFAULT_STRING_ENCODING_IS_DEFAULT)
   if (__Pyx_init_sys_getdefaultencoding_params() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
-  if (__pyx_module_is_main__fastInterp) {
+  if (__pyx_module_is_main_chansim__utils___fastInterp) {
     if (PyObject_SetAttr(__pyx_m, __pyx_n_s_name_2, __pyx_n_s_main) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   }
   #if PY_MAJOR_VERSION >= 3
   {
     PyObject *modules = PyImport_GetModuleDict(); if (unlikely(!modules)) __PYX_ERR(0, 1, __pyx_L1_error)
-    if (!PyDict_GetItemString(modules, "_fastInterp")) {
-      if (unlikely(PyDict_SetItemString(modules, "_fastInterp", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
+    if (!PyDict_GetItemString(modules, "chansim.utils._fastInterp")) {
+      if (unlikely(PyDict_SetItemString(modules, "chansim.utils._fastInterp", __pyx_m) < 0)) __PYX_ERR(0, 1, __pyx_L1_error)
     }
   }
   #endif
@@ -17060,19 +17233,31 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "_fastInterp.pyx":7
+  /* "chansim/utils/_fastInterp.pyx":7
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
  *     cdef int nump = <int>x.size
  *     cdef int n = <int>coeffs.size - 3
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_11_fastInterp_1interp, NULL, __pyx_n_s_fastInterp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7chansim_5utils_11_fastInterp_1interp, NULL, __pyx_n_s_chansim_utils__fastInterp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_interp, __pyx_t_1) < 0) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "_fastInterp.pyx":1
+  /* "chansim/utils/_fastInterp.pyx":23
+ *     return(True)
+ * 
+ * def interpf(double x, double [:] coeffs, int n, double a, double b):             # <<<<<<<<<<<<<<
+ *     return(_interp(x, coeffs, n, a, b))
+ * 
+ */
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_7chansim_5utils_11_fastInterp_3interpf, NULL, __pyx_n_s_chansim_utils__fastInterp); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 23, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_interpf, __pyx_t_1) < 0) __PYX_ERR(0, 23, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+  /* "chansim/utils/_fastInterp.pyx":1
  * import cython             # <<<<<<<<<<<<<<
  * from libc.math cimport fmin, fabs
  * 
@@ -17102,7 +17287,7 @@ if (!__Pyx_RefNanny) {
  * cdef strided = Enum("<strided and direct>") # default
  * cdef indirect = Enum("<strided and indirect>")
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__21, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 286, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__23, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 286, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(generic);
   __Pyx_DECREF_SET(generic, __pyx_t_1);
@@ -17116,7 +17301,7 @@ if (!__Pyx_RefNanny) {
  * cdef indirect = Enum("<strided and indirect>")
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__22, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 287, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__24, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 287, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(strided);
   __Pyx_DECREF_SET(strided, __pyx_t_1);
@@ -17130,7 +17315,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__23, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 288, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__25, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 288, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(indirect);
   __Pyx_DECREF_SET(indirect, __pyx_t_1);
@@ -17144,7 +17329,7 @@ if (!__Pyx_RefNanny) {
  * cdef indirect_contiguous = Enum("<contiguous and indirect>")
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__24, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 291, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__26, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 291, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(contiguous);
   __Pyx_DECREF_SET(contiguous, __pyx_t_1);
@@ -17158,7 +17343,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  */
-  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__25, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 292, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_MemviewEnum_type), __pyx_tuple__27, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(1, 292, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_XGOTREF(indirect_contiguous);
   __Pyx_DECREF_SET(indirect_contiguous, __pyx_t_1);
@@ -17242,11 +17427,11 @@ if (!__Pyx_RefNanny) {
   __Pyx_XDECREF(__pyx_t_1);
   if (__pyx_m) {
     if (__pyx_d) {
-      __Pyx_AddTraceback("init _fastInterp", __pyx_clineno, __pyx_lineno, __pyx_filename);
+      __Pyx_AddTraceback("init chansim.utils._fastInterp", __pyx_clineno, __pyx_lineno, __pyx_filename);
     }
     Py_CLEAR(__pyx_m);
   } else if (!PyErr_Occurred()) {
-    PyErr_SetString(PyExc_ImportError, "init _fastInterp");
+    PyErr_SetString(PyExc_ImportError, "init chansim.utils._fastInterp");
   }
   __pyx_L0:;
   __Pyx_RefNannyFinishContext();
@@ -20246,18 +20431,6 @@ bad:
     return result;
 }
 
-/* MemviewDtypeToObject */
-  static CYTHON_INLINE PyObject *__pyx_memview_get_double(const char *itemp) {
-    return (PyObject *) PyFloat_FromDouble(*(double *) itemp);
-}
-static CYTHON_INLINE int __pyx_memview_set_double(const char *itemp, PyObject *obj) {
-    double value = __pyx_PyFloat_AsDouble(obj);
-    if ((value == (double)-1) && PyErr_Occurred())
-        return 0;
-    *(double *) itemp = value;
-    return 1;
-}
-
 /* CIntFromPyVerify */
   #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
     __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 0)
@@ -20279,6 +20452,18 @@ static CYTHON_INLINE int __pyx_memview_set_double(const char *itemp, PyObject *o
         }\
         return (target_type) value;\
     }
+
+/* MemviewDtypeToObject */
+  static CYTHON_INLINE PyObject *__pyx_memview_get_double(const char *itemp) {
+    return (PyObject *) PyFloat_FromDouble(*(double *) itemp);
+}
+static CYTHON_INLINE int __pyx_memview_set_double(const char *itemp, PyObject *obj) {
+    double value = __pyx_PyFloat_AsDouble(obj);
+    if ((value == (double)-1) && PyErr_Occurred())
+        return 0;
+    *(double *) itemp = value;
+    return 1;
+}
 
 /* MemviewSliceCopyTemplate */
   static __Pyx_memviewslice

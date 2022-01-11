@@ -20,6 +20,9 @@ def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, 
 
     return(True)
 
+def interpf(double x, double [:] coeffs, int n, double a, double b):
+    return(_interp(x, coeffs, n, a, b))
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
