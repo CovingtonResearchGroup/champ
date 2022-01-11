@@ -5,10 +5,12 @@ from numpy import get_include
 ext_modules = [
     Extension(
         "fastCalcA",
-        ["fastCalcA.pyx"],
-        extra_compile_args=['-fopenmp'],
-        extra_link_args=['-fopenmp'],
-    )
+        ["fastCalcA.pyx"]
+    ),
+    Extension(
+        "_fastInterp",
+        ["_fastInterp.pyx"]
+    ),
 ]
 
 setup(include_dirs =[get_include],
