@@ -133,6 +133,7 @@ def runSim(
 
     finished = False
     oldtimestep = None
+    t_i = time.time()
     while not finished:
         sim.run_one_step()
         print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
@@ -201,6 +202,8 @@ def runSim(
                 else:
                     oldtimestep = sim.dt_erode
                     sim.dt_erode = time_to_next_snap
+    t_f = time.time()
+    print(f"Runtime for simulation was {t_f - t_i}")
     return sim
 
 
