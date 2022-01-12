@@ -8,13 +8,13 @@ import multiprocessing
 def run_this_sim(ymlpath):
     ymlfile_split = ymlpath.split("/")
     ymlfile = ymlfile_split[-1]
-    ymldir = ymlfile_split[0]
+    ymldir = os.path.join(*ymlfile_split[:-1])
     ymltag = ymlfile.split(".")[0]
-    logfile = ymldir + "/" + ymltag + ".log"
+    logfile = os.path.join(ymldir,ymltag) + ".log"
     print("ymlpath=", ymlpath)
     print("logfile=", logfile)
     cmdline = ["python", "runSim.py", ymlpath]
-    print(cmdline)
+    #print(cmdline)
     with open(logfile, "wb") as log:
         subprocess.run(cmdline, stdout=log, stderr=log)
 
@@ -22,7 +22,7 @@ def run_this_sim(ymlpath):
 if __name__ == "__main__":
     ymldir = sys.argv[1]
     if len(sys.argv) > 2:
-        pool_size = sys.argv[2]
+        pool_size = int(sys.argv[2])
     else:
         pool_size = 10
 
