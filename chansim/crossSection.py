@@ -154,23 +154,13 @@ class CrossSection:
         if num_xc_points < n_points / 3.0:
             n_points = int(np.round(num_xc_points / 3.0))
         depth_arr = np.linspace(0, max_interp, n_points)
-        As = []
-        # Is this loop the heavy part? Optimize?
-        for depth in depth_arr:
-            #wantidx = self.y - self.ymin < depth
-            As.append(self.calcA(depth=depth))
-        As = np.array(As)
-        # Is this interp function the fastest we can work with? Is it a wrapper for
-        # FITPACK or all in python?
-        # Might we use splrep? This is direct FITPACK interface.
-        # Requires unique x values.
-        # Other suggestions include np.interp or scipy CubicSpline or make_interp_spline
-        #A_interp = interpolate.interp1d(
-        #    depth_arr, As, kind="cubic", bounds_error=False, fill_value=(As[0], As[-1])
-        #)
+
+        As = np.array([self.calcA(depth=i) for i in depth_arr])
+
         A_interp = finterp1d(
             depth_arr, As, bounds_error=False, fill_value=(As[0],As[-1])
         )
+
         self.A_interp = A_interp
 
     def create_P_interp(self, n_points=30):
@@ -189,8 +179,8 @@ class CrossSection:
         if num_xc_points < n_points / 3.0:
             n_points = int(np.round(num_xc_points / 3.0))
         depth_arr = np.linspace(0, max_interp, n_points)
+
         Ps = []
-        # Is this loop the heavy part? Optimize?
         for depth in depth_arr:
             wantidx = self.y - self.ymin < depth
             l = hypot(
@@ -198,12 +188,11 @@ class CrossSection:
             )
             Ps.append(abs(l.sum()))
         Ps = np.array(Ps)
-        #P_interp = interpolate.interp1d(
-        #    depth_arr, Ps, kind="cubic", bounds_error=False, fill_value=(Ps[0], Ps[-1])
-        #)
+
         P_interp = finterp1d(
             depth_arr, Ps, bounds_error=False, fill_value=(Ps[0],Ps[-1])
         )
+
         self.P_interp = P_interp
 
     def findLR(self, h):

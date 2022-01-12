@@ -965,20 +965,6 @@ struct __pyx_array_obj;
 struct __pyx_MemviewEnum_obj;
 struct __pyx_memoryview_obj;
 struct __pyx_memoryviewslice_obj;
-struct __pyx_ctuple_double__and_double;
-typedef struct __pyx_ctuple_double__and_double __pyx_ctuple_double__and_double;
-
-/* "chansim/utils/_fastInterp.pyx":7
- * @cython.wraparound(False)
- * @cython.cdivision(True)
- * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
- *     cdef int nump = <int>x.size
- *     cdef int n = <int>coeffs.size - 3
- */
-struct __pyx_ctuple_double__and_double {
-  double f0;
-  double f1;
-};
 
 /* "View.MemoryView":105
  * 
@@ -1191,6 +1177,28 @@ static int __Pyx_ParseOptionalKeywords(PyObject *kwds, PyObject **argnames[],\
     PyObject *kwds2, PyObject *values[], Py_ssize_t num_pos_args,\
     const char* function_name);
 
+/* GetItemInt.proto */
+#define __Pyx_GetItemInt(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
+    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
+    __Pyx_GetItemInt_Fast(o, (Py_ssize_t)i, is_list, wraparound, boundscheck) :\
+    (is_list ? (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL) :\
+               __Pyx_GetItemInt_Generic(o, to_py_func(i))))
+#define __Pyx_GetItemInt_List(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
+    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
+    __Pyx_GetItemInt_List_Fast(o, (Py_ssize_t)i, wraparound, boundscheck) :\
+    (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL))
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
+                                                              int wraparound, int boundscheck);
+#define __Pyx_GetItemInt_Tuple(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
+    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
+    __Pyx_GetItemInt_Tuple_Fast(o, (Py_ssize_t)i, wraparound, boundscheck) :\
+    (PyErr_SetString(PyExc_IndexError, "tuple index out of range"), (PyObject*)NULL))
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
+                                                              int wraparound, int boundscheck);
+static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j);
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
+                                                     int is_list, int wraparound, int boundscheck);
+
 /* MemviewSliceInit.proto */
 #define __Pyx_BUF_MAX_NDIMS %(BUF_MAX_NDIMS)d
 #define __Pyx_MEMVIEW_DIRECT   1
@@ -1337,28 +1345,6 @@ static CYTHON_UNUSED int __pyx_array_getbuffer(PyObject *__pyx_v_self, Py_buffer
 static PyObject *__pyx_array_get_memview(struct __pyx_array_obj *); /*proto*/
 /* GetAttr.proto */
 static CYTHON_INLINE PyObject *__Pyx_GetAttr(PyObject *, PyObject *);
-
-/* GetItemInt.proto */
-#define __Pyx_GetItemInt(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
-    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
-    __Pyx_GetItemInt_Fast(o, (Py_ssize_t)i, is_list, wraparound, boundscheck) :\
-    (is_list ? (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL) :\
-               __Pyx_GetItemInt_Generic(o, to_py_func(i))))
-#define __Pyx_GetItemInt_List(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
-    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
-    __Pyx_GetItemInt_List_Fast(o, (Py_ssize_t)i, wraparound, boundscheck) :\
-    (PyErr_SetString(PyExc_IndexError, "list index out of range"), (PyObject*)NULL))
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
-                                                              int wraparound, int boundscheck);
-#define __Pyx_GetItemInt_Tuple(o, i, type, is_signed, to_py_func, is_list, wraparound, boundscheck)\
-    (__Pyx_fits_Py_ssize_t(i, type, is_signed) ?\
-    __Pyx_GetItemInt_Tuple_Fast(o, (Py_ssize_t)i, wraparound, boundscheck) :\
-    (PyErr_SetString(PyExc_IndexError, "tuple index out of range"), (PyObject*)NULL))
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
-                                                              int wraparound, int boundscheck);
-static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j);
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
-                                                     int is_list, int wraparound, int boundscheck);
 
 /* ObjectGetItem.proto */
 #if CYTHON_USE_TYPE_SLOTS
@@ -1682,9 +1668,6 @@ static int __Pyx_ValidateAndInit_memviewslice(
 /* ObjectToMemviewSlice.proto */
 static CYTHON_INLINE __Pyx_memviewslice __Pyx_PyObject_to_MemoryviewSlice_ds_double(PyObject *, int writable_flag);
 
-/* FromPyCTupleUtility.proto */
-static __pyx_ctuple_double__and_double __pyx_convert__from_py___pyx_ctuple_double__and_double(PyObject *);
-
 /* GCCDiagnostics.proto */
 #if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
 #define __Pyx_HAS_GCC_DIAGNOSTIC
@@ -1998,7 +1981,7 @@ static PyObject *__pyx_n_s_unpack;
 static PyObject *__pyx_n_s_update;
 static PyObject *__pyx_n_s_x;
 static PyObject *__pyx_n_s_xrange;
-static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_x, __Pyx_memviewslice __pyx_v_ret, __Pyx_memviewslice __pyx_v_coeffs, double __pyx_v_a, double __pyx_v_b, __pyx_ctuple_double__and_double __pyx_v_f_v); /* proto */
+static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_x, __Pyx_memviewslice __pyx_v_ret, __Pyx_memviewslice __pyx_v_coeffs, double __pyx_v_a, double __pyx_v_b, PyObject *__pyx_v_f_v); /* proto */
 static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_2interpf(CYTHON_UNUSED PyObject *__pyx_self, double __pyx_v_x, __Pyx_memviewslice __pyx_v_coeffs, int __pyx_v_n, double __pyx_v_a, double __pyx_v_b); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __pyx_array_obj *__pyx_v_self, PyObject *__pyx_v_shape, Py_ssize_t __pyx_v_itemsize, PyObject *__pyx_v_format, PyObject *__pyx_v_mode, int __pyx_v_allocate_buffer); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array_2__getbuffer__(struct __pyx_array_obj *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
@@ -2084,7 +2067,7 @@ static PyObject *__pyx_codeobj__29;
 /* "chansim/utils/_fastInterp.pyx":7
  * @cython.wraparound(False)
  * @cython.cdivision(True)
- * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
+ * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, f_v):             # <<<<<<<<<<<<<<
  *     cdef int nump = <int>x.size
  *     cdef int n = <int>coeffs.size - 3
  */
@@ -2098,7 +2081,7 @@ static PyObject *__pyx_pw_7chansim_5utils_11_fastInterp_1interp(PyObject *__pyx_
   __Pyx_memviewslice __pyx_v_coeffs = { 0, 0, { 0 }, { 0 }, { 0 } };
   double __pyx_v_a;
   double __pyx_v_b;
-  __pyx_ctuple_double__and_double __pyx_v_f_v;
+  PyObject *__pyx_v_f_v = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -2181,7 +2164,7 @@ static PyObject *__pyx_pw_7chansim_5utils_11_fastInterp_1interp(PyObject *__pyx_
     __pyx_v_coeffs = __Pyx_PyObject_to_MemoryviewSlice_ds_double(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_coeffs.memview)) __PYX_ERR(0, 7, __pyx_L3_error)
     __pyx_v_a = __pyx_PyFloat_AsDouble(values[3]); if (unlikely((__pyx_v_a == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
     __pyx_v_b = __pyx_PyFloat_AsDouble(values[4]); if (unlikely((__pyx_v_b == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
-    __pyx_v_f_v = __pyx_convert__from_py___pyx_ctuple_double__and_double(values[5]); if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L3_error)
+    __pyx_v_f_v = values[5];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
@@ -2198,7 +2181,7 @@ static PyObject *__pyx_pw_7chansim_5utils_11_fastInterp_1interp(PyObject *__pyx_
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_x, __Pyx_memviewslice __pyx_v_ret, __Pyx_memviewslice __pyx_v_coeffs, double __pyx_v_a, double __pyx_v_b, __pyx_ctuple_double__and_double __pyx_v_f_v) {
+static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyObject *__pyx_self, __Pyx_memviewslice __pyx_v_x, __Pyx_memviewslice __pyx_v_ret, __Pyx_memviewslice __pyx_v_coeffs, double __pyx_v_a, double __pyx_v_b, PyObject *__pyx_v_f_v) {
   int __pyx_v_nump;
   int __pyx_v_n;
   Py_ssize_t __pyx_v_i;
@@ -2211,7 +2194,8 @@ static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyO
   Py_ssize_t __pyx_t_5;
   Py_ssize_t __pyx_t_6;
   int __pyx_t_7;
-  Py_ssize_t __pyx_t_8;
+  double __pyx_t_8;
+  Py_ssize_t __pyx_t_9;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -2219,7 +2203,7 @@ static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyO
 
   /* "chansim/utils/_fastInterp.pyx":8
  * @cython.cdivision(True)
- * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):
+ * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, f_v):
  *     cdef int nump = <int>x.size             # <<<<<<<<<<<<<<
  *     cdef int n = <int>coeffs.size - 3
  *     cdef Py_ssize_t i
@@ -2234,7 +2218,7 @@ static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyO
   __pyx_v_nump = ((int)__pyx_t_3);
 
   /* "chansim/utils/_fastInterp.pyx":9
- * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):
+ * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, f_v):
  *     cdef int nump = <int>x.size
  *     cdef int n = <int>coeffs.size - 3             # <<<<<<<<<<<<<<
  *     cdef Py_ssize_t i
@@ -2279,8 +2263,12 @@ static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyO
  *         elif x[i] > b:
  *             ret[i] = f_v[1]
  */
+      __pyx_t_1 = __Pyx_GetItemInt(__pyx_v_f_v, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 15, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_1);
+      __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_1); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 15, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __pyx_t_6 = __pyx_v_i;
-      *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_6 * __pyx_v_ret.strides[0]) )) = __pyx_v_f_v.f0;
+      *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_6 * __pyx_v_ret.strides[0]) )) = __pyx_t_8;
 
       /* "chansim/utils/_fastInterp.pyx":14
  *     for i in xrange(nump):
@@ -2310,8 +2298,12 @@ static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyO
  *         else:
  *             ret[i] = _interp(x[i], coeffs, n, a, b)
  */
+      __pyx_t_1 = __Pyx_GetItemInt(__pyx_v_f_v, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 17, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_1);
+      __pyx_t_8 = __pyx_PyFloat_AsDouble(__pyx_t_1); if (unlikely((__pyx_t_8 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 17, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __pyx_t_6 = __pyx_v_i;
-      *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_6 * __pyx_v_ret.strides[0]) )) = __pyx_v_f_v.f1;
+      *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_6 * __pyx_v_ret.strides[0]) )) = __pyx_t_8;
 
       /* "chansim/utils/_fastInterp.pyx":16
  *         if x[i] < a:
@@ -2332,8 +2324,8 @@ static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyO
  */
     /*else*/ {
       __pyx_t_6 = __pyx_v_i;
-      __pyx_t_8 = __pyx_v_i;
-      *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_8 * __pyx_v_ret.strides[0]) )) = __pyx_f_7chansim_5utils_11_fastInterp__interp((*((double *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) ))), __pyx_v_coeffs, __pyx_v_n, __pyx_v_a, __pyx_v_b);
+      __pyx_t_9 = __pyx_v_i;
+      *((double *) ( /* dim=0 */ (__pyx_v_ret.data + __pyx_t_9 * __pyx_v_ret.strides[0]) )) = __pyx_f_7chansim_5utils_11_fastInterp__interp((*((double *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) ))), __pyx_v_coeffs, __pyx_v_n, __pyx_v_a, __pyx_v_b);
     }
     __pyx_L5:;
   }
@@ -2353,7 +2345,7 @@ static PyObject *__pyx_pf_7chansim_5utils_11_fastInterp_interp(CYTHON_UNUSED PyO
   /* "chansim/utils/_fastInterp.pyx":7
  * @cython.wraparound(False)
  * @cython.cdivision(True)
- * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
+ * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, f_v):             # <<<<<<<<<<<<<<
  *     cdef int nump = <int>x.size
  *     cdef int n = <int>coeffs.size - 3
  */
@@ -16803,7 +16795,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   /* "chansim/utils/_fastInterp.pyx":7
  * @cython.wraparound(False)
  * @cython.cdivision(True)
- * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
+ * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, f_v):             # <<<<<<<<<<<<<<
  *     cdef int nump = <int>x.size
  *     cdef int n = <int>coeffs.size - 3
  */
@@ -17236,7 +17228,7 @@ if (!__Pyx_RefNanny) {
   /* "chansim/utils/_fastInterp.pyx":7
  * @cython.wraparound(False)
  * @cython.cdivision(True)
- * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):             # <<<<<<<<<<<<<<
+ * def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, f_v):             # <<<<<<<<<<<<<<
  *     cdef int nump = <int>x.size
  *     cdef int n = <int>coeffs.size - 3
  */
@@ -17630,6 +17622,93 @@ invalid_keyword:
     #endif
 bad:
     return -1;
+}
+
+/* GetItemInt */
+static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j) {
+    PyObject *r;
+    if (!j) return NULL;
+    r = PyObject_GetItem(o, j);
+    Py_DECREF(j);
+    return r;
+}
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
+                                                              CYTHON_NCP_UNUSED int wraparound,
+                                                              CYTHON_NCP_UNUSED int boundscheck) {
+#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+    Py_ssize_t wrapped_i = i;
+    if (wraparound & unlikely(i < 0)) {
+        wrapped_i += PyList_GET_SIZE(o);
+    }
+    if ((!boundscheck) || likely(__Pyx_is_valid_index(wrapped_i, PyList_GET_SIZE(o)))) {
+        PyObject *r = PyList_GET_ITEM(o, wrapped_i);
+        Py_INCREF(r);
+        return r;
+    }
+    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
+#else
+    return PySequence_GetItem(o, i);
+#endif
+}
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
+                                                              CYTHON_NCP_UNUSED int wraparound,
+                                                              CYTHON_NCP_UNUSED int boundscheck) {
+#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+    Py_ssize_t wrapped_i = i;
+    if (wraparound & unlikely(i < 0)) {
+        wrapped_i += PyTuple_GET_SIZE(o);
+    }
+    if ((!boundscheck) || likely(__Pyx_is_valid_index(wrapped_i, PyTuple_GET_SIZE(o)))) {
+        PyObject *r = PyTuple_GET_ITEM(o, wrapped_i);
+        Py_INCREF(r);
+        return r;
+    }
+    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
+#else
+    return PySequence_GetItem(o, i);
+#endif
+}
+static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, int is_list,
+                                                     CYTHON_NCP_UNUSED int wraparound,
+                                                     CYTHON_NCP_UNUSED int boundscheck) {
+#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS && CYTHON_USE_TYPE_SLOTS
+    if (is_list || PyList_CheckExact(o)) {
+        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyList_GET_SIZE(o);
+        if ((!boundscheck) || (likely(__Pyx_is_valid_index(n, PyList_GET_SIZE(o))))) {
+            PyObject *r = PyList_GET_ITEM(o, n);
+            Py_INCREF(r);
+            return r;
+        }
+    }
+    else if (PyTuple_CheckExact(o)) {
+        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyTuple_GET_SIZE(o);
+        if ((!boundscheck) || likely(__Pyx_is_valid_index(n, PyTuple_GET_SIZE(o)))) {
+            PyObject *r = PyTuple_GET_ITEM(o, n);
+            Py_INCREF(r);
+            return r;
+        }
+    } else {
+        PySequenceMethods *m = Py_TYPE(o)->tp_as_sequence;
+        if (likely(m && m->sq_item)) {
+            if (wraparound && unlikely(i < 0) && likely(m->sq_length)) {
+                Py_ssize_t l = m->sq_length(o);
+                if (likely(l >= 0)) {
+                    i += l;
+                } else {
+                    if (!PyErr_ExceptionMatches(PyExc_OverflowError))
+                        return NULL;
+                    PyErr_Clear();
+                }
+            }
+            return m->sq_item(o, i);
+        }
+    }
+#else
+    if (is_list || PySequence_Check(o)) {
+        return PySequence_GetItem(o, i);
+    }
+#endif
+    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
 }
 
 /* MemviewSliceInit */
@@ -18387,93 +18466,6 @@ static CYTHON_INLINE PyObject *__Pyx_GetAttr(PyObject *o, PyObject *n) {
         return __Pyx_PyObject_GetAttrStr(o, n);
 #endif
     return PyObject_GetAttr(o, n);
-}
-
-/* GetItemInt */
-static PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j) {
-    PyObject *r;
-    if (!j) return NULL;
-    r = PyObject_GetItem(o, j);
-    Py_DECREF(j);
-    return r;
-}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_List_Fast(PyObject *o, Py_ssize_t i,
-                                                              CYTHON_NCP_UNUSED int wraparound,
-                                                              CYTHON_NCP_UNUSED int boundscheck) {
-#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    Py_ssize_t wrapped_i = i;
-    if (wraparound & unlikely(i < 0)) {
-        wrapped_i += PyList_GET_SIZE(o);
-    }
-    if ((!boundscheck) || likely(__Pyx_is_valid_index(wrapped_i, PyList_GET_SIZE(o)))) {
-        PyObject *r = PyList_GET_ITEM(o, wrapped_i);
-        Py_INCREF(r);
-        return r;
-    }
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
-#else
-    return PySequence_GetItem(o, i);
-#endif
-}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Tuple_Fast(PyObject *o, Py_ssize_t i,
-                                                              CYTHON_NCP_UNUSED int wraparound,
-                                                              CYTHON_NCP_UNUSED int boundscheck) {
-#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    Py_ssize_t wrapped_i = i;
-    if (wraparound & unlikely(i < 0)) {
-        wrapped_i += PyTuple_GET_SIZE(o);
-    }
-    if ((!boundscheck) || likely(__Pyx_is_valid_index(wrapped_i, PyTuple_GET_SIZE(o)))) {
-        PyObject *r = PyTuple_GET_ITEM(o, wrapped_i);
-        Py_INCREF(r);
-        return r;
-    }
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
-#else
-    return PySequence_GetItem(o, i);
-#endif
-}
-static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, int is_list,
-                                                     CYTHON_NCP_UNUSED int wraparound,
-                                                     CYTHON_NCP_UNUSED int boundscheck) {
-#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS && CYTHON_USE_TYPE_SLOTS
-    if (is_list || PyList_CheckExact(o)) {
-        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyList_GET_SIZE(o);
-        if ((!boundscheck) || (likely(__Pyx_is_valid_index(n, PyList_GET_SIZE(o))))) {
-            PyObject *r = PyList_GET_ITEM(o, n);
-            Py_INCREF(r);
-            return r;
-        }
-    }
-    else if (PyTuple_CheckExact(o)) {
-        Py_ssize_t n = ((!wraparound) | likely(i >= 0)) ? i : i + PyTuple_GET_SIZE(o);
-        if ((!boundscheck) || likely(__Pyx_is_valid_index(n, PyTuple_GET_SIZE(o)))) {
-            PyObject *r = PyTuple_GET_ITEM(o, n);
-            Py_INCREF(r);
-            return r;
-        }
-    } else {
-        PySequenceMethods *m = Py_TYPE(o)->tp_as_sequence;
-        if (likely(m && m->sq_item)) {
-            if (wraparound && unlikely(i < 0) && likely(m->sq_length)) {
-                Py_ssize_t l = m->sq_length(o);
-                if (likely(l >= 0)) {
-                    i += l;
-                } else {
-                    if (!PyErr_ExceptionMatches(PyExc_OverflowError))
-                        return NULL;
-                    PyErr_Clear();
-                }
-            }
-            return m->sq_item(o, i);
-        }
-    }
-#else
-    if (is_list || PySequence_Check(o)) {
-        return PySequence_GetItem(o, i);
-    }
-#endif
-    return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
 }
 
 /* ObjectGetItem */
@@ -20398,36 +20390,6 @@ no_fail:
 __pyx_fail:
     result.memview = NULL;
     result.data = NULL;
-    return result;
-}
-
-/* FromPyCTupleUtility */
-  static __pyx_ctuple_double__and_double __pyx_convert__from_py___pyx_ctuple_double__and_double(PyObject * o) {
-    __pyx_ctuple_double__and_double result;
-    if (!PyTuple_Check(o) || PyTuple_GET_SIZE(o) != 2) {
-        PyErr_Format(PyExc_TypeError, "Expected %.16s of size %d, got %.200s", "a tuple", 2, Py_TYPE(o)->tp_name);
-        goto bad;
-    }
-#if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        result.f0 = __pyx_PyFloat_AsDouble(PyTuple_GET_ITEM(o, 0));
-        if ((result.f0 == (double)-1) && PyErr_Occurred()) goto bad;
-        result.f1 = __pyx_PyFloat_AsDouble(PyTuple_GET_ITEM(o, 1));
-        if ((result.f1 == (double)-1) && PyErr_Occurred()) goto bad;
-#else
-    {
-        PyObject *item;
-        item = PySequence_ITEM(o, 0);  if (unlikely(!item)) goto bad;
-        result.f0 = __pyx_PyFloat_AsDouble(item);
-        Py_DECREF(item);
-        if ((result.f0 == (double)-1) && PyErr_Occurred()) goto bad;
-        item = PySequence_ITEM(o, 1);  if (unlikely(!item)) goto bad;
-        result.f1 = __pyx_PyFloat_AsDouble(item);
-        Py_DECREF(item);
-        if ((result.f1 == (double)-1) && PyErr_Occurred()) goto bad;
-    }
-#endif
-    return result;
-bad:
     return result;
 }
 

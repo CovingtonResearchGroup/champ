@@ -1,16 +1,40 @@
+#
+# Implements fast cubic spline method of Habermann and Kindermann (2007)
+#
 import numpy as np
 from scipy.linalg import solve_banded
 from ._fastInterp import interp, interpf
 
 class fast1DCubicSpline(object):
-    def __init__(self, x, y, bounds_error=True, fill_value=np.nan):
+    """
+    Interpolate a 1-D function with cubic splines.
 
+    Parameters
+    ----------
+    x : (N,) numpy.ndarray
+        A 1-D array of floats.
+    y : (N,) numpy.ndarray
+        A 1-D array of floats, the same length as 'x'.
+    bounds_error : bool, optional
+        If True an error is raised if value to be interpolated is out of the
+        original bounds. Default is true.
+    fill_value : None or tuple length 2, optional
+        - if a tuple is provided, and bounds_error is False, set values to be
+        interpolated out of range to fill_value[0] when less than original
+        minimum x, and fill_value[1] when larger than the original maximum x.
+
+    Methods
+    -------
+    __call__
+    """
+    def __init__(self, x, y, bounds_error=True, fill_value=None):
+        """Initialize interpolator."""
         assert type(bounds_error) == type(True), "bounds_error must be True/False"
 
         self.b_e = bounds_error
 
         self.f_v = fill_value
-        if self.f_v != np.nan:
+        if type(self.f_v) != type(None):
             assert len(fill_value) == 2, "fill_value must have 2 elements"
 
         self.x = x
@@ -45,11 +69,18 @@ class fast1DCubicSpline(object):
         return(coeffs)
 
     def __call__(self, x):
-
+        """
+        Returns interpolated values.
+        
+        Parameters
+        ----------
+        x : numpy.ndarray, float, or np.float64
+            Value or values to evaluate in interpolated function.
+        """
         assert type(x) == np.ndarray or type(x) == np.float64 or type(x) == float
 
         if self.b_e:
-            assert np.any(np.logical_or(x<self.xmin,x>self.xmax)) == True, "Interpolant out of bounds"
+            assert np.any(np.logical_or(x<self.xmin,x>self.xmax)) == True, "Variable out of bounds"
 
         ret = 0
 

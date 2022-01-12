@@ -4,7 +4,7 @@ from libc.math cimport fmin, fabs
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, (double, double) f_v):
+def interp(double [:] x, double [:] ret, double [:] coeffs, double a, double b, f_v):
     cdef int nump = <int>x.size
     cdef int n = <int>coeffs.size - 3
     cdef Py_ssize_t i
