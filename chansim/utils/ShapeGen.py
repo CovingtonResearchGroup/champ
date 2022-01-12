@@ -23,7 +23,7 @@ def genEll(r1, r2, theta=0, n=1000):
         x and y values for points in cross-section.
     """
 
-    t = linspace(0, 2 * pi - 2 * pi / n, n - 1)
+    t = linspace(pi/2, 2*pi + pi/2 - 2*pi/n, n - 1)
     x = r1 * cos(t)
     y = r2 * sin(t)
 

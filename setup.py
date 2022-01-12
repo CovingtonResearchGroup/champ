@@ -11,6 +11,11 @@ ext_modules = [
         define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
     ),
     Extension(
+        "chansim.utils.fastCalcP",
+        ["chansim/utils/fastCalcP.pyx"],
+        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+    ),
+    Extension(
         "chansim.utils._fastInterp",
         ["chansim/utils/_fastInterp.pyx"],
         define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],

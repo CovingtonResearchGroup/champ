@@ -8,6 +8,10 @@ ext_modules = [
         ["fastCalcA.pyx"]
     ),
     Extension(
+        "fastCalcP",
+        ["fastCalcP.pyx"]
+    ),
+    Extension(
         "_fastInterp",
         ["_fastInterp.pyx"]
     ),
