@@ -80,7 +80,9 @@ def calcP(DTYPE_t [:] x, DTYPE_t [:] xp, DTYPE_t [:] y, DTYPE_t [:] yp, DTYPE_t 
       xps[<Py_ssize_t>n] = xp[<Py_ssize_t>i]
       yps[<Py_ssize_t>n] = yp[<Py_ssize_t>i]
       n += 1
-
+  if n == 0:
+    free(xs); free(ys); free(xps); free(yps);
+    return(0.0)
   xps[n-1] = xs[0]
   yps[n-1] = ys[0]
 

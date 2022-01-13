@@ -15,6 +15,7 @@ import numpy as np
 from scipy import interpolate
 from scipy.optimize import root_scalar, minimize_scalar
 from chansim.utils.fastCalcA import calcA as fcalcA
+from chansim.utils.fastCalcP import calcP as fcalcP
 from chansim.utils.fastInterp import fast1DCubicSpline as finterp1d
 import copy
 
@@ -50,6 +51,9 @@ class CrossSection:
             Roughness height in meters. Default value is 1/30 of a cm.
         """
         self.n = len(x)
+        y_roll = y.size - y.argmax()
+        x = roll(x, y_roll)
+        y = roll(y, y_roll)
         self.x = x
         self.y = y
         self.x_total = None
@@ -78,53 +82,26 @@ class CrossSection:
             self.xp_total = roll(self.x_total, self.x_total.size - 1)
             self.yp_total = roll(self.y_total, self.y_total.size - 1)
 
-    def calcP(self, wantidx=None, total=False):
-        """Calculate perimeter of cross-section or subset.
+    def calcP(self, depth=-1.0):
+        """Calculate perimeter of cross-section or subset. Calls cython for
+        fast computation.
 
         Parameters
         ----------
-        wantidx : ndarray of boolean, optional
-            An array of boolean values to select cross-section points for
-            including in the perimeter calculation. This is mostly used to
-            calculated wet or dry perimeters. If None, then perimeter is
-            calculated for entire cross-section. Default is None.
-        total : boolean, optional
-            Whether to calculate the perimeter using the total cross-section.
-            This is relevant for cases when the cross-section has been
-            trimmed in order to maintain resolution. The total, untrimmed
-            cross-section is still stored for airflow calculations and showing
-            the full evolution. Default is False.
+        depth : float, optional
 
         Returns
         -------
         P : float
             The perimeter of the selected portion of the cross-section.
         """
-        if total:
-            x = self.x_total
-            y = self.y_total
-            xp = self.xp_total
-            yp = self.yp_total
-        else:
-            x = self.x
-            y = self.y
-            xp = self.xp
-            yp = self.yp
-        if wantidx is not None:
-            l = hypot(x[wantidx] - xp[wantidx], y[wantidx] - yp[wantidx])
-        else:
-            l = hypot(x - xp, y - yp)
-        if len(l) > 0:
-            maxidx = np.argmax(l)
-            if l[maxidx] > 100 * l.min():
-                # If perimeter connects across non-existent ceiling, cut this out
-                l[maxidx] = 0.0
-        P = abs(sum(l))
-        return P
+
+        return fcalcP(self.x, self.xp, self.y, self.yp, depth)
 
     # Calculates area of the cross-section
     def calcA(self, depth=-1.0):
-        """Calculate area of cross-section or subset. Calls cython for fast computation.
+        """Calculate area of cross-section or subset. Calls cython for
+        fast computation.
 
         Parameters
         ----------
@@ -180,14 +157,7 @@ class CrossSection:
             n_points = int(np.round(num_xc_points / 3.0))
         depth_arr = np.linspace(0, max_interp, n_points)
 
-        Ps = []
-        for depth in depth_arr:
-            wantidx = self.y - self.ymin < depth
-            l = hypot(
-                self.x[wantidx] - self.xp[wantidx], self.y[wantidx] - self.yp[wantidx]
-            )
-            Ps.append(abs(l.sum()))
-        Ps = np.array(Ps)
+        Ps = np.array([self.calcP(depth=i) for i in depth_arr])
 
         P_interp = finterp1d(
             depth_arr, Ps, bounds_error=False, fill_value=(Ps[0],Ps[-1])
@@ -571,7 +541,7 @@ class CrossSection:
             A = self.A_interp(depth)
         else:
             wetidx = self.y - self.ymin < depth
-            Pw = self.calcP(wantidx=wetidx)
+            Pw = self.calcP(depth=depth)
             A = self.calcA(depth=depth)
         if Pw > 0 and A > 0 and depth > 0:
             D_H = 4.0 * A / Pw

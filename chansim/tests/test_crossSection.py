@@ -33,7 +33,7 @@ def test_xc_p():
 
 
 def test_half_xc_p():
-    P = xc_Circ.calcP(wantidx=xc_Circ.y < 0.0)
+    P = xc_Circ.calcP(depth = (xc_Circ.y.max() - xc_Circ.y.min())/2)
     P_analytical = np.pi * r
     assert_approx_equal(P_analytical, P, significant=3)
 
@@ -55,8 +55,7 @@ def test_P_interp():
     xc_Circ.setMaxVelPoint(fd)
     xc_Circ.create_P_interp()
     P_from_interp = xc_Circ.P_interp(fd)
-    wetidx = xc_Circ.y < xc_Circ.y.min() + fd
-    P_from_calcP = xc_Circ.calcP(wantidx=wetidx)
+    P_from_calcP = xc_Circ.calcP(depth=fd)
     assert_approx_equal(P_from_interp, P_from_calcP, significant=3)
 
 

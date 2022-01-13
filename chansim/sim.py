@@ -471,7 +471,7 @@ class multiXC(sim):
             # free surface widths, and velocities
             wetidx = (xc.y - xc.ymin) < self.fd_mids[i]
             self.A_w[i] = xc.calcA(depth = self.fd_mids[i])
-            self.P_w[i] = xc.calcP(wantidx=wetidx)
+            self.P_w[i] = xc.calcP(depth = self.fd_mids[i])
             self.V_w[i] = -self.Q_w / self.A_w[i]
             self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
             if self.flow_type[i] != "full":
