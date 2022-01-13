@@ -12,10 +12,13 @@ from pylab import (
     ceil,
     arange,
 )
+import matplotlib
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def make_all_standard_timestep_plots(sim, plotdir, timestep_str):
+    # Avoid opening GUI
+    matplotlib.use("Agg")
     plot_overlapping_XCs(sim, plotdir, timestep_str)
     if not sim.singleXC:
         plot_elevation_profile(sim, plotdir, timestep_str)

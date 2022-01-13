@@ -16,6 +16,8 @@ import sys
 import os
 import numpy as np
 import time
+import copy
+import multiprocessing as mp
 
 from chansim.utils.model_parameter_loader import load_params
 from chansim.viz.standard_timestep_plots import make_all_standard_timestep_plots
@@ -40,6 +42,7 @@ def runSim(
     plot_every=100,
     snapshot_by_years=True,
     plot_by_years=True,
+    n_plot_processes=1,
     sim_params={},
 ):
 
@@ -85,6 +88,10 @@ def runSim(
     plot_by_years : boolean
         Whether plots should be created after a certain number of years of simulation
         (True) or after a certain number of timesteps (False). Default is True.
+    n_plot_processes : int
+        Number of multiprocessing processes to use for creating plots, which are run
+        within a separate process from the simulation. Increase this number if plotting
+        is slowing down your simulation and additional CPUs are available. Default is 1.
     sim_params : dict
         Dictionary of keyword arguments to be supplied to singleXC or multiXC for
         initialization of simulation object.
@@ -93,6 +100,11 @@ def runSim(
 
     if not os.path.isdir(plotdir):
         os.mkdir(plotdir)
+
+    plot_queue = mp.JoinableQueue()
+    for i in range(n_plot_processes):
+        plot_process = mp.Process(target=make_plots, args=(plot_queue,))
+        plot_process.start()
 
     if n == 1:
         single_XC_sim = True
@@ -158,13 +170,15 @@ def runSim(
             if tstep % plot_every == 0:
                 timestep_str = "%08d" % (tstep,)
                 print("Plotting timestep: ", tstep)
-                make_all_standard_timestep_plots(sim, plotdir, timestep_str)
+                plot_tuple = (copy.deepcopy(sim), plotdir, timestep_str)
+                plot_queue.put(plot_tuple)
         else:
             t = int(np.round(sim.elapsed_time))
             if t % plot_every == 0:
                 time_str = "%08d" % (t,)
                 print("Plotting at time: ", t)
-                make_all_standard_timestep_plots(sim, plotdir, time_str)
+                plot_tuple = (copy.deepcopy(sim), plotdir, time_str)
+                plot_queue.put(plot_tuple)
         if not snapshot_by_years:
             tstep = int(np.round(sim.timestep))
             if tstep % snapshot_every == 0:
@@ -202,9 +216,20 @@ def runSim(
                 else:
                     oldtimestep = sim.dt_erode
                     sim.dt_erode = time_to_next_snap
+
+    # Make sure all plotting creation finishes up
+    plot_queue.join()
+
     t_f = time.time()
     print(f"Runtime for simulation was {t_f - t_i}")
     return sim
+
+
+def make_plots(plot_queue):
+    while True:
+        this_plot_tuple = plot_queue.get()
+        make_all_standard_timestep_plots(*this_plot_tuple)
+        plot_queue.task_done()
 
 
 if __name__ == "__main__":
