@@ -5,8 +5,8 @@ from numpy.testing import (
     assert_array_almost_equal,
 )
 
-from chansim.crossSection import CrossSection
-from chansim.utils.ShapeGen import genCirc
+from champ.crossSection import CrossSection
+from champ.utils.ShapeGen import genCirc
 
 r = 1.0
 n = 1000
@@ -21,7 +21,7 @@ def test_xc_area():
 
 
 def test_half_xc_area():
-    A = xc_Circ.calcA(depth = (xc_Circ.y.max() - xc_Circ.y.min())/2)
+    A = xc_Circ.calcA(depth=(xc_Circ.y.max() - xc_Circ.y.min()) / 2)
     area_analytical = 0.5 * np.pi * r ** 2.0
     assert_approx_equal(area_analytical, A, significant=3)
 
@@ -33,7 +33,7 @@ def test_xc_p():
 
 
 def test_half_xc_p():
-    P = xc_Circ.calcP(depth = (xc_Circ.y.max() - xc_Circ.y.min())/2)
+    P = xc_Circ.calcP(depth=(xc_Circ.y.max() - xc_Circ.y.min()) / 2)
     P_analytical = np.pi * r
     assert_approx_equal(P_analytical, P, significant=3)
 
@@ -44,8 +44,8 @@ def test_A_interp():
     xc_Circ.setMaxVelPoint(fd)
     xc_Circ.create_A_interp()
     A_from_interp = xc_Circ.A_interp(fd)
-    #wetidx = xc_Circ.y < xc_Circ.y.min() + fd
-    A_from_calcA = xc_Circ.calcA(depth = fd)
+    # wetidx = xc_Circ.y < xc_Circ.y.min() + fd
+    A_from_calcA = xc_Circ.calcA(depth=fd)
     assert_approx_equal(A_from_interp, A_from_calcA, significant=2)
 
 

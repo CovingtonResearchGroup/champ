@@ -19,9 +19,9 @@ import time
 import copy
 import multiprocessing as mp
 
-from chansim.utils.model_parameter_loader import load_params
-from chansim.viz.standard_timestep_plots import make_all_standard_timestep_plots
-from chansim.sim import singleXC, multiXC
+from champ.utils.model_parameter_loader import load_params
+from champ.viz.standard_timestep_plots import make_all_standard_timestep_plots
+from champ.sim import singleXC, multiXC
 
 params_file = None
 

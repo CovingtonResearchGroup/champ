@@ -1,7 +1,7 @@
 import numpy as np
 
-from chansim.crossSection import CrossSection
-from chansim.utils.ShapeGen import genCirc
+from champ.crossSection import CrossSection
+from champ.utils.ShapeGen import genCirc
 
 
 class sim:

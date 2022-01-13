@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose
 
-from chansim.sim import singleXC, multiXC
+from champ.sim import singleXC, multiXC
 
 g = 9.8
 L_per_m3 = 1000.0

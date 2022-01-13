@@ -5,7 +5,7 @@ from numpy.testing import (
     assert_array_almost_equal,
 )
 
-from chansim.runSim import runSim
+from champ.runSim import runSim
 
 slope_ref = 0.01
 Q_ref = 1.0

@@ -12,9 +12,9 @@ from numpy import (
 import numpy as np
 from scipy import interpolate
 from scipy.optimize import root_scalar, minimize_scalar
-from chansim.utils.fastCalcA import calcA as fcalcA
-from chansim.utils.fastCalcP import calcP as fcalcP
-from chansim.utils.fastInterp import fast1DCubicSpline as finterp1d
+from champ.utils.fastCalcA import calcA as fcalcA
+from champ.utils.fastCalcP import calcP as fcalcP
+from champ.utils.fastInterp import fast1DCubicSpline as finterp1d
 import copy
 
 
