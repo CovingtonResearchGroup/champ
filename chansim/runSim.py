@@ -102,9 +102,11 @@ def runSim(
         os.mkdir(plotdir)
 
     plot_queue = mp.JoinableQueue()
+    plot_process_list = []
     for i in range(n_plot_processes):
-        plot_process = mp.Process(target=make_plots, args=(plot_queue,))
+        plot_process = mp.Process(target=make_plots, args=(plot_queue,), daemon=True)
         plot_process.start()
+        plot_process_list.append(plot_process)
 
     if n == 1:
         single_XC_sim = True
