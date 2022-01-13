@@ -1,6 +1,6 @@
-# CO2-speleophysics
+# Champ - Channel morphodynamics in Python
 
-* The main entry point for the code is CO2_1D.py, which contains the simulation object.
+* The main entry point for the code is sim.py, which contains the simulation object.
 
 * runSim.py contains code for setting up and running simulations from yaml files that specify parameters.
 
