@@ -4,8 +4,6 @@ from numpy import (
     fabs,
     sign,
     roll,
-    sum,
-    hypot,
     logical_and,
     where,
     linspace,
@@ -51,11 +49,9 @@ class CrossSection:
             Roughness height in meters. Default value is 1/30 of a cm.
         """
         self.n = len(x)
-        y_roll = y.size - y.argmax()
-        x = roll(x, y_roll)
-        y = roll(y, y_roll)
         self.x = x
         self.y = y
+        self.rollXC()
         self.x_total = None
         self.y_total = None
         self.ymin = min(y)
@@ -67,6 +63,14 @@ class CrossSection:
         self.Q = 0.0
         self.back_to_total = False
         self.is_trimmed = False
+
+    def rollXC(self):
+        """
+        Roll x and y points such that XC starts at maximum y value
+        """
+        y_roll = self.y.size - self.y.argmax()
+        self.x = roll(self.x, y_roll)
+        self.y = roll(self.y, y_roll)
 
     # Create arrays of x+1, y+1, x-1, x+1
     def create_pm(self):
@@ -135,7 +139,7 @@ class CrossSection:
         As = np.array([self.calcA(depth=i) for i in depth_arr])
 
         A_interp = finterp1d(
-            depth_arr, As, bounds_error=False, fill_value=(As[0],As[-1])
+            depth_arr, As, bounds_error=False, fill_value=(As[0], As[-1])
         )
 
         self.A_interp = A_interp
@@ -160,7 +164,7 @@ class CrossSection:
         Ps = np.array([self.calcP(depth=i) for i in depth_arr])
 
         P_interp = finterp1d(
-            depth_arr, Ps, bounds_error=False, fill_value=(Ps[0],Ps[-1])
+            depth_arr, Ps, bounds_error=False, fill_value=(Ps[0], Ps[-1])
         )
 
         self.P_interp = P_interp
@@ -508,12 +512,10 @@ class CrossSection:
             un = linspace(u.min(), u.max(), n)  # if n!=nx.size else nx.size)
             nx, ny = interpolate.splev(un, tck, der=0)
 
-        # New coordinates
-        y_roll = ny.size - ny.argmax()
-        nx = roll(nx, y_roll)
-        ny = roll(ny, y_roll)
+        # Set new XC coordinates
         self.x = nx
         self.y = ny
+        self.rollXC()
         self.create_pm()
         self.ymin = min(ny)
         self.ymax = max(ny)
@@ -540,7 +542,6 @@ class CrossSection:
             Pw = self.P_interp(depth)
             A = self.A_interp(depth)
         else:
-            wetidx = self.y - self.ymin < depth
             Pw = self.calcP(depth=depth)
             A = self.calcA(depth=depth)
         if Pw > 0 and A > 0 and depth > 0:
