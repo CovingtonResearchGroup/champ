@@ -6,18 +6,8 @@ from numpy import get_include
 
 ext_modules = [
     Extension(
-        "champ.utils.fastCalcA",
-        ["champ/utils/fastCalcA.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
-    ),
-    Extension(
-        "champ.utils.fastCalcP",
-        ["champ/utils/fastCalcP.pyx"],
-        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
-    ),
-    Extension(
-        "champ.utils._fastInterp",
-        ["champ/utils/_fastInterp.pyx"],
+        "champ.utils.*",
+        ["champ/utils/*.pyx"],
         define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
     ),
 ]

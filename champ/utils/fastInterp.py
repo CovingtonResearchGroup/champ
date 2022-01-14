@@ -29,6 +29,9 @@ class fast1DCubicSpline(object):
     """
     def __init__(self, x, y, bounds_error=True, fill_value=None):
         """Initialize interpolator."""
+
+        assert x.size == y.size, "x and y must be same length"
+
         assert type(bounds_error) == type(True), "bounds_error must be True/False"
 
         self.b_e = bounds_error
@@ -48,6 +51,7 @@ class fast1DCubicSpline(object):
         self.coeffs = self.calcCoeffs()
 
     def calcCoeffs(self):
+        """Calculates interpolation coeffecients"""
         coeffs = np.zeros(self.n+3)
         coeffs[1] = 1./6 * self.y[0]
         coeffs[self.n+1] = 1./6 * self.y[self.n]
@@ -71,7 +75,7 @@ class fast1DCubicSpline(object):
     def __call__(self, x):
         """
         Returns interpolated values.
-        
+
         Parameters
         ----------
         x : numpy.ndarray, float, or np.float64
@@ -85,7 +89,7 @@ class fast1DCubicSpline(object):
         ret = 0
 
         if type(x) == np.ndarray:
-            ret = np.zeros_like(x)
+            ret = np.zeros_like(x) #array to store results
             interp(x, ret, self.coeffs, self.xmin, self.xmax, self.f_v)
 
         elif type(x) == float or type(x) == np.float64:
