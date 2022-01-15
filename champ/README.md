@@ -3,7 +3,7 @@
 Champ is a Python package to simulate bedrock channel morphology in a single cross-section or a reach defined by multiple cross-sections.
 
 ## Requirements and installation
-Champ requires NumPy, SciPy, PyYAML, and Cython. For visualization it requires Pillow, matplotlib, and Mayavi. The required packages are available in the default Anaconda Individual Edition.
+Running a simulation with Champ requires NumPy, SciPy, PyYAML, and Cython. For visualization it requires Pillow, matplotlib, and Mayavi. The required packages are available in the default Anaconda Individual Edition.
 
 The package is installed from a console with:
 ```bash
