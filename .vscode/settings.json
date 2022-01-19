@@ -3,5 +3,6 @@
     "files.watcherExclude": {
         "**/co2_evo/*-figs/**": true,
         "**/co2_evo/newsim*/**": true
-    }
+    },
+    "restructuredtext.confPath": "${workspaceFolder}/docs"
 }

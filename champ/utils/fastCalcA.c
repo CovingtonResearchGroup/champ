@@ -4,12 +4,6 @@
 {
     "distutils": {
         "depends": [],
-        "extra_compile_args": [
-            "-fopenmp"
-        ],
-        "extra_link_args": [
-            "-fopenmp"
-        ],
         "name": "fastCalcA",
         "sources": [
             "fastCalcA.pyx"
@@ -1181,7 +1175,7 @@ typedef npy_double __pyx_t_5numpy_double_t;
  */
 typedef npy_longdouble __pyx_t_5numpy_longdouble_t;
 
-/* "fastCalcA.pyx":10
+/* "fastCalcA.pyx":8
  * from libc.math cimport fabs
  * 
  * ctypedef np.float64_t DTYPE_t             # <<<<<<<<<<<<<<
@@ -2175,8 +2169,7 @@ static int __pyx_memoryview_thread_locks_used;
 static PyThread_type_lock __pyx_memoryview_thread_locks[8];
 static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMin(__Pyx_memviewslice, int); /*proto*/
 static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMax(__Pyx_memviewslice, int); /*proto*/
-static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcA(__Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice, int); /*proto*/
-static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcAdouble(double *, double *, double *, double *, int); /*proto*/
+static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcA(double *, double *, double *, double *, int); /*proto*/
 static struct __pyx_array_obj *__pyx_array_new(PyObject *, Py_ssize_t, char *, char *, char *); /*proto*/
 static void *__pyx_align_pointer(void *, size_t); /*proto*/
 static PyObject *__pyx_memoryview_new(PyObject *, int, int, __Pyx_TypeInfo *); /*proto*/
@@ -2526,7 +2519,7 @@ static PyObject *__pyx_codeobj__22;
 static PyObject *__pyx_codeobj__29;
 /* Late includes */
 
-/* "fastCalcA.pyx":14
+/* "fastCalcA.pyx":12
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef DTYPE_t findYMin(DTYPE_t [:] y, int nump) nogil:             # <<<<<<<<<<<<<<
@@ -2544,7 +2537,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMin(__Pyx_memviewslice
   Py_ssize_t __pyx_t_4;
   int __pyx_t_5;
 
-  /* "fastCalcA.pyx":15
+  /* "fastCalcA.pyx":13
  * @cython.wraparound(False)
  * cdef DTYPE_t findYMin(DTYPE_t [:] y, int nump) nogil:
  *   cdef DTYPE_t ymin = y[0]             # <<<<<<<<<<<<<<
@@ -2554,7 +2547,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMin(__Pyx_memviewslice
   __pyx_t_1 = 0;
   __pyx_v_ymin = (*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_1 * __pyx_v_y.strides[0]) )));
 
-  /* "fastCalcA.pyx":17
+  /* "fastCalcA.pyx":15
  *   cdef DTYPE_t ymin = y[0]
  *   cdef Py_ssize_t i
  *   for i in xrange(nump):             # <<<<<<<<<<<<<<
@@ -2566,7 +2559,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMin(__Pyx_memviewslice
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
     __pyx_v_i = __pyx_t_4;
 
-    /* "fastCalcA.pyx":18
+    /* "fastCalcA.pyx":16
  *   cdef Py_ssize_t i
  *   for i in xrange(nump):
  *     if y[i] < ymin:             # <<<<<<<<<<<<<<
@@ -2577,7 +2570,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMin(__Pyx_memviewslice
     __pyx_t_5 = (((*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_1 * __pyx_v_y.strides[0]) ))) < __pyx_v_ymin) != 0);
     if (__pyx_t_5) {
 
-      /* "fastCalcA.pyx":19
+      /* "fastCalcA.pyx":17
  *   for i in xrange(nump):
  *     if y[i] < ymin:
  *       ymin = y[i]             # <<<<<<<<<<<<<<
@@ -2587,7 +2580,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMin(__Pyx_memviewslice
       __pyx_t_1 = __pyx_v_i;
       __pyx_v_ymin = (*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_1 * __pyx_v_y.strides[0]) )));
 
-      /* "fastCalcA.pyx":18
+      /* "fastCalcA.pyx":16
  *   cdef Py_ssize_t i
  *   for i in xrange(nump):
  *     if y[i] < ymin:             # <<<<<<<<<<<<<<
@@ -2597,7 +2590,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMin(__Pyx_memviewslice
     }
   }
 
-  /* "fastCalcA.pyx":21
+  /* "fastCalcA.pyx":19
  *       ymin = y[i]
  * 
  *   return(ymin)             # <<<<<<<<<<<<<<
@@ -2607,7 +2600,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMin(__Pyx_memviewslice
   __pyx_r = __pyx_v_ymin;
   goto __pyx_L0;
 
-  /* "fastCalcA.pyx":14
+  /* "fastCalcA.pyx":12
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef DTYPE_t findYMin(DTYPE_t [:] y, int nump) nogil:             # <<<<<<<<<<<<<<
@@ -2620,7 +2613,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMin(__Pyx_memviewslice
   return __pyx_r;
 }
 
-/* "fastCalcA.pyx":25
+/* "fastCalcA.pyx":23
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef DTYPE_t findYMax(DTYPE_t [:] y, int nump) nogil:             # <<<<<<<<<<<<<<
@@ -2638,7 +2631,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMax(__Pyx_memviewslice
   Py_ssize_t __pyx_t_4;
   int __pyx_t_5;
 
-  /* "fastCalcA.pyx":26
+  /* "fastCalcA.pyx":24
  * @cython.wraparound(False)
  * cdef DTYPE_t findYMax(DTYPE_t [:] y, int nump) nogil:
  *   cdef DTYPE_t ymax = y[0]             # <<<<<<<<<<<<<<
@@ -2648,7 +2641,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMax(__Pyx_memviewslice
   __pyx_t_1 = 0;
   __pyx_v_ymax = (*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_1 * __pyx_v_y.strides[0]) )));
 
-  /* "fastCalcA.pyx":28
+  /* "fastCalcA.pyx":26
  *   cdef DTYPE_t ymax = y[0]
  *   cdef Py_ssize_t i
  *   for i in xrange(nump):             # <<<<<<<<<<<<<<
@@ -2660,7 +2653,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMax(__Pyx_memviewslice
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_3; __pyx_t_4+=1) {
     __pyx_v_i = __pyx_t_4;
 
-    /* "fastCalcA.pyx":29
+    /* "fastCalcA.pyx":27
  *   cdef Py_ssize_t i
  *   for i in xrange(nump):
  *     if y[i] > ymax:             # <<<<<<<<<<<<<<
@@ -2671,7 +2664,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMax(__Pyx_memviewslice
     __pyx_t_5 = (((*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_1 * __pyx_v_y.strides[0]) ))) > __pyx_v_ymax) != 0);
     if (__pyx_t_5) {
 
-      /* "fastCalcA.pyx":30
+      /* "fastCalcA.pyx":28
  *   for i in xrange(nump):
  *     if y[i] > ymax:
  *       ymax = y[i]             # <<<<<<<<<<<<<<
@@ -2681,7 +2674,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMax(__Pyx_memviewslice
       __pyx_t_1 = __pyx_v_i;
       __pyx_v_ymax = (*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_1 * __pyx_v_y.strides[0]) )));
 
-      /* "fastCalcA.pyx":29
+      /* "fastCalcA.pyx":27
  *   cdef Py_ssize_t i
  *   for i in xrange(nump):
  *     if y[i] > ymax:             # <<<<<<<<<<<<<<
@@ -2691,7 +2684,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMax(__Pyx_memviewslice
     }
   }
 
-  /* "fastCalcA.pyx":32
+  /* "fastCalcA.pyx":30
  *       ymax = y[i]
  * 
  *   return(ymax)             # <<<<<<<<<<<<<<
@@ -2701,7 +2694,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMax(__Pyx_memviewslice
   __pyx_r = __pyx_v_ymax;
   goto __pyx_L0;
 
-  /* "fastCalcA.pyx":25
+  /* "fastCalcA.pyx":23
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef DTYPE_t findYMax(DTYPE_t [:] y, int nump) nogil:             # <<<<<<<<<<<<<<
@@ -2714,15 +2707,15 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA_findYMax(__Pyx_memviewslice
   return __pyx_r;
 }
 
-/* "fastCalcA.pyx":36
+/* "fastCalcA.pyx":34
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cdef DTYPE_t _calcA(DTYPE_t [:] x, DTYPE_t [:] xm , DTYPE_t [:] y, DTYPE_t [:] ym, int nump) nogil:             # <<<<<<<<<<<<<<
+ * cdef DTYPE_t _calcA(double* x, double* xm , double* y, double* ym, int nump) nogil:             # <<<<<<<<<<<<<<
  *   cdef:
  *     Py_ssize_t i
  */
 
-static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcA(__Pyx_memviewslice __pyx_v_x, __Pyx_memviewslice __pyx_v_xm, __Pyx_memviewslice __pyx_v_y, __Pyx_memviewslice __pyx_v_ym, int __pyx_v_nump) {
+static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcA(double *__pyx_v_x, double *__pyx_v_xm, double *__pyx_v_y, double *__pyx_v_ym, int __pyx_v_nump) {
   Py_ssize_t __pyx_v_i;
   __pyx_t_9fastCalcA_DTYPE_t __pyx_v_sA;
   __pyx_t_9fastCalcA_DTYPE_t __pyx_v_A;
@@ -2731,21 +2724,17 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcA(__Pyx_memviewslice _
   int __pyx_t_1;
   int __pyx_t_2;
   Py_ssize_t __pyx_t_3;
-  Py_ssize_t __pyx_t_4;
-  Py_ssize_t __pyx_t_5;
-  Py_ssize_t __pyx_t_6;
-  Py_ssize_t __pyx_t_7;
+
+  /* "fastCalcA.pyx":38
+ *     Py_ssize_t i
+ *     DTYPE_t sA, A
+ *     DTYPE_t sum = 0             # <<<<<<<<<<<<<<
+ * 
+ *   for i in xrange(nump):
+ */
+  __pyx_v_sum = 0.0;
 
   /* "fastCalcA.pyx":40
- *     Py_ssize_t i
- *     DTYPE_t sA, A
- *     DTYPE_t sum = 0             # <<<<<<<<<<<<<<
- * 
- *   for i in xrange(nump):
- */
-  __pyx_v_sum = 0.0;
-
-  /* "fastCalcA.pyx":42
  *     DTYPE_t sum = 0
  * 
  *   for i in xrange(nump):             # <<<<<<<<<<<<<<
@@ -2757,101 +2746,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcA(__Pyx_memviewslice _
   for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
     __pyx_v_i = __pyx_t_3;
 
-    /* "fastCalcA.pyx":43
- * 
- *   for i in xrange(nump):
- *     sum += xm[i]*y[i] - x[i]*ym[i]             # <<<<<<<<<<<<<<
- * 
- *   sA = sum * 0.5
- */
-    __pyx_t_4 = __pyx_v_i;
-    __pyx_t_5 = __pyx_v_i;
-    __pyx_t_6 = __pyx_v_i;
-    __pyx_t_7 = __pyx_v_i;
-    __pyx_v_sum = (__pyx_v_sum + (((*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_xm.data + __pyx_t_4 * __pyx_v_xm.strides[0]) ))) * (*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_5 * __pyx_v_y.strides[0]) )))) - ((*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) ))) * (*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_ym.data + __pyx_t_7 * __pyx_v_ym.strides[0]) ))))));
-  }
-
-  /* "fastCalcA.pyx":45
- *     sum += xm[i]*y[i] - x[i]*ym[i]
- * 
- *   sA = sum * 0.5             # <<<<<<<<<<<<<<
- *   A = fabs(sA)
- *   return(A)
- */
-  __pyx_v_sA = (__pyx_v_sum * 0.5);
-
-  /* "fastCalcA.pyx":46
- * 
- *   sA = sum * 0.5
- *   A = fabs(sA)             # <<<<<<<<<<<<<<
- *   return(A)
- * 
- */
-  __pyx_v_A = fabs(__pyx_v_sA);
-
-  /* "fastCalcA.pyx":47
- *   sA = sum * 0.5
- *   A = fabs(sA)
- *   return(A)             # <<<<<<<<<<<<<<
- * 
- * @cython.boundscheck(False)
- */
-  __pyx_r = __pyx_v_A;
-  goto __pyx_L0;
-
-  /* "fastCalcA.pyx":36
- * @cython.boundscheck(False)
- * @cython.wraparound(False)
- * cdef DTYPE_t _calcA(DTYPE_t [:] x, DTYPE_t [:] xm , DTYPE_t [:] y, DTYPE_t [:] ym, int nump) nogil:             # <<<<<<<<<<<<<<
- *   cdef:
- *     Py_ssize_t i
- */
-
-  /* function exit code */
-  __pyx_L0:;
-  return __pyx_r;
-}
-
-/* "fastCalcA.pyx":51
- * @cython.boundscheck(False)
- * @cython.wraparound(False)
- * cdef DTYPE_t _calcAdouble(double* x, double* xm , double* y, double* ym, int nump) nogil:             # <<<<<<<<<<<<<<
- *   cdef:
- *     Py_ssize_t i
- */
-
-static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcAdouble(double *__pyx_v_x, double *__pyx_v_xm, double *__pyx_v_y, double *__pyx_v_ym, int __pyx_v_nump) {
-  Py_ssize_t __pyx_v_i;
-  __pyx_t_9fastCalcA_DTYPE_t __pyx_v_sA;
-  __pyx_t_9fastCalcA_DTYPE_t __pyx_v_A;
-  __pyx_t_9fastCalcA_DTYPE_t __pyx_v_sum;
-  __pyx_t_9fastCalcA_DTYPE_t __pyx_r;
-  int __pyx_t_1;
-  int __pyx_t_2;
-  Py_ssize_t __pyx_t_3;
-
-  /* "fastCalcA.pyx":55
- *     Py_ssize_t i
- *     DTYPE_t sA, A
- *     DTYPE_t sum = 0             # <<<<<<<<<<<<<<
- * 
- *   for i in xrange(nump):
- */
-  __pyx_v_sum = 0.0;
-
-  /* "fastCalcA.pyx":57
- *     DTYPE_t sum = 0
- * 
- *   for i in xrange(nump):             # <<<<<<<<<<<<<<
- *     sum += xm[i]*y[i] - x[i]*ym[i]
- * 
- */
-  __pyx_t_1 = __pyx_v_nump;
-  __pyx_t_2 = __pyx_t_1;
-  for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_2; __pyx_t_3+=1) {
-    __pyx_v_i = __pyx_t_3;
-
-    /* "fastCalcA.pyx":58
+    /* "fastCalcA.pyx":41
  * 
  *   for i in xrange(nump):
  *     sum += xm[i]*y[i] - x[i]*ym[i]             # <<<<<<<<<<<<<<
@@ -2861,7 +2756,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcAdouble(double *__pyx_
     __pyx_v_sum = (__pyx_v_sum + (((__pyx_v_xm[__pyx_v_i]) * (__pyx_v_y[__pyx_v_i])) - ((__pyx_v_x[__pyx_v_i]) * (__pyx_v_ym[__pyx_v_i]))));
   }
 
-  /* "fastCalcA.pyx":60
+  /* "fastCalcA.pyx":43
  *     sum += xm[i]*y[i] - x[i]*ym[i]
  * 
  *   sA = sum * 0.5             # <<<<<<<<<<<<<<
@@ -2870,7 +2765,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcAdouble(double *__pyx_
  */
   __pyx_v_sA = (__pyx_v_sum * 0.5);
 
-  /* "fastCalcA.pyx":61
+  /* "fastCalcA.pyx":44
  * 
  *   sA = sum * 0.5
  *   A = fabs(sA)             # <<<<<<<<<<<<<<
@@ -2879,7 +2774,7 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcAdouble(double *__pyx_
  */
   __pyx_v_A = fabs(__pyx_v_sA);
 
-  /* "fastCalcA.pyx":62
+  /* "fastCalcA.pyx":45
  *   sA = sum * 0.5
  *   A = fabs(sA)
  *   return(A)             # <<<<<<<<<<<<<<
@@ -2889,10 +2784,10 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcAdouble(double *__pyx_
   __pyx_r = __pyx_v_A;
   goto __pyx_L0;
 
-  /* "fastCalcA.pyx":51
+  /* "fastCalcA.pyx":34
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
- * cdef DTYPE_t _calcAdouble(double* x, double* xm , double* y, double* ym, int nump) nogil:             # <<<<<<<<<<<<<<
+ * cdef DTYPE_t _calcA(double* x, double* xm , double* y, double* ym, int nump) nogil:             # <<<<<<<<<<<<<<
  *   cdef:
  *     Py_ssize_t i
  */
@@ -2902,11 +2797,11 @@ static __pyx_t_9fastCalcA_DTYPE_t __pyx_f_9fastCalcA__calcAdouble(double *__pyx_
   return __pyx_r;
 }
 
-/* "fastCalcA.pyx":67
+/* "fastCalcA.pyx":50
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def calcA(DTYPE_t [:] x, DTYPE_t [:] xm, DTYPE_t [:] y, DTYPE_t [:] ym, DTYPE_t depth = -1.0):             # <<<<<<<<<<<<<<
- *   cdef int nump = <int>x.size
+ *   cdef int nump = <int>x.size #number of points
  * 
  */
 
@@ -2954,19 +2849,19 @@ static PyObject *__pyx_pw_9fastCalcA_1calcA(PyObject *__pyx_self, PyObject *__py
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_xm)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("calcA", 0, 4, 5, 1); __PYX_ERR(0, 67, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("calcA", 0, 4, 5, 1); __PYX_ERR(0, 50, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_y)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("calcA", 0, 4, 5, 2); __PYX_ERR(0, 67, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("calcA", 0, 4, 5, 2); __PYX_ERR(0, 50, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_ym)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("calcA", 0, 4, 5, 3); __PYX_ERR(0, 67, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("calcA", 0, 4, 5, 3); __PYX_ERR(0, 50, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
@@ -2976,7 +2871,7 @@ static PyObject *__pyx_pw_9fastCalcA_1calcA(PyObject *__pyx_self, PyObject *__py
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "calcA") < 0)) __PYX_ERR(0, 67, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "calcA") < 0)) __PYX_ERR(0, 50, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -2990,19 +2885,19 @@ static PyObject *__pyx_pw_9fastCalcA_1calcA(PyObject *__pyx_self, PyObject *__py
         default: goto __pyx_L5_argtuple_error;
       }
     }
-    __pyx_v_x = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9fastCalcA_DTYPE_t(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_x.memview)) __PYX_ERR(0, 67, __pyx_L3_error)
-    __pyx_v_xm = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9fastCalcA_DTYPE_t(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_xm.memview)) __PYX_ERR(0, 67, __pyx_L3_error)
-    __pyx_v_y = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9fastCalcA_DTYPE_t(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_y.memview)) __PYX_ERR(0, 67, __pyx_L3_error)
-    __pyx_v_ym = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9fastCalcA_DTYPE_t(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_ym.memview)) __PYX_ERR(0, 67, __pyx_L3_error)
+    __pyx_v_x = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9fastCalcA_DTYPE_t(values[0], PyBUF_WRITABLE); if (unlikely(!__pyx_v_x.memview)) __PYX_ERR(0, 50, __pyx_L3_error)
+    __pyx_v_xm = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9fastCalcA_DTYPE_t(values[1], PyBUF_WRITABLE); if (unlikely(!__pyx_v_xm.memview)) __PYX_ERR(0, 50, __pyx_L3_error)
+    __pyx_v_y = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9fastCalcA_DTYPE_t(values[2], PyBUF_WRITABLE); if (unlikely(!__pyx_v_y.memview)) __PYX_ERR(0, 50, __pyx_L3_error)
+    __pyx_v_ym = __Pyx_PyObject_to_MemoryviewSlice_ds_nn___pyx_t_9fastCalcA_DTYPE_t(values[3], PyBUF_WRITABLE); if (unlikely(!__pyx_v_ym.memview)) __PYX_ERR(0, 50, __pyx_L3_error)
     if (values[4]) {
-      __pyx_v_depth = __pyx_PyFloat_AsDouble(values[4]); if (unlikely((__pyx_v_depth == ((npy_float64)-1)) && PyErr_Occurred())) __PYX_ERR(0, 67, __pyx_L3_error)
+      __pyx_v_depth = __pyx_PyFloat_AsDouble(values[4]); if (unlikely((__pyx_v_depth == ((npy_float64)-1)) && PyErr_Occurred())) __PYX_ERR(0, 50, __pyx_L3_error)
     } else {
       __pyx_v_depth = ((__pyx_t_9fastCalcA_DTYPE_t)-1.0);
     }
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("calcA", 0, 4, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 67, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("calcA", 0, 4, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 50, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("fastCalcA.calcA", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -3033,32 +2928,35 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
   int __pyx_t_3;
   int __pyx_t_4;
   int __pyx_t_5;
-  int __pyx_t_6;
+  Py_ssize_t __pyx_t_6;
   Py_ssize_t __pyx_t_7;
   Py_ssize_t __pyx_t_8;
+  Py_ssize_t __pyx_t_9;
+  int __pyx_t_10;
+  Py_ssize_t __pyx_t_11;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("calcA", 0);
 
-  /* "fastCalcA.pyx":68
+  /* "fastCalcA.pyx":51
  * @cython.cdivision(True)
  * def calcA(DTYPE_t [:] x, DTYPE_t [:] xm, DTYPE_t [:] y, DTYPE_t [:] ym, DTYPE_t depth = -1.0):
- *   cdef int nump = <int>x.size             # <<<<<<<<<<<<<<
+ *   cdef int nump = <int>x.size #number of points             # <<<<<<<<<<<<<<
  * 
  *   cdef DTYPE_t ymin = findYMin(y, nump)
  */
-  __pyx_t_1 = __pyx_memoryview_fromslice(__pyx_v_x, 1, (PyObject *(*)(char *)) __pyx_memview_get_nn___pyx_t_9fastCalcA_DTYPE_t, (int (*)(char *, PyObject *)) __pyx_memview_set_nn___pyx_t_9fastCalcA_DTYPE_t, 0);; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_t_1 = __pyx_memoryview_fromslice(__pyx_v_x, 1, (PyObject *(*)(char *)) __pyx_memview_get_nn___pyx_t_9fastCalcA_DTYPE_t, (int (*)(char *, PyObject *)) __pyx_memview_set_nn___pyx_t_9fastCalcA_DTYPE_t, 0);; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 51, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 51, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_3 = __Pyx_PyInt_As_int(__pyx_t_2); if (unlikely((__pyx_t_3 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyInt_As_int(__pyx_t_2); if (unlikely((__pyx_t_3 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 51, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_v_nump = ((int)__pyx_t_3);
 
-  /* "fastCalcA.pyx":70
- *   cdef int nump = <int>x.size
+  /* "fastCalcA.pyx":53
+ *   cdef int nump = <int>x.size #number of points
  * 
  *   cdef DTYPE_t ymin = findYMin(y, nump)             # <<<<<<<<<<<<<<
  *   cdef DTYPE_t ymax = findYMax(y, nump)
@@ -3066,20 +2964,20 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  */
   __pyx_v_ymin = __pyx_f_9fastCalcA_findYMin(__pyx_v_y, __pyx_v_nump);
 
-  /* "fastCalcA.pyx":71
+  /* "fastCalcA.pyx":54
  * 
  *   cdef DTYPE_t ymin = findYMin(y, nump)
  *   cdef DTYPE_t ymax = findYMax(y, nump)             # <<<<<<<<<<<<<<
  * 
- *   if ymax - ymin <= depth or depth == -1.0:
+ *   if ymax - ymin <= depth or depth == -1.0: #use full xs
  */
   __pyx_v_ymax = __pyx_f_9fastCalcA_findYMax(__pyx_v_y, __pyx_v_nump);
 
-  /* "fastCalcA.pyx":73
+  /* "fastCalcA.pyx":56
  *   cdef DTYPE_t ymax = findYMax(y, nump)
  * 
- *   if ymax - ymin <= depth or depth == -1.0:             # <<<<<<<<<<<<<<
- *     return(_calcA(x, xm, y, ym, nump))
+ *   if ymax - ymin <= depth or depth == -1.0: #use full xs             # <<<<<<<<<<<<<<
+ *     return(_calcA(&x[0], &xm[0], &y[0], &ym[0], nump)) #&x[0] mem addr of first element
  * 
  */
   __pyx_t_5 = (((__pyx_v_ymax - __pyx_v_ymin) <= __pyx_v_depth) != 0);
@@ -3093,40 +2991,44 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
   __pyx_L4_bool_binop_done:;
   if (__pyx_t_4) {
 
-    /* "fastCalcA.pyx":74
+    /* "fastCalcA.pyx":57
  * 
- *   if ymax - ymin <= depth or depth == -1.0:
- *     return(_calcA(x, xm, y, ym, nump))             # <<<<<<<<<<<<<<
+ *   if ymax - ymin <= depth or depth == -1.0: #use full xs
+ *     return(_calcA(&x[0], &xm[0], &y[0], &ym[0], nump)) #&x[0] mem addr of first element             # <<<<<<<<<<<<<<
  * 
- *   cdef double *xs = <double *>malloc(nump*sizeof(double))
+ *   # Allocate mem for subset arrays
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = PyFloat_FromDouble(__pyx_f_9fastCalcA__calcA(__pyx_v_x, __pyx_v_xm, __pyx_v_y, __pyx_v_ym, __pyx_v_nump)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 74, __pyx_L1_error)
+    __pyx_t_6 = 0;
+    __pyx_t_7 = 0;
+    __pyx_t_8 = 0;
+    __pyx_t_9 = 0;
+    __pyx_t_2 = PyFloat_FromDouble(__pyx_f_9fastCalcA__calcA((&(*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_6 * __pyx_v_x.strides[0]) )))), (&(*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_xm.data + __pyx_t_7 * __pyx_v_xm.strides[0]) )))), (&(*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_8 * __pyx_v_y.strides[0]) )))), (&(*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_ym.data + __pyx_t_9 * __pyx_v_ym.strides[0]) )))), __pyx_v_nump)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 57, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __pyx_r = __pyx_t_2;
     __pyx_t_2 = 0;
     goto __pyx_L0;
 
-    /* "fastCalcA.pyx":73
+    /* "fastCalcA.pyx":56
  *   cdef DTYPE_t ymax = findYMax(y, nump)
  * 
- *   if ymax - ymin <= depth or depth == -1.0:             # <<<<<<<<<<<<<<
- *     return(_calcA(x, xm, y, ym, nump))
+ *   if ymax - ymin <= depth or depth == -1.0: #use full xs             # <<<<<<<<<<<<<<
+ *     return(_calcA(&x[0], &xm[0], &y[0], &ym[0], nump)) #&x[0] mem addr of first element
  * 
  */
   }
 
-  /* "fastCalcA.pyx":76
- *     return(_calcA(x, xm, y, ym, nump))
+  /* "fastCalcA.pyx":60
  * 
+ *   # Allocate mem for subset arrays
  *   cdef double *xs = <double *>malloc(nump*sizeof(double))             # <<<<<<<<<<<<<<
  *   cdef double *ys = <double *>malloc(nump*sizeof(double))
  *   cdef double *xms = <double *>malloc(nump*sizeof(double))
  */
   __pyx_v_xs = ((double *)malloc((__pyx_v_nump * (sizeof(double)))));
 
-  /* "fastCalcA.pyx":77
- * 
+  /* "fastCalcA.pyx":61
+ *   # Allocate mem for subset arrays
  *   cdef double *xs = <double *>malloc(nump*sizeof(double))
  *   cdef double *ys = <double *>malloc(nump*sizeof(double))             # <<<<<<<<<<<<<<
  *   cdef double *xms = <double *>malloc(nump*sizeof(double))
@@ -3134,7 +3036,7 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  */
   __pyx_v_ys = ((double *)malloc((__pyx_v_nump * (sizeof(double)))));
 
-  /* "fastCalcA.pyx":78
+  /* "fastCalcA.pyx":62
  *   cdef double *xs = <double *>malloc(nump*sizeof(double))
  *   cdef double *ys = <double *>malloc(nump*sizeof(double))
  *   cdef double *xms = <double *>malloc(nump*sizeof(double))             # <<<<<<<<<<<<<<
@@ -3143,7 +3045,7 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  */
   __pyx_v_xms = ((double *)malloc((__pyx_v_nump * (sizeof(double)))));
 
-  /* "fastCalcA.pyx":79
+  /* "fastCalcA.pyx":63
  *   cdef double *ys = <double *>malloc(nump*sizeof(double))
  *   cdef double *xms = <double *>malloc(nump*sizeof(double))
  *   cdef double *yms = <double *>malloc(nump*sizeof(double))             # <<<<<<<<<<<<<<
@@ -3152,7 +3054,7 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  */
   __pyx_v_yms = ((double *)malloc((__pyx_v_nump * (sizeof(double)))));
 
-  /* "fastCalcA.pyx":82
+  /* "fastCalcA.pyx":66
  * 
  *   cdef Py_ssize_t i
  *   cdef int n = 0             # <<<<<<<<<<<<<<
@@ -3161,7 +3063,7 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  */
   __pyx_v_n = 0;
 
-  /* "fastCalcA.pyx":84
+  /* "fastCalcA.pyx":68
  *   cdef int n = 0
  * 
  *   for i in xrange(nump):             # <<<<<<<<<<<<<<
@@ -3169,42 +3071,42 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  *       xs[<Py_ssize_t>n] = <double>x[i]
  */
   __pyx_t_3 = __pyx_v_nump;
-  __pyx_t_6 = __pyx_t_3;
-  for (__pyx_t_7 = 0; __pyx_t_7 < __pyx_t_6; __pyx_t_7+=1) {
-    __pyx_v_i = __pyx_t_7;
+  __pyx_t_10 = __pyx_t_3;
+  for (__pyx_t_11 = 0; __pyx_t_11 < __pyx_t_10; __pyx_t_11+=1) {
+    __pyx_v_i = __pyx_t_11;
 
-    /* "fastCalcA.pyx":85
+    /* "fastCalcA.pyx":69
  * 
  *   for i in xrange(nump):
  *     if y[i] - ymin < depth:             # <<<<<<<<<<<<<<
  *       xs[<Py_ssize_t>n] = <double>x[i]
  *       ys[<Py_ssize_t>n] = <double>y[i]
  */
-    __pyx_t_8 = __pyx_v_i;
-    __pyx_t_4 = ((((*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_8 * __pyx_v_y.strides[0]) ))) - __pyx_v_ymin) < __pyx_v_depth) != 0);
+    __pyx_t_9 = __pyx_v_i;
+    __pyx_t_4 = ((((*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_9 * __pyx_v_y.strides[0]) ))) - __pyx_v_ymin) < __pyx_v_depth) != 0);
     if (__pyx_t_4) {
 
-      /* "fastCalcA.pyx":86
+      /* "fastCalcA.pyx":70
  *   for i in xrange(nump):
  *     if y[i] - ymin < depth:
  *       xs[<Py_ssize_t>n] = <double>x[i]             # <<<<<<<<<<<<<<
  *       ys[<Py_ssize_t>n] = <double>y[i]
  *       xms[<Py_ssize_t>n+1] = xs[<Py_ssize_t>n]
  */
-      __pyx_t_8 = __pyx_v_i;
-      (__pyx_v_xs[((Py_ssize_t)__pyx_v_n)]) = ((double)(*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_8 * __pyx_v_x.strides[0]) ))));
+      __pyx_t_9 = __pyx_v_i;
+      (__pyx_v_xs[((Py_ssize_t)__pyx_v_n)]) = ((double)(*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_x.data + __pyx_t_9 * __pyx_v_x.strides[0]) ))));
 
-      /* "fastCalcA.pyx":87
+      /* "fastCalcA.pyx":71
  *     if y[i] - ymin < depth:
  *       xs[<Py_ssize_t>n] = <double>x[i]
  *       ys[<Py_ssize_t>n] = <double>y[i]             # <<<<<<<<<<<<<<
  *       xms[<Py_ssize_t>n+1] = xs[<Py_ssize_t>n]
  *       yms[<Py_ssize_t>n+1] = ys[<Py_ssize_t>n]
  */
-      __pyx_t_8 = __pyx_v_i;
-      (__pyx_v_ys[((Py_ssize_t)__pyx_v_n)]) = ((double)(*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_8 * __pyx_v_y.strides[0]) ))));
+      __pyx_t_9 = __pyx_v_i;
+      (__pyx_v_ys[((Py_ssize_t)__pyx_v_n)]) = ((double)(*((__pyx_t_9fastCalcA_DTYPE_t *) ( /* dim=0 */ (__pyx_v_y.data + __pyx_t_9 * __pyx_v_y.strides[0]) ))));
 
-      /* "fastCalcA.pyx":88
+      /* "fastCalcA.pyx":72
  *       xs[<Py_ssize_t>n] = <double>x[i]
  *       ys[<Py_ssize_t>n] = <double>y[i]
  *       xms[<Py_ssize_t>n+1] = xs[<Py_ssize_t>n]             # <<<<<<<<<<<<<<
@@ -3213,7 +3115,7 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  */
       (__pyx_v_xms[(((Py_ssize_t)__pyx_v_n) + 1)]) = (__pyx_v_xs[((Py_ssize_t)__pyx_v_n)]);
 
-      /* "fastCalcA.pyx":89
+      /* "fastCalcA.pyx":73
  *       ys[<Py_ssize_t>n] = <double>y[i]
  *       xms[<Py_ssize_t>n+1] = xs[<Py_ssize_t>n]
  *       yms[<Py_ssize_t>n+1] = ys[<Py_ssize_t>n]             # <<<<<<<<<<<<<<
@@ -3222,7 +3124,7 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  */
       (__pyx_v_yms[(((Py_ssize_t)__pyx_v_n) + 1)]) = (__pyx_v_ys[((Py_ssize_t)__pyx_v_n)]);
 
-      /* "fastCalcA.pyx":90
+      /* "fastCalcA.pyx":74
  *       xms[<Py_ssize_t>n+1] = xs[<Py_ssize_t>n]
  *       yms[<Py_ssize_t>n+1] = ys[<Py_ssize_t>n]
  *       n += 1             # <<<<<<<<<<<<<<
@@ -3231,7 +3133,7 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  */
       __pyx_v_n = (__pyx_v_n + 1);
 
-      /* "fastCalcA.pyx":85
+      /* "fastCalcA.pyx":69
  * 
  *   for i in xrange(nump):
  *     if y[i] - ymin < depth:             # <<<<<<<<<<<<<<
@@ -3241,7 +3143,7 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
     }
   }
 
-  /* "fastCalcA.pyx":92
+  /* "fastCalcA.pyx":76
  *       n += 1
  * 
  *   xms[0] = xs[<Py_ssize_t>n-1]             # <<<<<<<<<<<<<<
@@ -3250,86 +3152,62 @@ static PyObject *__pyx_pf_9fastCalcA_calcA(CYTHON_UNUSED PyObject *__pyx_self, _
  */
   (__pyx_v_xms[0]) = (__pyx_v_xs[(((Py_ssize_t)__pyx_v_n) - 1)]);
 
-  /* "fastCalcA.pyx":93
+  /* "fastCalcA.pyx":77
  * 
  *   xms[0] = xs[<Py_ssize_t>n-1]
  *   yms[0] = ys[<Py_ssize_t>n-1]             # <<<<<<<<<<<<<<
  * 
- *   nump = n
+ *   nump = n # new number of pts
  */
   (__pyx_v_yms[0]) = (__pyx_v_ys[(((Py_ssize_t)__pyx_v_n) - 1)]);
 
-  /* "fastCalcA.pyx":95
+  /* "fastCalcA.pyx":79
  *   yms[0] = ys[<Py_ssize_t>n-1]
  * 
- *   nump = n             # <<<<<<<<<<<<<<
+ *   nump = n # new number of pts             # <<<<<<<<<<<<<<
  * 
- *   cdef DTYPE_t A = _calcAdouble(xs, xms, ys, yms, nump)
+ *   cdef DTYPE_t A = _calcA(xs, xms, ys, yms, nump)
  */
   __pyx_v_nump = __pyx_v_n;
 
-  /* "fastCalcA.pyx":97
- *   nump = n
+  /* "fastCalcA.pyx":81
+ *   nump = n # new number of pts
  * 
- *   cdef DTYPE_t A = _calcAdouble(xs, xms, ys, yms, nump)             # <<<<<<<<<<<<<<
- *   free(xs);# print("Free'd xs")
- *   free(ys);# print("Free'd ys")
- */
-  __pyx_v_A = __pyx_f_9fastCalcA__calcAdouble(__pyx_v_xs, __pyx_v_xms, __pyx_v_ys, __pyx_v_yms, __pyx_v_nump);
-
-  /* "fastCalcA.pyx":98
- * 
- *   cdef DTYPE_t A = _calcAdouble(xs, xms, ys, yms, nump)
- *   free(xs);# print("Free'd xs")             # <<<<<<<<<<<<<<
- *   free(ys);# print("Free'd ys")
- *   free(xms);# print("Free'd xms")
- */
-  free(__pyx_v_xs);
-
-  /* "fastCalcA.pyx":99
- *   cdef DTYPE_t A = _calcAdouble(xs, xms, ys, yms, nump)
- *   free(xs);# print("Free'd xs")
- *   free(ys);# print("Free'd ys")             # <<<<<<<<<<<<<<
- *   free(xms);# print("Free'd xms")
- *   free(yms);# print("Free'd yms")
- */
-  free(__pyx_v_ys);
-
-  /* "fastCalcA.pyx":100
- *   free(xs);# print("Free'd xs")
- *   free(ys);# print("Free'd ys")
- *   free(xms);# print("Free'd xms")             # <<<<<<<<<<<<<<
- *   free(yms);# print("Free'd yms")
+ *   cdef DTYPE_t A = _calcA(xs, xms, ys, yms, nump)             # <<<<<<<<<<<<<<
+ *   free(xs); free(ys); free(xms); free(yms); #Free mem
  * 
  */
-  free(__pyx_v_xms);
+  __pyx_v_A = __pyx_f_9fastCalcA__calcA(__pyx_v_xs, __pyx_v_xms, __pyx_v_ys, __pyx_v_yms, __pyx_v_nump);
 
-  /* "fastCalcA.pyx":101
- *   free(ys);# print("Free'd ys")
- *   free(xms);# print("Free'd xms")
- *   free(yms);# print("Free'd yms")             # <<<<<<<<<<<<<<
+  /* "fastCalcA.pyx":82
+ * 
+ *   cdef DTYPE_t A = _calcA(xs, xms, ys, yms, nump)
+ *   free(xs); free(ys); free(xms); free(yms); #Free mem             # <<<<<<<<<<<<<<
  * 
  *   return(A)
  */
+  free(__pyx_v_xs);
+  free(__pyx_v_ys);
+  free(__pyx_v_xms);
   free(__pyx_v_yms);
 
-  /* "fastCalcA.pyx":103
- *   free(yms);# print("Free'd yms")
+  /* "fastCalcA.pyx":84
+ *   free(xs); free(ys); free(xms); free(yms); #Free mem
  * 
  *   return(A)             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_2 = PyFloat_FromDouble(__pyx_v_A); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __pyx_t_2 = PyFloat_FromDouble(__pyx_v_A); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 84, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
   goto __pyx_L0;
 
-  /* "fastCalcA.pyx":67
+  /* "fastCalcA.pyx":50
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def calcA(DTYPE_t [:] x, DTYPE_t [:] xm, DTYPE_t [:] y, DTYPE_t [:] ym, DTYPE_t depth = -1.0):             # <<<<<<<<<<<<<<
- *   cdef int nump = <int>x.size
+ *   cdef int nump = <int>x.size #number of points
  * 
  */
 
@@ -18259,9 +18137,9 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
   #if PY_MAJOR_VERSION >= 3
-  __pyx_builtin_xrange = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_xrange) __PYX_ERR(0, 17, __pyx_L1_error)
+  __pyx_builtin_xrange = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_xrange) __PYX_ERR(0, 15, __pyx_L1_error)
   #else
-  __pyx_builtin_xrange = __Pyx_GetBuiltinName(__pyx_n_s_xrange); if (!__pyx_builtin_xrange) __PYX_ERR(0, 17, __pyx_L1_error)
+  __pyx_builtin_xrange = __Pyx_GetBuiltinName(__pyx_n_s_xrange); if (!__pyx_builtin_xrange) __PYX_ERR(0, 15, __pyx_L1_error)
   #endif
   __pyx_builtin_ImportError = __Pyx_GetBuiltinName(__pyx_n_s_ImportError); if (!__pyx_builtin_ImportError) __PYX_ERR(1, 947, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(2, 133, __pyx_L1_error)
@@ -18495,17 +18373,17 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__20);
   __Pyx_GIVEREF(__pyx_tuple__20);
 
-  /* "fastCalcA.pyx":67
+  /* "fastCalcA.pyx":50
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def calcA(DTYPE_t [:] x, DTYPE_t [:] xm, DTYPE_t [:] y, DTYPE_t [:] ym, DTYPE_t depth = -1.0):             # <<<<<<<<<<<<<<
- *   cdef int nump = <int>x.size
+ *   cdef int nump = <int>x.size #number of points
  * 
  */
-  __pyx_tuple__21 = PyTuple_Pack(15, __pyx_n_s_x, __pyx_n_s_xm, __pyx_n_s_y, __pyx_n_s_ym, __pyx_n_s_depth, __pyx_n_s_nump, __pyx_n_s_ymin, __pyx_n_s_ymax, __pyx_n_s_xs, __pyx_n_s_ys, __pyx_n_s_xms, __pyx_n_s_yms, __pyx_n_s_i, __pyx_n_s_n, __pyx_n_s_A); if (unlikely(!__pyx_tuple__21)) __PYX_ERR(0, 67, __pyx_L1_error)
+  __pyx_tuple__21 = PyTuple_Pack(15, __pyx_n_s_x, __pyx_n_s_xm, __pyx_n_s_y, __pyx_n_s_ym, __pyx_n_s_depth, __pyx_n_s_nump, __pyx_n_s_ymin, __pyx_n_s_ymax, __pyx_n_s_xs, __pyx_n_s_ys, __pyx_n_s_xms, __pyx_n_s_yms, __pyx_n_s_i, __pyx_n_s_n, __pyx_n_s_A); if (unlikely(!__pyx_tuple__21)) __PYX_ERR(0, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__21);
   __Pyx_GIVEREF(__pyx_tuple__21);
-  __pyx_codeobj__22 = (PyObject*)__Pyx_PyCode_New(5, 0, 15, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__21, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_fastCalcA_pyx, __pyx_n_s_calcA, 67, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__22)) __PYX_ERR(0, 67, __pyx_L1_error)
+  __pyx_codeobj__22 = (PyObject*)__Pyx_PyCode_New(5, 0, 15, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__21, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_fastCalcA_pyx, __pyx_n_s_calcA, 50, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__22)) __PYX_ERR(0, 50, __pyx_L1_error)
 
   /* "View.MemoryView":286
  *         return self.name
@@ -18978,16 +18856,16 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "fastCalcA.pyx":67
+  /* "fastCalcA.pyx":50
  * @cython.wraparound(False)
  * @cython.cdivision(True)
  * def calcA(DTYPE_t [:] x, DTYPE_t [:] xm, DTYPE_t [:] y, DTYPE_t [:] ym, DTYPE_t depth = -1.0):             # <<<<<<<<<<<<<<
- *   cdef int nump = <int>x.size
+ *   cdef int nump = <int>x.size #number of points
  * 
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_9fastCalcA_1calcA, NULL, __pyx_n_s_fastCalcA); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 67, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_9fastCalcA_1calcA, NULL, __pyx_n_s_fastCalcA); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 50, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_calcA, __pyx_t_1) < 0) __PYX_ERR(0, 67, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_calcA, __pyx_t_1) < 0) __PYX_ERR(0, 50, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "fastCalcA.pyx":1

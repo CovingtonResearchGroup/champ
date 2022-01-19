@@ -12,9 +12,8 @@ from numpy import (
 import numpy as np
 from scipy import interpolate
 from scipy.optimize import root_scalar, minimize_scalar
-from champ.utils.fastCalcA import calcA as fcalcA
-from champ.utils.fastCalcP import calcP as fcalcP
-from champ.utils.fastInterp import fast1DCubicSpline as finterp1d
+from champ.utils.fastroutines import calcA as fcalcA, \
+    calcP as fcalcP, fast1DCubicSpline as finterp1d
 import copy
 
 
@@ -72,7 +71,7 @@ class CrossSection:
         self.x = roll(self.x, y_roll)
         self.y = roll(self.y, y_roll)
 
-    # Create arrays of x+1, y+1, x-1, x+1
+    # Create arrays of x+1 (xp), y+1 (yp), x-1 (xm), x+1 (xp)
     def create_pm(self):
         """Create rolled arrays of adjacent points in cross-section.
         """
@@ -93,6 +92,7 @@ class CrossSection:
         Parameters
         ----------
         depth : float, optional
+            Flow depth at which to calculate wetted perimeter.
 
         Returns
         -------
@@ -125,15 +125,17 @@ class CrossSection:
         Parameters
         ----------
         n_points : int, optional
-            Number of points along which to interpolate.
+            Number of points along which to interpolate. Default value is 30.
         """
         maxdepth = self.ymax - self.ymin
         max_interp = self.fd * 1.5
         if max_interp > maxdepth:
             max_interp = maxdepth
+
         num_xc_points = len(self.y[self.y - self.ymin < max_interp])
         if num_xc_points < n_points / 3.0:
             n_points = int(np.round(num_xc_points / 3.0))
+
         depth_arr = np.linspace(0, max_interp, n_points)
 
         As = np.array([self.calcA(depth=i) for i in depth_arr])
@@ -150,15 +152,17 @@ class CrossSection:
         Parameters
         ----------
         n_points : int, optional
-            Number of points along which to interpolate.
+            Number of points along which to interpolate. Default value is 30.
         """
         maxdepth = self.ymax - self.ymin
         max_interp = self.fd * 1.5
         if max_interp > maxdepth:
             max_interp = maxdepth
+
         num_xc_points = len(self.y[self.y - self.ymin < max_interp])
         if num_xc_points < n_points / 3.0:
             n_points = int(np.round(num_xc_points / 3.0))
+
         depth_arr = np.linspace(0, max_interp, n_points)
 
         Ps = np.array([self.calcP(depth=i) for i in depth_arr])
@@ -213,6 +217,7 @@ class CrossSection:
             L, R = self.findLR(fd)
             mx = 0
             my = self.y[R]
+
         self.xmaxVel = mx
         self.ymaxVel = my
 
@@ -254,6 +259,7 @@ class CrossSection:
             )
         else:
             self.r_l = np.hypot(self.x - self.xmaxVel, self.y - self.ymaxVel)
+
         return self.r_l
 
     # Find the value of U_max by weighted law of the wall
@@ -613,8 +619,6 @@ class CrossSection:
         if Q >= calcFullFlow and not self.ymax > self.y.max():
             return -1
         else:
-            # This minimization is a big time sink (particularly call to
-            # calcNormalFlow())
             sol = minimize_scalar(
                 self.abs_normal_discharge_residual,
                 bounds=[SMALL, upper_bound],
@@ -625,6 +629,7 @@ class CrossSection:
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1
+
         self.setFD(fd)
         return self.fd
 
