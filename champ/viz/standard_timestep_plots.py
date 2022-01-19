@@ -50,7 +50,8 @@ def plot_overlapping_XCs(sim, plotdir, timestep_str):
         plot(sim.xc.x, sim.xc.y)
         wl = sim.xc.fd + sim.xc.y.min()
         plot([-0.5, 0.5], [wl, wl])
-
+    xlabel("Cross-channel distance (m)")
+    ylabel("Relative elevation (m)")
     savefig(plotdir + "XC-" + timestep_str + ".png")
 
 
@@ -80,7 +81,7 @@ def plot_slope_profile(sim, plotdir, timestep_str):
     plot(xmid, abs(sim.dz) / sim.old_dt)
     yscale("log")
     xlabel("Distance (m)")
-    ylabel("Slope/Erosion rate")
+    ylabel("Slope/Erosion rate (m/yr)")
     legend(["slope", "erosion rate"])
     tight_layout()
     savefig(plotdir + "Slope-" + timestep_str + ".png")
@@ -133,4 +134,7 @@ def plot_3D_XCs(sim, plotdir, timestep_str):
     ax.add_collection3d(water_poly)  # , zdir='y')
     xlim([-5, 5])
     ax.view_init(elev=10, azim=-35)
+    ax.set_xlabel("Cross-channel distance (m)")
+    ax.set_ylabel("Longitudinal distance (m)")
+    ax.set_zlabel("Elevation (m)")
     savefig(plotdir + "3D-XC-" + timestep_str + ".png")
