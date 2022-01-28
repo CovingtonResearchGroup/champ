@@ -77,10 +77,11 @@ def plot_slope_profile(sim, plotdir, timestep_str):
     figure()
     xmid = (sim.x_arr[1:] + sim.x_arr[:-1]) / 2.0
     plot(xmid, sim.slopes)
-    plot(xmid, abs(sim.dz))
+    plot(xmid, abs(sim.dz) / sim.old_dt)
     yscale("log")
     xlabel("Distance (m)")
     ylabel("Slope/Erosion rate")
+    legend(["slope", "erosion rate"])
     tight_layout()
     savefig(plotdir + "Slope-" + timestep_str + ".png")
 

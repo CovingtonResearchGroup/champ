@@ -133,6 +133,7 @@ class singleXC(sim):
         self.Q_w = Q_w
         self.slope = slope
         self.dt_erode = dt_erode
+        self.old_dt = dt_erode
         self.adaptive_step = adaptive_step
         self.max_frac_erode = max_frac_erode
         self.f = f
@@ -315,6 +316,7 @@ class multiXC(sim):
         self.Q_w = Q_w
 
         self.dt_erode = dt_erode
+        self.old_dt = dt_erode
         self.adaptive_step = adaptive_step
         self.max_frac_erode = max_frac_erode
         self.xc_n = xc_n
@@ -523,6 +525,8 @@ class multiXC(sim):
             self.x_arr[1:] - self.x_arr[:-1]
         )
 
+        # Set old_dt for use in plots that calculate erosion rates
+        self.old_dt = self.dt_erode
         if self.adaptive_step:
             # Check for percent change in radial distance
             sim_max_frac_erode = 0.0
