@@ -11,7 +11,7 @@ from numpy import (
 )
 import numpy as np
 from scipy import interpolate
-from scipy.optimize import root_scalar, minimize_scalar
+from scipy.optimize import root_scalar, brentq
 from champ.utils.fastroutines import calcA as fcalcA, \
     calcP as fcalcP, fast1DCubicSpline as finterp1d
 import copy
@@ -619,13 +619,13 @@ class CrossSection:
         if Q >= calcFullFlow and not self.ymax > self.y.max():
             return -1
         else:
-            sol = minimize_scalar(
-                self.abs_normal_discharge_residual,
-                bounds=[SMALL, upper_bound],
+            sol = brentq(
+                self.normal_discharge_residual,
+                a=SMALL, b=upper_bound,
                 args=(slope, f, Q),
-                method="bounded",
+                full_output=False,
             )
-            fd = sol.x
+            fd = sol
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1
@@ -652,13 +652,13 @@ class CrossSection:
         upper_bound = fd * 1.25
         if upper_bound > 0.99 * maxdepth:
             upper_bound = 0.99 * maxdepth
-        sol = minimize_scalar(
-            self.abs_crit_flow_depth_residual,
-            bounds=[SMALL, upper_bound],
+        sol = brentq(
+            self.crit_flow_depth_residual,
+            a=SMALL, b=upper_bound,
             args=(Q,),
-            method="bounded",
+            full_output=False,
         )
-        crit_depth = sol.x
+        crit_depth = sol
         return crit_depth
 
     def calcPipeFullHeadGrad(self, Q, f=0.1):
