@@ -619,7 +619,9 @@ class CrossSection:
         if Q >= calcFullFlow and not self.ymax > self.y.max():
             return -1
         else:
-            if np.sign(SMALL) != np.sign(upper_bound):
+            SMALL_Q = self.normal_discharge_residual(SMALL, slope, f, Q)
+            upper_bound_Q = self.normal_discharge_residual(upper_bound, slope, f, Q)
+            if np.sign(SMALL_Q) != np.sign(upper_bound_Q):
                 sol = brentq(
                     self.normal_discharge_residual,
                     a=SMALL, b=upper_bound,
