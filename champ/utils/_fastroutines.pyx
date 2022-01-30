@@ -147,7 +147,7 @@ def rollm(double [:] a):
   cdef:
     int n = <int>a.size
     Py_ssize_t i
-    np.ndarray[np.float32_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT32, 0)
+    np.ndarray[np.float64_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT64, 0)
 
   for i in xrange(n):
     b[i] = a[ ((i-1) % n + n) % n]
@@ -161,7 +161,7 @@ def rollp(double [:] a):
   cdef:
     int n = <int>a.size
     Py_ssize_t i
-    np.ndarray[np.float32_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT32, 0)
+    np.ndarray[np.float64_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT64, 0)
 
   for i in xrange(n):
     b[i] = a[ ((i+1) % n + n) % n]

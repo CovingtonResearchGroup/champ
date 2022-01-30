@@ -2231,7 +2231,7 @@ static void __pyx_memoryview_refcount_objects_in_slice(char *, Py_ssize_t *, Py_
 static void __pyx_memoryview_slice_assign_scalar(__Pyx_memviewslice *, int, size_t, void *, int); /*proto*/
 static void __pyx_memoryview__slice_assign_scalar(char *, Py_ssize_t *, Py_ssize_t *, int, size_t, void *); /*proto*/
 static PyObject *__pyx_unpickle_Enum__set_state(struct __pyx_MemviewEnum_obj *, PyObject *); /*proto*/
-static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_float32_t = { "float32_t", NULL, sizeof(__pyx_t_5numpy_float32_t), { 0 }, 0, 'R', 0, 0 };
+static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5numpy_float64_t = { "float64_t", NULL, sizeof(__pyx_t_5numpy_float64_t), { 0 }, 0, 'R', 0, 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_5champ_5utils_13_fastroutines_DTYPE_t = { "DTYPE_t", NULL, sizeof(__pyx_t_5champ_5utils_13_fastroutines_DTYPE_t), { 0 }, 0, 'R', 0, 0 };
 static __Pyx_TypeInfo __Pyx_TypeInfo_double = { "double", NULL, sizeof(double), { 0 }, 0, 'R', 0, 0 };
 #define __Pyx_MODULE_NAME "champ.utils._fastroutines"
@@ -3902,7 +3902,7 @@ static PyObject *__pyx_pf_5champ_5utils_13_fastroutines_4rollm(CYTHON_UNUSED PyO
  *   cdef:
  *     int n = <int>a.size             # <<<<<<<<<<<<<<
  *     Py_ssize_t i
- *     np.ndarray[np.float32_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT32, 0)
+ *     np.ndarray[np.float64_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT64, 0)
  */
   __pyx_t_1 = __pyx_memoryview_fromslice(__pyx_v_a, 1, (PyObject *(*)(char *)) __pyx_memview_get_double, (int (*)(char *, PyObject *)) __pyx_memview_set_double, 0);; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 148, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -3916,18 +3916,18 @@ static PyObject *__pyx_pf_5champ_5utils_13_fastroutines_4rollm(CYTHON_UNUSED PyO
   /* "champ/utils/_fastroutines.pyx":150
  *     int n = <int>a.size
  *     Py_ssize_t i
- *     np.ndarray[np.float32_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT32, 0)             # <<<<<<<<<<<<<<
+ *     np.ndarray[np.float64_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT64, 0)             # <<<<<<<<<<<<<<
  * 
  *   for i in xrange(n):
  */
   __pyx_t_4[0] = __pyx_v_n;
-  __pyx_t_2 = PyArray_EMPTY(1, __pyx_t_4, NPY_FLOAT32, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 150, __pyx_L1_error)
+  __pyx_t_2 = PyArray_EMPTY(1, __pyx_t_4, NPY_FLOAT64, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 150, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   if (!(likely(((__pyx_t_2) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_2, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 150, __pyx_L1_error)
   __pyx_t_5 = ((PyArrayObject *)__pyx_t_2);
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_b.rcbuffer->pybuffer, (PyObject*)__pyx_t_5, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float32_t, PyBUF_FORMAT| PyBUF_STRIDES| PyBUF_WRITABLE, 1, 0, __pyx_stack) == -1)) {
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_b.rcbuffer->pybuffer, (PyObject*)__pyx_t_5, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float64_t, PyBUF_FORMAT| PyBUF_STRIDES| PyBUF_WRITABLE, 1, 0, __pyx_stack) == -1)) {
       __pyx_v_b = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_b.rcbuffer->pybuffer.buf = NULL;
       __PYX_ERR(0, 150, __pyx_L1_error)
     } else {__pyx_pybuffernd_b.diminfo[0].strides = __pyx_pybuffernd_b.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_b.diminfo[0].shape = __pyx_pybuffernd_b.rcbuffer->pybuffer.shape[0];
@@ -3938,7 +3938,7 @@ static PyObject *__pyx_pf_5champ_5utils_13_fastroutines_4rollm(CYTHON_UNUSED PyO
   __pyx_t_2 = 0;
 
   /* "champ/utils/_fastroutines.pyx":152
- *     np.ndarray[np.float32_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT32, 0)
+ *     np.ndarray[np.float64_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT64, 0)
  * 
  *   for i in xrange(n):             # <<<<<<<<<<<<<<
  *     b[i] = a[ ((i-1) % n + n) % n]
@@ -3958,7 +3958,7 @@ static PyObject *__pyx_pf_5champ_5utils_13_fastroutines_4rollm(CYTHON_UNUSED PyO
  */
     __pyx_t_8 = ((((__pyx_v_i - 1) % __pyx_v_n) + __pyx_v_n) % __pyx_v_n);
     __pyx_t_9 = __pyx_v_i;
-    *__Pyx_BufPtrStrided1d(__pyx_t_5numpy_float32_t *, __pyx_pybuffernd_b.rcbuffer->pybuffer.buf, __pyx_t_9, __pyx_pybuffernd_b.diminfo[0].strides) = (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_8 * __pyx_v_a.strides[0]) )));
+    *__Pyx_BufPtrStrided1d(__pyx_t_5numpy_float64_t *, __pyx_pybuffernd_b.rcbuffer->pybuffer.buf, __pyx_t_9, __pyx_pybuffernd_b.diminfo[0].strides) = (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_8 * __pyx_v_a.strides[0]) )));
   }
 
   /* "champ/utils/_fastroutines.pyx":155
@@ -4070,7 +4070,7 @@ static PyObject *__pyx_pf_5champ_5utils_13_fastroutines_6rollp(CYTHON_UNUSED PyO
  *   cdef:
  *     int n = <int>a.size             # <<<<<<<<<<<<<<
  *     Py_ssize_t i
- *     np.ndarray[np.float32_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT32, 0)
+ *     np.ndarray[np.float64_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT64, 0)
  */
   __pyx_t_1 = __pyx_memoryview_fromslice(__pyx_v_a, 1, (PyObject *(*)(char *)) __pyx_memview_get_double, (int (*)(char *, PyObject *)) __pyx_memview_set_double, 0);; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 162, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
@@ -4084,18 +4084,18 @@ static PyObject *__pyx_pf_5champ_5utils_13_fastroutines_6rollp(CYTHON_UNUSED PyO
   /* "champ/utils/_fastroutines.pyx":164
  *     int n = <int>a.size
  *     Py_ssize_t i
- *     np.ndarray[np.float32_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT32, 0)             # <<<<<<<<<<<<<<
+ *     np.ndarray[np.float64_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT64, 0)             # <<<<<<<<<<<<<<
  * 
  *   for i in xrange(n):
  */
   __pyx_t_4[0] = __pyx_v_n;
-  __pyx_t_2 = PyArray_EMPTY(1, __pyx_t_4, NPY_FLOAT32, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 164, __pyx_L1_error)
+  __pyx_t_2 = PyArray_EMPTY(1, __pyx_t_4, NPY_FLOAT64, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 164, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   if (!(likely(((__pyx_t_2) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_2, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 164, __pyx_L1_error)
   __pyx_t_5 = ((PyArrayObject *)__pyx_t_2);
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_b.rcbuffer->pybuffer, (PyObject*)__pyx_t_5, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float32_t, PyBUF_FORMAT| PyBUF_STRIDES| PyBUF_WRITABLE, 1, 0, __pyx_stack) == -1)) {
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_b.rcbuffer->pybuffer, (PyObject*)__pyx_t_5, &__Pyx_TypeInfo_nn___pyx_t_5numpy_float64_t, PyBUF_FORMAT| PyBUF_STRIDES| PyBUF_WRITABLE, 1, 0, __pyx_stack) == -1)) {
       __pyx_v_b = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_b.rcbuffer->pybuffer.buf = NULL;
       __PYX_ERR(0, 164, __pyx_L1_error)
     } else {__pyx_pybuffernd_b.diminfo[0].strides = __pyx_pybuffernd_b.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_b.diminfo[0].shape = __pyx_pybuffernd_b.rcbuffer->pybuffer.shape[0];
@@ -4106,7 +4106,7 @@ static PyObject *__pyx_pf_5champ_5utils_13_fastroutines_6rollp(CYTHON_UNUSED PyO
   __pyx_t_2 = 0;
 
   /* "champ/utils/_fastroutines.pyx":166
- *     np.ndarray[np.float32_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT32, 0)
+ *     np.ndarray[np.float64_t, ndim=1] b = np.PyArray_EMPTY(1, [n], np.NPY_FLOAT64, 0)
  * 
  *   for i in xrange(n):             # <<<<<<<<<<<<<<
  *     b[i] = a[ ((i+1) % n + n) % n]
@@ -4126,7 +4126,7 @@ static PyObject *__pyx_pf_5champ_5utils_13_fastroutines_6rollp(CYTHON_UNUSED PyO
  */
     __pyx_t_8 = ((((__pyx_v_i + 1) % __pyx_v_n) + __pyx_v_n) % __pyx_v_n);
     __pyx_t_9 = __pyx_v_i;
-    *__Pyx_BufPtrStrided1d(__pyx_t_5numpy_float32_t *, __pyx_pybuffernd_b.rcbuffer->pybuffer.buf, __pyx_t_9, __pyx_pybuffernd_b.diminfo[0].strides) = (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_8 * __pyx_v_a.strides[0]) )));
+    *__Pyx_BufPtrStrided1d(__pyx_t_5numpy_float64_t *, __pyx_pybuffernd_b.rcbuffer->pybuffer.buf, __pyx_t_9, __pyx_pybuffernd_b.diminfo[0].strides) = (*((double *) ( /* dim=0 */ (__pyx_v_a.data + __pyx_t_8 * __pyx_v_a.strides[0]) )));
   }
 
   /* "champ/utils/_fastroutines.pyx":169
