@@ -14,12 +14,6 @@ from scipy.stats import linregress
 import numpy as np
 import sys
 
-# from . import CO2_sim_1D
-
-###################################
-## Plotting convenience funtions ##
-###################################
-
 
 def power_10_label(value, pos):
     if value > 0:
@@ -29,7 +23,7 @@ def power_10_label(value, pos):
         #    return r"$10^{%01d}$" % log10(value)
         # else:
         startlabel = r"$" + str(rem)[0] + r"\times"
-        endlabel = r"10^{%01d}$" % log10(value)
+        endlabel = r"10^{%01d}$" % np.log10(value)
         return startlabel + endlabel
     else:
         return r"$0^{ }$"
@@ -202,7 +196,7 @@ def plot_morphodynamics(snapshotdir, res):
     )
 
     cNorm = plt.Normalize(vmin=0, vmax=res["x"][0, -1])
-    sMap = plt.cm.ScalarMappable(norm=cNorm, cmap=cmap)
+    plt.cm.ScalarMappable(norm=cNorm, cmap=cmap)
 
     fig, axs = plt.subplots(3, 1, figsize=(5, 12), sharex=True)
 
