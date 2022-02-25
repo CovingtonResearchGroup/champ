@@ -11,9 +11,9 @@ from numpy import (
 )
 import numpy as np
 from scipy import interpolate
-from scipy.optimize import root_scalar, minimize_scalar
-from champ.utils.fastroutines import calcA as fcalcA, \
-    calcP as fcalcP, fast1DCubicSpline as finterp1d
+from scipy.optimize import root_scalar, brentq, minimize_scalar
+from champ.utils.fastroutines import calcA, calcP, rollm, rollp, \
+                                        fast1DCubicSpline as finterp1d
 import copy
 
 
@@ -75,15 +75,15 @@ class CrossSection:
     def create_pm(self):
         """Create rolled arrays of adjacent points in cross-section.
         """
-        self.xm = roll(self.x, 1)
-        self.ym = roll(self.y, 1)
-        self.xp = roll(self.x, self.x.size - 1)
-        self.yp = roll(self.y, self.y.size - 1)
+        self.xm = rollm(self.x)#roll(self.x, 1)
+        self.ym = rollm(self.y)#roll(self.y, 1)
+        self.xp = rollp(self.x)#roll(self.x, self.x.size - 1)
+        self.yp = rollp(self.y)#roll(self.y, self.y.size - 1)
         if self.x_total is not None:
-            self.xm_total = roll(self.x_total, 1)
-            self.ym_total = roll(self.y_total, 1)
-            self.xp_total = roll(self.x_total, self.x_total.size - 1)
-            self.yp_total = roll(self.y_total, self.y_total.size - 1)
+            self.xm_total = rollm(self.x_total)#roll(self.x_total, 1)
+            self.ym_total = rollm(self.y_total)#roll(self.y_total, 1)
+            self.xp_total = rollp(self.x_total) #roll(self.x_total, self.x_total.size - 1)
+            self.yp_total = rollp(self.y_total)#roll(self.y_total, self.y_total.size - 1)
 
     def calcP(self, depth=-1.0):
         """Calculate perimeter of cross-section or subset. Calls cython for
@@ -100,7 +100,7 @@ class CrossSection:
             The perimeter of the selected portion of the cross-section.
         """
 
-        return fcalcP(self.x, self.xp, self.y, self.yp, depth)
+        return calcP(self.x, self.xp, self.y, self.yp, depth)
 
     # Calculates area of the cross-section
     def calcA(self, depth=-1.0):
@@ -117,7 +117,7 @@ class CrossSection:
             The area of the selected portion of the cross-section.
         """
 
-        return fcalcA(self.x, self.xm, self.y, self.ym, depth)
+        return calcA(self.x, self.xm, self.y, self.ym, depth)
 
     def create_A_interp(self, n_points=30):
         """Create an interpolation function for area as a function of flow depth.
@@ -619,13 +619,25 @@ class CrossSection:
         if Q >= calcFullFlow and not self.ymax > self.y.max():
             return -1
         else:
-            sol = minimize_scalar(
+            SMALL_Q = self.normal_discharge_residual(SMALL, slope, f, Q)
+            upper_bound_Q = self.normal_discharge_residual(upper_bound, slope, f, Q)
+            if np.sign(SMALL_Q) != np.sign(upper_bound_Q):
+                sol = brentq(
+                    self.normal_discharge_residual,
+                    a=SMALL, b=upper_bound,
+                    args=(slope, f, Q),
+                    full_output=False,
+                )
+                fd = sol
+            else:
+                sol = minimize_scalar(
                 self.abs_normal_discharge_residual,
                 bounds=[SMALL, upper_bound],
                 args=(slope, f, Q),
                 method="bounded",
-            )
-            fd = sol.x
+                )
+                fd = sol.x
+
             if fd >= maxdepth:
                 self.setFD(fd)
                 return -1
@@ -652,13 +664,23 @@ class CrossSection:
         upper_bound = fd * 1.25
         if upper_bound > 0.99 * maxdepth:
             upper_bound = 0.99 * maxdepth
-        sol = minimize_scalar(
+        if np.sign(SMALL) != upper_bound:
+            sol = brentq(
+                self.crit_flow_depth_residual,
+                a=SMALL, b=upper_bound,
+                args=(Q,),
+                full_output=False,
+            )
+            crit_depth = sol
+        else:
+            sol = minimize_scalar(
             self.abs_crit_flow_depth_residual,
             bounds=[SMALL, upper_bound],
             args=(Q,),
             method="bounded",
-        )
-        crit_depth = sol.x
+            )
+            crit_depth = sol.x
+
         return crit_depth
 
     def calcPipeFullHeadGrad(self, Q, f=0.1):
