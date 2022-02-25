@@ -13,20 +13,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import linregress
 import numpy as np
 import sys
-
-
-def power_10_label(value, pos):
-    if value > 0:
-        power = np.floor(np.log10(value))
-        rem = value / 10 ** power
-        # if rem == 1:
-        #    return r"$10^{%01d}$" % log10(value)
-        # else:
-        startlabel = r"$" + str(rem)[0] + r"\times"
-        endlabel = r"10^{%01d}$" % np.log10(value)
-        return startlabel + endlabel
-    else:
-        return r"$0^{ }$"
+import os
 
 
 font = {"size": 14}
@@ -185,7 +172,7 @@ def plot_erosion_slope_width_over_distance(snapshotdir, res, every=5):
 
     plt.tight_layout(h_pad=0.0, w_pad=0.0)
 
-    plt.savefig(snapshotdir + "/1-Erosion-slope-width-v-distance.png")
+    plt.savefig(os.path.join(snapshotdir, "1-Erosion-slope-width-v-distance.png"))
 
 
 def plot_morphodynamics(snapshotdir, res):
@@ -229,7 +216,7 @@ def plot_morphodynamics(snapshotdir, res):
     axs[2].tick_params(labelsize=10)
 
     plt.tight_layout(h_pad=0, w_pad=0)
-    plt.savefig(snapshotdir + "/1-Morphodynamics.png")
+    plt.savefig(os.path.join(snapshotdir, "1-Morphodynamics.png"))
 
 
 def final_step_morphology(snapshotdir, res):
@@ -257,7 +244,7 @@ def final_step_morphology(snapshotdir, res):
 
     plt.legend(["With CO2", "Optimal: " + opt_str, "Fit: " + fit_str])
     plt.tight_layout()
-    plt.savefig(snapshotdir + "/1-Final-Morphology.png")
+    plt.savefig(os.path.join(snapshotdir, "1-Final-Morphology.png"))
 
     # s_f = co2['slope'][-1][-1]
 

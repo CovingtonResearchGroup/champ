@@ -99,7 +99,7 @@ def runSim(
     """
 
     if not os.path.isdir(plotdir):
-        os.mkdir(plotdir)
+        os.makedirs(plotdir)
 
     plot_queue = mp.JoinableQueue()
     plot_process_list = []

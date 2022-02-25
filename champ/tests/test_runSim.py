@@ -3,7 +3,7 @@ from numpy.testing import (
     assert_approx_equal,
     # assert_array_almost_equal,
 )
-
+import shutil
 from champ.runSim import runSim
 
 slope_ref = 0.01
@@ -21,6 +21,7 @@ def test_equil_singleXC():
     L, R = sim.xc.findLR(sim.xc.fd)
     w = sim.xc.x[R] - sim.xc.x[L]
     assert_approx_equal(w, w_ref, 3)
+    shutil.rmtree(plotdir)
 
 
 def test_equil_multiXC():
@@ -35,5 +36,5 @@ def test_equil_multiXC():
         plotdir=plotdir,
         sim_params=sim_params,
     )
-
     assert_approx_equal(sim.slopes[1:].mean(), slope_ref, 2)
+    shutil.rmtree(plotdir)

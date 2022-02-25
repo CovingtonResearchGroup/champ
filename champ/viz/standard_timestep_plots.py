@@ -18,6 +18,9 @@ import os
 
 
 def make_all_standard_timestep_plots(sim, plotdir, timestep_str):
+    # Check whether plotdir exists
+    if not os.path.exists(plotdir):
+        os.makedirs(plotdir)
     # Avoid opening GUI
     matplotlib.use("Agg")
     plot_overlapping_XCs(sim, plotdir, timestep_str)
