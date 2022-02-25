@@ -14,6 +14,7 @@ from pylab import (
 )
 import matplotlib
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import os
 
 
 def make_all_standard_timestep_plots(sim, plotdir, timestep_str):
@@ -51,7 +52,7 @@ def plot_overlapping_XCs(sim, plotdir, timestep_str):
         wl = sim.xc.fd + sim.xc.y.min()
         plot([-0.5, 0.5], [wl, wl])
 
-    savefig(plotdir + "XC-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "XC-" + timestep_str + ".png"))
 
 
 def plot_elevation_profile(sim, plotdir, timestep_str):
@@ -61,7 +62,7 @@ def plot_elevation_profile(sim, plotdir, timestep_str):
     xlabel("Distance (m)")
     ylabel("Elevation (m)")
     legend(["h", "z"])
-    savefig(plotdir + "Elevation-Profile-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "Elevation-Profile-" + timestep_str + ".png"))
 
 
 def plot_concentration_profile(sim, plotdir, timestep_str):
@@ -70,7 +71,7 @@ def plot_concentration_profile(sim, plotdir, timestep_str):
     plot(sim.x_arr, sim.CO2_a)
     plot(sim.x_arr, sim.Ca)
     legend(["w", "a", "Ca"])
-    savefig(plotdir + "Concentration-Profile-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "Concentration-Profile-" + timestep_str + ".png"))
 
 
 def plot_slope_profile(sim, plotdir, timestep_str):
@@ -83,7 +84,7 @@ def plot_slope_profile(sim, plotdir, timestep_str):
     ylabel("Slope/Erosion rate")
     legend(["slope", "erosion rate"])
     tight_layout()
-    savefig(plotdir + "Slope-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "Slope-" + timestep_str + ".png"))
 
 
 def plot_3D_XCs(sim, plotdir, timestep_str):
@@ -133,4 +134,4 @@ def plot_3D_XCs(sim, plotdir, timestep_str):
     ax.add_collection3d(water_poly)  # , zdir='y')
     xlim([-5, 5])
     ax.view_init(elev=10, azim=-35)
-    savefig(plotdir + "3D-XC-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "3D-XC-" + timestep_str + ".png"))
