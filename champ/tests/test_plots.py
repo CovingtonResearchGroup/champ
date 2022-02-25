@@ -67,6 +67,7 @@ def test_spim_plots():
     shutil.rmtree(plotdir)
 
 
+""" This tests fails on github because headless doesn't work.
 def test_make_mayavi_frames():
     sim_params = {
         "Q_w": 1,
@@ -95,3 +96,4 @@ def test_make_mayavi_frames():
     nframes = len(frames)
     assert nsnaps == nframes
     # shutil.rmtree(plotdir)
+"""
