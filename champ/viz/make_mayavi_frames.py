@@ -5,9 +5,11 @@ import pickle
 import numpy as np
 from scipy import interpolate
 from mayavi import mlab
+import matplotlib
 
 
 def make_frames(snap_dir, contact_elev):
+    matplotlib.use("Agg")
     mlab.figure(size=(2000, 1400))  # , bgcolor=(1,1,1))
     snaplist = glob.glob(os.path.join(snap_dir, "snap*.pkl"))
     snaplist.sort()
