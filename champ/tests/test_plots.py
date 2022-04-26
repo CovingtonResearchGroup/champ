@@ -1,11 +1,13 @@
 import numpy as np
 import os
 import shutil
-import glob
+
+# import glob
 from champ.sim import multiXC
 from champ.viz.standard_timestep_plots import make_all_standard_timestep_plots
 from champ.viz.make_spim_plots_from_snapshots import make_spim_plots_from_snapshots
-from champ.viz.make_mayavi_frames import make_frames
+
+# from champ.viz.make_mayavi_frames import make_frames
 from champ.runSim import runSim
 
 
