@@ -10,11 +10,10 @@ def run_this_sim(ymlpath):
     ymlfile = ymlfile_split[-1]
     ymldir = os.path.join(*ymlfile_split[:-1])
     ymltag = ymlfile.split(".")[0]
-    logfile = os.path.join(ymldir,ymltag) + ".log"
+    logfile = os.path.join(ymldir, ymltag) + ".log"
     print("ymlpath=", ymlpath)
     print("logfile=", logfile)
     cmdline = ["python", "runSim.py", ymlpath]
-    #print(cmdline)
     with open(logfile, "wb") as log:
         subprocess.run(cmdline, stdout=log, stderr=log)
 

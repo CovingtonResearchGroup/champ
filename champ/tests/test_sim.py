@@ -69,3 +69,21 @@ def test_multiXC_calc_flow_full_pipe_varied_r():
     h_analytical[1:] = np.cumsum(del_h) * sim.L_arr
     h_analytical += 2 * init_radii[0] + sim.z_arr[0]
     assert_allclose(sim.h, h_analytical, rtol=0.001)
+
+
+def test_multiXC_backflooded_flow():
+    n = 5
+    x = np.linspace(0, 5000, n)
+    slope = 0.001
+    z = x * slope
+    init_radii = [0.1, 1, 1, 1]
+    Q = 0.01
+    f = 0.1
+    sim = multiXC(x, z, init_radii=init_radii, Q_w=Q, f=f, xc_n=1500)
+    sim.calc_flow()
+    delh = (sim.h[1:] - sim.h[:-1]) / sim.L_arr
+    V_bw = np.sqrt(2 * g * delh * sim.D_H_w / f)
+    V = V_bw
+    V_norm = np.sqrt(2 * g * sim.slopes * sim.D_H_w / f)
+    V[sim.flow_type == "norm"] = V_norm[sim.flow_type == "norm"]
+    assert_allclose(V * sim.A_w, Q * np.ones(n - 1), rtol=0.05)

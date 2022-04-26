@@ -1,7 +1,7 @@
-n: 1
+n: 5
 r_init: 2.
 endtime: 1000
-plotdir: './tests/yaml/layered-singleXC-test-figs/'
+plotdir: '.tests/yaml/layered-multiXC-test-figs/'
 start_from_snapshot_num: 0
 snapshot_every: 1000
 plot_every: 100

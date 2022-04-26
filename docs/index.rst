@@ -7,7 +7,7 @@ Welcome to champ's documentation!
 =================================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 3
    :caption: Contents:
 
    champ

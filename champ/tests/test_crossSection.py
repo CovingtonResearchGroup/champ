@@ -6,12 +6,18 @@ from numpy.testing import (
 )
 
 from champ.crossSection import CrossSection
-from champ.utils.ShapeGen import genCirc
+from champ.utils.ShapeGen import genCirc, genEll
 
 r = 1.0
 n = 1000
 x, y = genCirc(r, n=n)
 xc_Circ = CrossSection(x, y)
+a = r
+b = 2 * r
+x, y = genEll(a, b, n=n)
+xc_Ellip = CrossSection(x, y)
+x, y = genEll(a, b, n=n, theta=0.1 * np.pi)
+xc_Ellip_rot = CrossSection(x, y)
 
 
 def test_xc_area():
@@ -36,6 +42,34 @@ def test_half_xc_p():
     P = xc_Circ.calcP(depth=(xc_Circ.y.max() - xc_Circ.y.min()) / 2)
     P_analytical = np.pi * r
     assert_approx_equal(P_analytical, P, significant=3)
+
+
+def test_ellip_area():
+    A = xc_Ellip.calcA()
+    area_analytical = np.pi * a * b
+    assert_almost_equal(area_analytical, A, decimal=4)
+
+
+def test_ellip_p():
+    P = xc_Ellip.calcP()
+    a = r
+    b = 2 * r
+    p_analytical = np.pi * (3 * (a + b) - np.sqrt((3 * a + b) * (a + 3 * b)))
+    assert_almost_equal(p_analytical, P, decimal=2)
+
+
+def test_ellip_area_rotated():
+    A = xc_Ellip_rot.calcA()
+    area_analytical = np.pi * a * b
+    assert_almost_equal(area_analytical, A, decimal=4)
+
+
+def test_ellip_p_rotated():
+    P = xc_Ellip_rot.calcP()
+    a = r
+    b = 2 * r
+    p_analytical = np.pi * (3 * (a + b) - np.sqrt((3 * a + b) * (a + 3 * b)))
+    assert_almost_equal(p_analytical, P, decimal=2)
 
 
 def test_A_interp():

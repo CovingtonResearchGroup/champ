@@ -8,6 +8,7 @@ from mayavi import mlab
 
 
 def make_frames(snap_dir, contact_elev):
+    mlab.options.offscreen = True
     mlab.figure(size=(2000, 1400))  # , bgcolor=(1,1,1))
     snaplist = glob.glob(os.path.join(snap_dir, "snap*.pkl"))
     snaplist.sort()

@@ -14,9 +14,13 @@ from pylab import (
 )
 import matplotlib
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import os
 
 
 def make_all_standard_timestep_plots(sim, plotdir, timestep_str):
+    # Check whether plotdir exists
+    if not os.path.exists(plotdir):
+        os.makedirs(plotdir)
     # Avoid opening GUI
     matplotlib.use("Agg")
     plot_overlapping_XCs(sim, plotdir, timestep_str)
@@ -52,7 +56,7 @@ def plot_overlapping_XCs(sim, plotdir, timestep_str):
         plot([-0.5, 0.5], [wl, wl])
     xlabel("Cross-channel distance (m)")
     ylabel("Relative elevation (m)")
-    savefig(plotdir + "XC-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "XC-" + timestep_str + ".png"))
 
 
 def plot_elevation_profile(sim, plotdir, timestep_str):
@@ -62,7 +66,7 @@ def plot_elevation_profile(sim, plotdir, timestep_str):
     xlabel("Distance (m)")
     ylabel("Elevation (m)")
     legend(["h", "z"])
-    savefig(plotdir + "Elevation-Profile-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "Elevation-Profile-" + timestep_str + ".png"))
 
 
 def plot_concentration_profile(sim, plotdir, timestep_str):
@@ -71,7 +75,7 @@ def plot_concentration_profile(sim, plotdir, timestep_str):
     plot(sim.x_arr, sim.CO2_a)
     plot(sim.x_arr, sim.Ca)
     legend(["w", "a", "Ca"])
-    savefig(plotdir + "Concentration-Profile-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "Concentration-Profile-" + timestep_str + ".png"))
 
 
 def plot_slope_profile(sim, plotdir, timestep_str):
@@ -84,7 +88,7 @@ def plot_slope_profile(sim, plotdir, timestep_str):
     ylabel("Slope/Erosion rate (m/yr)")
     legend(["slope", "erosion rate"])
     tight_layout()
-    savefig(plotdir + "Slope-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "Slope-" + timestep_str + ".png"))
 
 
 def plot_3D_XCs(sim, plotdir, timestep_str):
@@ -137,4 +141,4 @@ def plot_3D_XCs(sim, plotdir, timestep_str):
     ax.set_xlabel("Cross-channel distance (m)")
     ax.set_ylabel("Longitudinal distance (m)")
     ax.set_zlabel("Elevation (m)")
-    savefig(plotdir + "3D-XC-" + timestep_str + ".png")
+    savefig(os.path.join(plotdir, "3D-XC-" + timestep_str + ".png"))
