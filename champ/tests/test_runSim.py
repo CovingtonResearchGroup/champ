@@ -5,6 +5,7 @@ from numpy.testing import (
 )
 import shutil
 from champ.runSim import runSim
+import numpy as np
 
 slope_ref = 0.01
 Q_ref = 1.0
@@ -22,6 +23,24 @@ def test_equil_singleXC():
     w = sim.xc.x[R] - sim.xc.x[L]
     assert_approx_equal(w, w_ref, 3)
     shutil.rmtree(plotdir)
+
+
+def test_layered_erosion_singleXC():
+    K1 = 5e-10
+    K2 = 1e-10
+    sim_params = {
+        "Q_w": 5.0,
+        "slope": 0.001,
+        "adaptive_step": False,
+        "K": [K1, K2],
+        "layer_elevs": [0],
+    }
+    r_init = 0.15
+    sim = runSim(r_init=r_init, n=1, endtime=1, plotdir=plotdir, sim_params=sim_params)
+    dr = np.sqrt(sim.xc.x ** 2 + sim.xc.y ** 2) - r_init
+    dr_up = dr[sim.xc.y > 0].mean()
+    dr_down = dr[sim.xc.y < 0].mean()
+    assert_approx_equal(dr_up / dr_down, K2 / K1, 3)
 
 
 def test_equil_multiXC():
