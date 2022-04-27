@@ -13,7 +13,7 @@ def run_this_sim(ymlpath):
     logfile = os.path.join(ymldir, ymltag) + ".log"
     print("ymlpath=", ymlpath)
     print("logfile=", logfile)
-    cmdline = ["python", "runSim.py", ymlpath]
+    cmdline = ["champ-runSim", ymlpath]
     with open(logfile, "wb") as log:
         subprocess.run(cmdline, stdout=log, stderr=log)
 
