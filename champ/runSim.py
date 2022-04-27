@@ -233,8 +233,7 @@ def make_plots(plot_queue):
         make_all_standard_timestep_plots(*this_plot_tuple)
         plot_queue.task_done()
 
-
-if __name__ == "__main__":
+def main():
     """debugpy.listen(5678)
     print("Waiting for debugger attach...")
     debugpy.wait_for_client()
@@ -246,3 +245,8 @@ if __name__ == "__main__":
     runSim(**run_params)
     end_time = time.time()
     print(f"Simulation took {end_time-start_time:.2f} seconds to run.")
+        
+
+if __name__ == "__main__":
+    main()
+
