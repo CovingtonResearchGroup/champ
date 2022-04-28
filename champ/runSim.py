@@ -367,48 +367,67 @@ def runEquilibrationSim(
     }
 
 
-"""
+def calcEquivK(uplift, slope, a):
+    """
+    Calculate equivalent erodibility to produce equilibrium slope.
+
+    Parameters
+    ----------
+    uplift : float
+        Uplift rate in m/year.
+    slope : float
+        Equilibrium channel slope at provided uplift.
+    a : float
+        Shear stress erosion exponent.
+    """
+
+    # Calculate slope exponent from a
+    n = a * (2.0 / 3.0)
+    K_equiv = uplift * slope ** (-n)
+    return K_equiv
+
+
 def runSPIM(
     n=1000,
     L=1000,
     dz=1,
     z_arr=None,
     endtime=1000,
-    plotdir="./default-figs/",
+    plotdir="./spim/",
     dz0_dt=0.00025,
     plot_every=100,
     sim_params={},
 ):
-"""
-"""Run Stream power incision model (SPIM) simulation using specified parameters.
 
-Parameters
-----------
-n : int
-    Number of nodes.
-L : float
-    Length of entire channel (meters).
-dz : float
-    Change in elevation over channel length (meters).
-z_arr : ndarray
-    Array of node elevations. If given, then dz is ignored. Default=None.
-endtime : int
-    Time (years) at which to end simulation. Default=1000.
-plotdir : string
-    Path to directory that will hold plots and outputs. This directory
-    will be created if it does not exist.
-dz0_dt : float
-    Rate of change of baselevel. This distance is subtracted
-    from the elevation of the downstream boundary node during
-    each timestep.
-plot_every : int
-    Number of years/timesteps after which to create plots of simulation
-    outputs.
-sim_params : dict
-    Dictionary of keyword arguments to be supplied to spim for
-    initialization of simulation object.
+    """Run Stream power incision model (SPIM) simulation using specified parameters.
 
-"""
+    Parameters
+    ----------
+    n : int
+        Number of nodes.
+    L : float
+        Length of entire channel (meters).
+    dz : float
+        Change in elevation over channel length (meters).
+    z_arr : ndarray
+        Array of node elevations. If given, then dz is ignored. Default=None.
+    endtime : int
+        Time (years) at which to end simulation. Default=1000.
+    plotdir : string
+        Path to directory that will hold plots and outputs. This directory
+        will be created if it does not exist.
+    dz0_dt : float
+        Rate of change of baselevel. This distance is subtracted
+        from the elevation of the downstream boundary node during
+        each timestep.
+    plot_every : int
+        Number of years/timesteps after which to create plots of simulation
+        outputs.
+    sim_params : dict
+        Dictionary of keyword arguments to be supplied to spim for
+        initialization of simulation object.
+
+    """
 
 
 def main():
