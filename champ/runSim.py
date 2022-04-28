@@ -234,6 +234,133 @@ def make_plots(plot_queue):
         plot_queue.task_done()
 
 
+def runEquilibrationSim(
+    uplift,
+    Q_w,
+    K,
+    a,
+    mean_tol=0.005,
+    diff_tol=0.01,
+    n=5,
+    L=1000,
+    dz=20,
+    r_init=10.0,
+    xc_n=300,
+    mintime=1000,
+    plotdir="./equil-sim/",
+    adaptive_step=True,
+    max_frac_erode=0.05,  # Set higher to speed equilibration
+):
+    sim_params = {
+        "Q_w": Q_w,
+        "xc_n": xc_n,
+        "adaptive_step": adaptive_step,
+        "max_frac_erode": max_frac_erode,
+        "a": a,
+        "K": K,
+    }
+    eq_sim = runSim(
+        n=n,
+        L=L,
+        dz=dz,
+        r_init=r_init,
+        dz0_dt=uplift,
+        plotdir=plotdir,
+        endtime=mintime,
+        snapshot_every=10000,
+        plot_every=10000,
+        sim_params=sim_params,
+    )
+    converged = False
+    nsteps = 0
+    while not converged:
+        eq_sim.run_one_step()
+        eq_sim.z_arr[0] -= uplift * eq_sim.dt_erode
+        avg_erosion = eq_sim.dz.mean() / eq_sim.dt_erode
+        if np.abs(1.0 - np.abs(avg_erosion / uplift)) < mean_tol:
+            # Met mean erosion rate tolerance for equilibrium
+            if (
+                np.abs(
+                    (eq_sim.dz.max() - eq_sim.dz.min()) / eq_sim.dt_erode / avg_erosion
+                )
+                < diff_tol
+            ):
+                # Met difference among nodes tolerance for equilibrium
+                converged = True
+        nsteps += 1
+        if nsteps % 100 == 0:
+            print("nsteps=", nsteps)
+            print("mean_tol=", np.abs(1.0 - np.abs(avg_erosion / uplift)))
+            print(
+                "diff_tol=",
+                np.abs(
+                    (eq_sim.dz.max() - eq_sim.dz.min()) / eq_sim.dt_erode / avg_erosion
+                ),
+            )
+
+    # Pickle and plot converged equilibrium state
+    tstep = int(np.round(eq_sim.timestep))
+    timestep_str = "%08d" % (tstep,)
+    print("Snapshot of equilibrium state at timestep: ", tstep)
+    snapfilename = plotdir + "/snapshot-" + timestep_str + ".pkl"
+    f = open(snapfilename, "wb")
+    pickle.dump(eq_sim, f)
+    make_all_standard_timestep_plots(eq_sim, plotdir, timestep_str)
+    # Calculate equilibrium morphology
+    equil_slope = eq_sim.slopes.mean()
+    equil_width = eq_sim.W.mean()
+    return {
+        "equil_slope": equil_slope,
+        "equil_width": equil_width,
+        "equilsnapshot": snapfilename,
+        "sim": eq_sim,
+    }
+
+
+"""
+def runSPIM(
+    n=1000,
+    L=1000,
+    dz=1,
+    z_arr=None,
+    endtime=1000,
+    plotdir="./default-figs/",
+    dz0_dt=0.00025,
+    plot_every=100,
+    sim_params={},
+):
+"""
+"""Run Stream power incision model (SPIM) simulation using specified parameters.
+
+Parameters
+----------
+n : int
+    Number of nodes.
+L : float
+    Length of entire channel (meters).
+dz : float
+    Change in elevation over channel length (meters).
+z_arr : ndarray
+    Array of node elevations. If given, then dz is ignored. Default=None.
+endtime : int
+    Time (years) at which to end simulation. Default=1000.
+plotdir : string
+    Path to directory that will hold plots and outputs. This directory
+    will be created if it does not exist.
+dz0_dt : float
+    Rate of change of baselevel. This distance is subtracted
+    from the elevation of the downstream boundary node during
+    each timestep.
+plot_every : int
+    Number of years/timesteps after which to create plots of simulation
+    outputs.
+sim_params : dict
+    Dictionary of keyword arguments to be supplied to spim for
+    initialization of simulation object.
+
+"""
+
+
 def main():
     """debugpy.listen(5678)
     print("Waiting for debugger attach...")
