@@ -251,6 +251,56 @@ def runEquilibrationSim(
     adaptive_step=True,
     max_frac_erode=0.05,  # Set higher to speed equilibration
 ):
+
+    """Run multiXC simulation to topographic equilibrium.
+
+    Parameters
+    ----------
+    uplift : float
+        Rate of topographic uplift (m/year)
+    Q_w : float
+        Channel discharge (m^3/s)
+    K : float
+        Rock erodibility
+    a : float
+        Exponent in shear stress erosion rule. a=(3/2)*n,
+        where n is the slope exponent in the stream power incision model.
+    mean_tol : float
+        Fractional tolerance to define convergence for difference between
+        uplift and average erosion across the model channel (topographic equilibrium).
+        Calculated as: abs(1.0 - abs(avg_erosion / uplift)). Convergence
+        occurs when both this criteria and diff_tol are satisfied.
+    diff_tol : float
+        Fractional tolerance to define convergence based on the difference
+        between minimum and maximum XC erosion rates. Calculated as:
+        (Max erosion - Min Erosion) / avg_erosion. Convergence
+        occurs when both this criteria and mean_tol are satisfied.
+    n : int
+        Number of nodes.
+    L : float
+        Length of entire channel (meters).
+    dz : float
+        Initial change in elevation over channel length (meters).
+    r_init : float
+        Initial cross-section radius.
+    mintime : int
+        Minimum time (years) for which to run the simulation. Default=1000.
+    plotdir : string
+        Path to directory that will hold plots and snapshots. This directory
+        will be created if it does not exist.
+    adaptive_step : boolean, optional
+            Whether or not to adjust timestep dynamically. For equilibration simulations
+            the default is True.
+        max_frac_erode : float, optional
+            Maximum fraction of radial distance to erode within a single timestep
+            under adaptive time-stepping. If erosion exceeds this fraction, then
+            the timestep will be reduced. If erosion is much less than this fraction,
+            then the timestep will be increased. We have not conducted a detailed
+            stability analysis. For equilibration simulations, we have chosen a 
+            relatively large default value of 0.05, which reduces time to convergence.
+            If simulations become unstable, reduce this fraction.
+    """
+
     sim_params = {
         "Q_w": Q_w,
         "xc_n": xc_n,
