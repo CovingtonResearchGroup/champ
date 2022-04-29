@@ -594,8 +594,8 @@ class spim(sim):
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
         self.dx = x_arr[1] - x_arr[0]
-        self.updateSlope()
         self.z_arr = z_arr
+        self.updateSlopes()
         self.Q_w = Q_w
         self.dt_erode = dt_erode
         self.old_dt = dt_erode
@@ -638,10 +638,10 @@ class spim(sim):
         self.erode()
 
     def erode(self):
-        erosion = self.dt_erode * self.K_arr[1:] * self.slope ** self.n
+        erosion = self.dt_erode * self.K_arr[1:] * self.slopes ** self.n
         self.z_arr[1:] -= erosion
         self.z_arr[0] -= self.uplift * self.dt_erode
-        self.updateSlope()
+        self.updateSlopes()
         if self.layered_sim:
             self.updateKs()
 
@@ -657,5 +657,5 @@ class spim(sim):
         final_layer_idx = self.z_arr > elev
         self.K_arr[final_layer_idx] = self.K[-1]
 
-    def updateSlope(self):
-        self.slope = (self.z_arr[1:] - self.z_arr[:-1]) / self.dx
+    def updateSlopes(self):
+        self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / self.dx

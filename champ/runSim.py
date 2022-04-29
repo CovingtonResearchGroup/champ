@@ -487,9 +487,15 @@ def runSPIM(
     t_i = time.time()
     while not finished:
         # Determine stable timestep
-        Celerity = sim.K_arr[1:] * sim.slope ** (sim.n - 1)
+        Celerity = sim.K_arr[1:] * sim.slopes ** (sim.n - 1)
         # set timestep for stable CFL criteria
         sim.dt_erode = CFL_crit * sim.dx / (np.abs(Celerity).max())
+        if plot_by_years:
+            if sim.dt_erode > plot_every:
+                sim.dt_erode = plot_every
+        if snapshot_by_years:
+            if sim.dt_erode > snapshot_every:
+                sim.dt_erode = snapshot_every
         # Run erosion
         sim.run_one_step()
         print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
@@ -508,15 +514,15 @@ def runSPIM(
             if tstep % plot_every == 0:
                 timestep_str = "%08d" % (tstep,)
                 print("Plotting timestep: ", tstep)
-                plot_elevation_profile(sim, plotdir, timestep_str)
+                plot_elevation_profile(sim, plotdir, timestep_str, with_h=False)
                 plot_slope_profile(sim, plotdir, timestep_str)
         else:
             t = int(np.round(sim.elapsed_time))
             if t % plot_every == 0:
                 time_str = "%08d" % (t,)
                 print("Plotting at time: ", t)
-                plot_elevation_profile(sim, plotdir, timestep_str)
-                plot_slope_profile(sim, plotdir, timestep_str)
+                plot_elevation_profile(sim, plotdir, time_str, with_h=False)
+                plot_slope_profile(sim, plotdir, time_str)
         if not snapshot_by_years:
             tstep = int(np.round(sim.timestep))
             if tstep % snapshot_every == 0:

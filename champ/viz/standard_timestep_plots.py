@@ -59,9 +59,10 @@ def plot_overlapping_XCs(sim, plotdir, timestep_str):
     savefig(os.path.join(plotdir, "XC-" + timestep_str + ".png"))
 
 
-def plot_elevation_profile(sim, plotdir, timestep_str):
+def plot_elevation_profile(sim, plotdir, timestep_str, with_h=True):
     figure()
-    plot(sim.x_arr, sim.h)
+    if with_h:
+        plot(sim.x_arr, sim.h)
     plot(sim.x_arr, sim.z_arr)
     xlabel("Distance (m)")
     ylabel("Elevation (m)")
