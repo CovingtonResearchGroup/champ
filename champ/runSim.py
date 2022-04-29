@@ -20,8 +20,12 @@ import copy
 import multiprocessing as mp
 
 from champ.utils.model_parameter_loader import load_params
-from champ.viz.standard_timestep_plots import make_all_standard_timestep_plots
-from champ.sim import singleXC, multiXC
+from champ.viz.standard_timestep_plots import (
+    make_all_standard_timestep_plots,
+    plot_elevation_profile,
+    plot_slope_profile,
+)
+from champ.sim import singleXC, multiXC, spim
 
 params_file = None
 
@@ -300,6 +304,8 @@ def runEquilibrationSim(
             relatively large default value of 0.05, which reduces time to convergence.
             If simulations become unstable, reduce this fraction.
     """
+    if not os.path.isdir(plotdir):
+        os.makedirs(plotdir)
 
     sim_params = {
         "Q_w": Q_w,
@@ -396,6 +402,11 @@ def runSPIM(
     plotdir="./spim/",
     dz0_dt=0.00025,
     plot_every=100,
+    snapshot_every=1000,
+    start_from_snapshot_num=0,
+    snapshot_by_years=True,
+    plot_by_years=True,
+    CFL_crit=0.9,
     sim_params={},
 ):
 
@@ -415,19 +426,138 @@ def runSPIM(
         Time (years) at which to end simulation. Default=1000.
     plotdir : string
         Path to directory that will hold plots and outputs. This directory
-        will be created if it does not exist.
+        will be created if it does not exist. If starting from previous snapshot,
+        snapshot must be in this directory.
     dz0_dt : float
         Rate of change of baselevel. This distance is subtracted
         from the elevation of the downstream boundary node during
         each timestep.
+    start_from_snapshot_num : int
+        If set to a nonzero value, then the simulation will be
+        started from that snapshot number within plotdir. If set
+        to zero, then a new simulation is started.
+    snapshot_every : int
+        Number of years/timesteps after which to record a pickled CO2_1D object.
+        These snapshots can easily be used to restart a simulation from a
+        previous point.
     plot_every : int
         Number of years/timesteps after which to create plots of simulation
         outputs.
+    snapshot_by_years : boolean
+        Whether shapshots should be taken after a certain number of years of simulation
+        (True) or after a certain number of timesteps (False). Default is True.
+    plot_by_years : boolean
+        Whether plots should be created after a certain number of years of simulation
+        (True) or after a certain number of timesteps (False). Default is True.
     sim_params : dict
         Dictionary of keyword arguments to be supplied to spim for
         initialization of simulation object.
-
+    CFL_crit : float, optional
+        Timestep is adjusted to produce this Courant-Friedrich-Lax number.
+        Default is 0.9.
     """
+    if not os.path.isdir(plotdir):
+        os.makedirs(plotdir)
+
+    if start_from_snapshot_num == 0:
+        x = np.linspace(0, L, n)
+        if z_arr is None:
+            z = np.linspace(1.0, 1.0 + dz, n)
+        else:
+            z_arr = np.array(z_arr)
+            z = z_arr
+        if len(z) != len(x):
+            print("Wrong number of elements in z_arr!")
+            return -1
+        sim = spim(x, z, dz0_dt, **sim_params)
+    else:
+        # Restart from existing snapshot
+        start_timestep_str = "%08d" % (start_from_snapshot_num,)
+        snapshot = open(plotdir + "/snapshot-" + start_timestep_str + ".pkl", "rb")
+        sim = pickle.load(snapshot)
+        # Update simulation parameters (allows changing yml)
+        sim.update_params(sim_params)
+
+    # add tag into sim that gives parameter file
+    if params_file is not None:
+        sim.params_file = params_file
+
+    finished = False
+    oldtimestep = None
+    t_i = time.time()
+    while not finished:
+        # Determine stable timestep
+        Celerity = sim.K_arr[1:] * sim.slope ** (sim.n - 1)
+        # set timestep for stable CFL criteria
+        sim.dt_erode = CFL_crit * sim.dx / (np.abs(Celerity).max())
+        # Run erosion
+        sim.run_one_step()
+        print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
+        # Reset timestep if we have adjusted for plot or snapshot
+        if oldtimestep is not None:
+            sim.dt_erode = oldtimestep
+            oldtimestep = None
+
+        # Check whether we have reached end of simulation
+        if sim.elapsed_time >= endtime:
+            finished = True
+
+        # Output plots/snapshots by even timesteps or years
+        if not plot_by_years:
+            tstep = int(np.round(sim.timestep))
+            if tstep % plot_every == 0:
+                timestep_str = "%08d" % (tstep,)
+                print("Plotting timestep: ", tstep)
+                plot_elevation_profile(sim, plotdir, timestep_str)
+                plot_slope_profile(sim, plotdir, timestep_str)
+        else:
+            t = int(np.round(sim.elapsed_time))
+            if t % plot_every == 0:
+                time_str = "%08d" % (t,)
+                print("Plotting at time: ", t)
+                plot_elevation_profile(sim, plotdir, timestep_str)
+                plot_slope_profile(sim, plotdir, timestep_str)
+        if not snapshot_by_years:
+            tstep = int(np.round(sim.timestep))
+            if tstep % snapshot_every == 0:
+                timestep_str = "%08d" % (tstep,)
+                print("Snapshot at timestep: ", tstep)
+                f = open(plotdir + "/snapshot-" + timestep_str + ".pkl", "wb")
+                pickle.dump(sim, f)
+        else:
+            t = int(np.round(sim.elapsed_time))
+            if t % snapshot_every == 0:
+                time_str = "%08d" % (t,)
+                print("Snapshot at timestep: ", t)
+                f = open(plotdir + "/snapshot-" + time_str + ".pkl", "wb")
+                pickle.dump(sim, f)
+
+        # Timestep adjustments for time-based plots and snapshots
+        if plot_by_years:
+            # Check whether we need to adjust timestep to hit next plot
+            time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
+            if sim.dt_erode > time_to_next_plot:
+                oldtimestep = sim.dt_erode
+                sim.dt_erode = time_to_next_plot
+
+        if snapshot_by_years:
+            # Check whether we need to adjust timestep to hit next snapshot
+            time_to_next_snap = snapshot_every - (sim.elapsed_time % snapshot_every)
+            if sim.dt_erode > time_to_next_snap:
+                if plot_by_years:
+                    if time_to_next_snap > time_to_next_plot:
+                        # We will hit the snapshot later and get plot now
+                        pass
+                    else:
+                        oldtimestep = sim.dt_erode
+                        sim.dt_erode = time_to_next_snap
+                else:
+                    oldtimestep = sim.dt_erode
+                    sim.dt_erode = time_to_next_snap
+
+    t_f = time.time()
+    print(f"Runtime for simulation was {t_f - t_i}")
+    return sim
 
 
 def main():

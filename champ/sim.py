@@ -553,12 +553,12 @@ class spim(sim):
         self,
         x_arr,
         z_arr,
+        uplift,
         Q_w=0.1,
         dt_erode=1.0,
         a=1.0,
         K=1e-5,
         layer_elevs=None,
-        CFL_crit=0.9,
     ):
 
         """
@@ -566,15 +566,16 @@ class spim(sim):
         ----------
         x_arr : ndarray
             Array of distances in meters along the channel for the node locations.
-        z_arr: ndarray
+        z_arr : ndarray
             Array of elevations in meters for nodes along the channel. Minimum y
             values for each cross-section will be added to these elevations
             during initialization, so that z_arr will represent the channel bottom.
+        uplift : float
+            Rate of change of baselevel. This distance is subtracted
+            from the elevation of the downstream boundary node during
+            each timestep.
         Q_w : float, optional
             Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
-        CFL_crit : float, optional
-            Timestep is adjusted to produce this Courant-Friedrich-Lax number.
-            Default is 0.9.
         dt_erode : float, optional
             Erosional time step in years. Default value is 1 year.
         a : float, optional
@@ -593,6 +594,7 @@ class spim(sim):
         self.L = x_arr.max() - x_arr.min()
         self.x_arr = x_arr
         self.dx = x_arr[1] - x_arr[0]
+        self.updateSlope()
         self.z_arr = z_arr
         self.Q_w = Q_w
         self.dt_erode = dt_erode
@@ -600,7 +602,7 @@ class spim(sim):
         self.a = a
         self.n = (2.0 / 3.0) * a
         self.K = K
-        self.CFL_crit = CFL_crit
+        self.uplift = uplift
         if layer_elevs is not None:
             n_layers = len(K)
             n_transitions = len(layer_elevs)
@@ -615,8 +617,7 @@ class spim(sim):
             else:
                 self.layer_elevs = np.array(layer_elevs)
                 self.layered_sim = True
-                # For now fill K with K0. Will fix during erode step.
-                self.K_arr = K[0] * np.zeros(self.n_nodes)
+                self.updateKs()
         else:
             self.layered_sim = False
             self.K_arr = K * np.ones(self.n_nodes)
@@ -637,26 +638,24 @@ class spim(sim):
         self.erode()
 
     def erode(self):
-        if self.layered_sim:
-            old_elev = None
-            for i, elev in enumerate(self.layer_elevs):
-                if i == 0:
-                    layer_idx = self.z_arr < elev
-                else:
-                    layer_idx = np.logical_and(
-                        self.z_arr < elev, self.z_arr >= old_elev
-                    )
-                self.K_arr[layer_idx] = self.K[i]
-                old_elev = elev
-            final_layer_idx = self.z_arr > elev
-            self.K_arr[final_layer_idx] = self.K[-1]
-
-        # Do this in runSim?
-        slope = (self.z_arr[1:] - self.z_arr[:-1]) / self.dx
-        C = self.K_arr[1:] * slope ** (self.n - 1)
-        # set timestep for stable CFL criteria
-        dt = self.CFL_crit * self.dx / max(abs(C))
-        erosion = dt * self.K_arr[1:] * slope ** self.n
+        erosion = self.dt_erode * self.K_arr[1:] * self.slope ** self.n
         self.z_arr[1:] -= erosion
-        # Do this in runSim
-        # self.z_arr[0] -= uplift*dt
+        self.z_arr[0] -= self.uplift * self.dt_erode
+        self.updateSlope()
+        if self.layered_sim:
+            self.updateKs()
+
+    def updateKs(self):
+        old_elev = None
+        for i, elev in enumerate(self.layer_elevs):
+            if i == 0:
+                layer_idx = self.z_arr < elev
+            else:
+                layer_idx = np.logical_and(self.z_arr < elev, self.z_arr >= old_elev)
+            self.K_arr[layer_idx] = self.K[i]
+            old_elev = elev
+        final_layer_idx = self.z_arr > elev
+        self.K_arr[final_layer_idx] = self.K[-1]
+
+    def updateSlope(self):
+        self.slope = (self.z_arr[1:] - self.z_arr[:-1]) / self.dx
