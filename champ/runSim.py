@@ -47,6 +47,7 @@ def runSim(
     snapshot_by_years=True,
     plot_by_years=True,
     n_plot_processes=1,
+    run_equiv_spim=False,
     sim_params={},
 ):
 
@@ -96,6 +97,10 @@ def runSim(
         Number of multiprocessing processes to use for creating plots, which are run
         within a separate process from the simulation. Increase this number if plotting
         is slowing down your simulation and additional CPUs are available. Default is 1.
+    run_equiv_spim : boolean
+        Whether to also run a stream power incision model (SPIM) case that is calibrated
+        such that erodibility produces the same equilibrium slope as a multiXC model
+        run for the same uplift, discharge, and incision exponent (a).
     sim_params : dict
         Dictionary of keyword arguments to be supplied to singleXC or multiXC for
         initialization of simulation object.
@@ -148,6 +153,44 @@ def runSim(
     # add tag into sim that gives parameter file
     if params_file is not None:
         sim.params_file = params_file
+
+    # Run equivalent SPIM simulation, if desired
+    if run_equiv_spim and not single_XC_sim:
+        # Setup and run equilibration sim
+        if np.size(sim.K) > 1:
+            K_eqsim = sim.K[-1]  # Use topmost layer
+        else:
+            K_eqsim = sim.K
+        eq_dz = sim.z_arr[-1] - sim.z_arr[0]
+        eq_sim = runEquilibrationSim(
+            dz0_dt,
+            sim.Q_w,
+            K_eqsim,
+            a=sim.a,
+            L=sim.L,
+            dz=eq_dz,
+            plotdir=os.path.join(plotdir, "equil-sim/"),
+        )
+        eq_slope = eq_sim["equil_slope"]
+        K_equiv = calcEquivK(dz0_dt, eq_slope, sim.a)
+        spim_sim_params = {
+            "Q_w": sim.Q_w,
+            "a": sim.a,
+            "K": K_equiv,
+        }
+        if "layer_elevs" in sim_params:
+            spim_sim_params["layer_elevs"] = sim_params["layer_elevs"]
+        runSPIM(
+            L=sim.L,
+            dz=eq_dz,
+            endtime=endtime,
+            plotdir=os.path.join(plotdir, "spim/"),
+            dz0_dt=dz0_dt,
+            plot_every=plot_every,
+            snapshot_every=snapshot_every,
+            start_from_snapshot_num=start_from_snapshot_num,
+            sim_params=spim_sim_params,
+        )
 
     finished = False
     oldtimestep = None
@@ -330,6 +373,8 @@ def runEquilibrationSim(
     converged = False
     nsteps = 0
     boost_step = 0
+    stop_boost = False
+    erosion_greater_than_uplift_steps = 0
     while not converged:
         eq_sim.run_one_step()
         eq_sim.z_arr[0] -= uplift * eq_sim.dt_erode
@@ -355,7 +400,11 @@ def runEquilibrationSim(
                     (eq_sim.dz.max() - eq_sim.dz.min()) / eq_sim.dt_erode / avg_erosion
                 ),
             )
-        if (-1 * avg_erosion < uplift) and (nsteps > boost_step + 50):
+        if (
+            (-1 * avg_erosion < uplift)
+            and (nsteps > boost_step + 50)
+            and not stop_boost
+        ):
             print("Avg erosion =", avg_erosion)
             print("Uplift = ", uplift)
             boost_step = nsteps
@@ -363,6 +412,12 @@ def runEquilibrationSim(
             dz = 2 * dz
             z_boost = np.linspace(0, dz, n)
             eq_sim.z_arr += z_boost
+
+        # Avoid boosting after we have already had erosion rates greater than uplift
+        if -1 * avg_erosion > uplift:
+            erosion_greater_than_uplift_steps += 1
+        if erosion_greater_than_uplift_steps > 5:
+            stop_boost = True
 
     # Pickle and plot converged equilibrium state
     tstep = int(np.round(eq_sim.timestep))
