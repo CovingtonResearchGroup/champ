@@ -293,16 +293,16 @@ def runEquilibrationSim(
         Path to directory that will hold plots and snapshots. This directory
         will be created if it does not exist.
     adaptive_step : boolean, optional
-            Whether or not to adjust timestep dynamically. For equilibration simulations
-            the default is True.
-        max_frac_erode : float, optional
-            Maximum fraction of radial distance to erode within a single timestep
-            under adaptive time-stepping. If erosion exceeds this fraction, then
-            the timestep will be reduced. If erosion is much less than this fraction,
-            then the timestep will be increased. We have not conducted a detailed
-            stability analysis. For equilibration simulations, we have chosen a 
-            relatively large default value of 0.05, which reduces time to convergence.
-            If simulations become unstable, reduce this fraction.
+        Whether or not to adjust timestep dynamically. For equilibration simulations
+        the default is True.
+    max_frac_erode : float, optional
+        Maximum fraction of radial distance to erode within a single timestep
+        under adaptive time-stepping. If erosion exceeds this fraction, then
+        the timestep will be reduced. If erosion is much less than this fraction,
+        then the timestep will be increased. We have not conducted a detailed
+        stability analysis. For equilibration simulations, we have chosen a 
+        relatively large default value of 0.05, which reduces time to convergence.
+        If simulations become unstable, reduce this fraction.
     """
     if not os.path.isdir(plotdir):
         os.makedirs(plotdir)
@@ -329,6 +329,7 @@ def runEquilibrationSim(
     )
     converged = False
     nsteps = 0
+    boost_step = 0
     while not converged:
         eq_sim.run_one_step()
         eq_sim.z_arr[0] -= uplift * eq_sim.dt_erode
@@ -346,6 +347,7 @@ def runEquilibrationSim(
         nsteps += 1
         if nsteps % 100 == 0:
             print("nsteps=", nsteps)
+            print("Mean erosion =", avg_erosion)
             print("mean_tol=", np.abs(1.0 - np.abs(avg_erosion / uplift)))
             print(
                 "diff_tol=",
@@ -353,6 +355,14 @@ def runEquilibrationSim(
                     (eq_sim.dz.max() - eq_sim.dz.min()) / eq_sim.dt_erode / avg_erosion
                 ),
             )
+        if (-1 * avg_erosion < uplift) and (nsteps > boost_step + 50):
+            print("Avg erosion =", avg_erosion)
+            print("Uplift = ", uplift)
+            boost_step = nsteps
+            print("*****Boost slope to speed equilibration*****")
+            dz = 2 * dz
+            z_boost = np.linspace(0, dz, n)
+            eq_sim.z_arr += z_boost
 
     # Pickle and plot converged equilibrium state
     tstep = int(np.round(eq_sim.timestep))
@@ -489,6 +499,7 @@ def runSPIM(
         # Determine stable timestep
         Celerity = sim.K_arr[1:] * sim.slopes ** (sim.n - 1)
         # set timestep for stable CFL criteria
+        sim.old_dt = sim.dt_erode
         sim.dt_erode = CFL_crit * sim.dx / (np.abs(Celerity).max())
         if plot_by_years:
             if sim.dt_erode > plot_every:
