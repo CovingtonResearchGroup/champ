@@ -603,6 +603,8 @@ class spim(sim):
         self.n = (2.0 / 3.0) * a
         self.K = K
         self.uplift = uplift
+        self.dz = 0.0
+
         if layer_elevs is not None:
             n_layers = len(K)
             n_transitions = len(layer_elevs)
@@ -638,7 +640,8 @@ class spim(sim):
         self.erode()
 
     def erode(self):
-        erosion = self.dt_erode * self.K_arr[1:] * self.slopes ** self.n
+        self.dz = self.K_arr[1:] * self.slopes ** self.n
+        erosion = self.dt_erode * self.dz
         self.z_arr[1:] -= erosion
         self.z_arr[0] -= self.uplift * self.dt_erode
         self.updateSlopes()
