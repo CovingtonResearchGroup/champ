@@ -197,7 +197,7 @@ def runSim(
     t_i = time.time()
     while not finished:
         sim.run_one_step()
-        # print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
+        print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
         # Reset timestep if we have adjusted for plot or snapshot
         if oldtimestep is not None:
             sim.dt_erode = oldtimestep
@@ -587,7 +587,6 @@ def runSPIM(
                 plot_slope_profile(sim, plotdir, timestep_str)
         else:
             t = int(np.round(sim.elapsed_time))
-            print("debug t=", t)
             if t % plot_every == 0:
                 time_str = "%08d" % (t,)
                 print("Plotting at time: ", t)
@@ -612,9 +611,7 @@ def runSPIM(
         if plot_by_years:
             # Check whether we need to adjust timestep to hit next plot
             time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
-            print("dt erode=", sim.dt_erode, "  time to next =", time_to_next_plot)
             if sim.dt_erode > time_to_next_plot:
-                print("Resetting timestep to hit next plot")
                 oldtimestep = sim.dt_erode
                 sim.dt_erode = time_to_next_plot
 
