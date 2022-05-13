@@ -197,7 +197,7 @@ def runSim(
     t_i = time.time()
     while not finished:
         sim.run_one_step()
-        print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
+        # print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
         # Reset timestep if we have adjusted for plot or snapshot
         if oldtimestep is not None:
             sim.dt_erode = oldtimestep
@@ -521,6 +521,8 @@ def runSPIM(
         Timestep is adjusted to produce this Courant-Friedrich-Lax number.
         Default is 0.9.
     """
+    print("Running SPIM simulation...")
+    print("plotdir is", plotdir)
     if not os.path.isdir(plotdir):
         os.makedirs(plotdir)
 
@@ -555,7 +557,12 @@ def runSPIM(
         Celerity = sim.K_arr[1:] * sim.slopes ** (sim.n - 1)
         # set timestep for stable CFL criteria
         sim.old_dt = sim.dt_erode
-        sim.dt_erode = CFL_crit * sim.dx / (np.abs(Celerity).max())
+        # Calculate best timestep, unless we are wanting to hit year for plotting
+        if oldtimestep is None:
+            sim.dt_erode = CFL_crit * sim.dx / (np.abs(Celerity).max())
+        else:
+            # Reset timestep next time if we have adjusted for plot or snapshot
+            oldtimestep = None
         if plot_by_years:
             if sim.dt_erode > plot_every:
                 sim.dt_erode = plot_every
@@ -565,10 +572,6 @@ def runSPIM(
         # Run erosion
         sim.run_one_step()
         print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
-        # Reset timestep if we have adjusted for plot or snapshot
-        if oldtimestep is not None:
-            sim.dt_erode = oldtimestep
-            oldtimestep = None
 
         # Check whether we have reached end of simulation
         if sim.elapsed_time >= endtime:
@@ -584,6 +587,7 @@ def runSPIM(
                 plot_slope_profile(sim, plotdir, timestep_str)
         else:
             t = int(np.round(sim.elapsed_time))
+            print("debug t=", t)
             if t % plot_every == 0:
                 time_str = "%08d" % (t,)
                 print("Plotting at time: ", t)
@@ -608,7 +612,9 @@ def runSPIM(
         if plot_by_years:
             # Check whether we need to adjust timestep to hit next plot
             time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
+            print("dt erode=", sim.dt_erode, "  time to next =", time_to_next_plot)
             if sim.dt_erode > time_to_next_plot:
+                print("Resetting timestep to hit next plot")
                 oldtimestep = sim.dt_erode
                 sim.dt_erode = time_to_next_plot
 
