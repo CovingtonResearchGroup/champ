@@ -180,7 +180,6 @@ def runSim(
         }
         if "layer_elevs" in sim_params:
             spim_sim_params["layer_elevs"] = sim_params["layer_elevs"]
-            num_layers = len(sim.K)
             K_fact = np.array(sim.K) / sim.K[-1]
             # All erodibilities as a multiplying factor of top layer
             spim_K = K_fact * K_equiv
