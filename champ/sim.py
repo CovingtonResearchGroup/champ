@@ -619,6 +619,7 @@ class spim(sim):
             else:
                 self.layer_elevs = np.array(layer_elevs)
                 self.layered_sim = True
+                self.K_arr = np.zeros(self.n_nodes)
                 self.updateKs()
         else:
             self.layered_sim = False
