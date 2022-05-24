@@ -549,6 +549,8 @@ class multiXC(sim):
 class spim(sim):
     """Simulation object for channel profile evolution using the stream power incision model."""
 
+    MIN_SLOPE = 1e-8
+
     def __init__(
         self,
         x_arr,
@@ -663,3 +665,4 @@ class spim(sim):
 
     def updateSlopes(self):
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / self.dx
+        self.slopes[self.slopes < 0] = MIN_SLOPE
