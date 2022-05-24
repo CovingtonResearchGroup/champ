@@ -641,6 +641,8 @@ class spim(sim):
         self.elapsed_time += self.dt_erode
         self.timestep += 1
         self.erode()
+        # Set old_dt for plotting erosion rates
+        self.old_dt = self.dt_erode
 
     def erode(self):
         self.dz = self.K_arr[1:] * self.slopes ** self.n

@@ -560,8 +560,7 @@ def runSPIM(
     while not finished:
         # Determine stable timestep
         Celerity = sim.K_arr[1:] * sim.slopes ** (sim.n - 1)
-        # set timestep for stable CFL criteria
-        sim.old_dt = sim.dt_erode
+        # Set timestep for stable CFL criteria
         # Calculate best timestep, unless we are wanting to hit year for plotting
         if oldtimestep is None:
             sim.dt_erode = CFL_crit * sim.dx / (np.abs(Celerity).max())
