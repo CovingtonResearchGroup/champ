@@ -559,6 +559,7 @@ class spim(sim):
         a=1.0,
         K=1e-5,
         layer_elevs=None,
+        MIN_SLOPE=1e-8,
     ):
 
         """
@@ -595,6 +596,7 @@ class spim(sim):
         self.x_arr = x_arr
         self.dx = x_arr[1] - x_arr[0]
         self.z_arr = z_arr
+        self.MIN_SLOPE = MIN_SLOPE
         self.updateSlopes()
         self.Q_w = Q_w
         self.dt_erode = dt_erode
@@ -604,7 +606,6 @@ class spim(sim):
         self.K = K
         self.uplift = uplift
         self.dz = 0.0
-        self.MIN_SLOPE = 1e-8
 
         if layer_elevs is not None:
             n_layers = len(K)
