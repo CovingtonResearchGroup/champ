@@ -1,6 +1,7 @@
 <p align="center">
 <img src="https://github.com/CovingtonResearchGroup/CO2-speleogenesis/blob/spim/img/champ3.png" width="320" height="240">
                                                                                                                         </p>
+
 # Champ - Channel morphodynamics in Python
 
 Champ is a Python package to simulate bedrock channel morphology in a single cross-section or a reach defined by multiple cross-sections.
