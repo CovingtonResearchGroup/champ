@@ -1,4 +1,4 @@
-![Champ logo](https://github.com/CovingtonResearchGroup/CO2-speleogenesis/blob/spim/img/champ3.png)
+![Champ logo](https://github.com/CovingtonResearchGroup/CO2-speleogenesis/blob/spim/img/champ3.png=160x120)
 
 # Champ - Channel morphodynamics in Python
 
