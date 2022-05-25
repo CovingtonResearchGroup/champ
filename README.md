@@ -1,4 +1,4 @@
-<p align="center>
+<p align="center">
 <img src="https://github.com/CovingtonResearchGroup/CO2-speleogenesis/blob/spim/img/champ3.png" width="320" height="240">
                                                                                                                         </p>
 # Champ - Channel morphodynamics in Python
