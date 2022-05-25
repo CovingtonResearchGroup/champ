@@ -18,5 +18,6 @@ sim_params:
   xc_n: 1000
   trim: True
   a: 1
-  K: 2e-5
+  K: [2e-5, 0.5e-5, 2e-5]
+  layer_elevs: [-3,-10]
 
