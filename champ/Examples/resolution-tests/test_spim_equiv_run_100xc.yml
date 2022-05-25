@@ -2,7 +2,7 @@ n: 100
 L: 1000.
 dz: 15.
 r_init: 0.5
-endtime: 100000
+endtime: 200000
 plotdir: './resolution-tests/test-spim-equiv-run-100xc-figs/'
 start_from_snapshot_num: 0
 dz0_dt: 0.0001
