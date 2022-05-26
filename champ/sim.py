@@ -662,7 +662,7 @@ class spim(sim):
                 layer_idx = np.logical_and(self.z_arr < elev, self.z_arr >= old_elev)
             self.K_arr[layer_idx] = self.K[i]
             old_elev = elev
-        final_layer_idx = self.z_arr < elev
+        final_layer_idx = self.z_arr > elev
         self.K_arr[final_layer_idx] = self.K[-1]
 
     def updateSlopes(self):
