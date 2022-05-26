@@ -47,6 +47,34 @@ class sim:
     def erode(self):
         pass
 
+    def set_layers(self, layer_elevs):
+
+        if layer_elevs is not None:
+            # Check that number of contacts and K's match
+            n_layers = len(self.K)
+            n_transitions = len(layer_elevs)
+            if n_layers != n_transitions + 1:
+                print(
+                    (
+                        "Number of K values specified must be one more than number of "
+                        "transition elevations!"
+                    )
+                )
+                raise IndexError
+            else:
+                # Check that layer elevations are in correct order
+                old_elev = None
+                for i, elev in enumerate(layer_elevs):
+                    if i != 0:
+                        if elev <= old_elev:
+                            raise RuntimeError("Layer elevations in wrong order!")
+                        old_elev = elev
+
+                self.layer_elevs = np.array(layer_elevs)
+                self.layered_sim = True
+        else:
+            self.layered_sim = False
+
 
 class singleXC(sim):
     def __init__(
@@ -144,23 +172,8 @@ class singleXC(sim):
 
         self.trim = trim
         self.a = a
-        if layer_elevs is not None:
-            n_layers = len(K)
-            n_transitions = len(layer_elevs)
-            if n_layers != n_transitions + 1:
-                print(
-                    (
-                        "Number of K values specified must be one more than number of "
-                        "transition elevations!"
-                    )
-                )
-                raise IndexError
-            else:
-                self.layer_elevs = np.array(layer_elevs)
-                self.layered_sim = True
-        else:
-            self.layered_sim = False
         self.K = K
+        self.set_layers(layer_elevs)
 
     def calc_flow(self):
         """Calculate flow depth."""
@@ -322,23 +335,8 @@ class multiXC(sim):
         self.xc_n = xc_n
         self.trim = trim
         self.a = a
-        if layer_elevs is not None:
-            n_layers = len(K)
-            n_transitions = len(layer_elevs)
-            if n_layers != n_transitions + 1:
-                print(
-                    (
-                        "Number of K values specified must be one more than number"
-                        " of transition elevations!"
-                    )
-                )
-                raise IndexError
-            else:
-                self.layer_elevs = np.array(layer_elevs)
-                self.layered_sim = True
-        else:
-            self.layered_sim = False
         self.K = K
+        self.set_layers(layer_elevs)
 
         self.V_w = np.zeros(self.n_nodes - 1)
         self.A_w = np.zeros(self.n_nodes - 1)
@@ -606,23 +604,10 @@ class spim(sim):
         self.K = K
         self.uplift = uplift
         self.dz = 0.0
-
         if layer_elevs is not None:
-            n_layers = len(K)
-            n_transitions = len(layer_elevs)
-            if n_layers != n_transitions + 1:
-                print(
-                    (
-                        "Number of K values specified must be one more than number"
-                        " of transition elevations!"
-                    )
-                )
-                raise IndexError
-            else:
-                self.layer_elevs = np.array(layer_elevs)
-                self.layered_sim = True
-                self.K_arr = np.zeros(self.n_nodes)
-                self.updateKs()
+            self.set_layers(layer_elevs)
+            self.K_arr = np.zeros(self.n_nodes)
+            self.updateKs()
         else:
             self.layered_sim = False
             self.K_arr = K * np.ones(self.n_nodes)
