@@ -19,4 +19,4 @@ sim_params:
   trim: True
   a: 1
   K: [2e-5, 0.5e-5, 2e-5]
-  layer_elevs: [-3,-10]
+  layer_elevs: [-10, -3]
