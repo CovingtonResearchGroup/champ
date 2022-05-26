@@ -575,7 +575,18 @@ def runSPIM(
                 sim.dt_erode = snapshot_every
         # Run erosion
         sim.run_one_step()
-        print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
+        print(
+            "timestep=",
+            sim.timestep,
+            "   time=",
+            sim.elapsed_time,
+            " dt=",
+            sim.dt_erode,
+            "dt_old=",
+            sim.old_dt,
+            " mean eros=",
+            np.mean(sim.dz / sim.old_dt),
+        )
 
         # Check whether we have reached end of simulation
         if sim.elapsed_time >= endtime:
