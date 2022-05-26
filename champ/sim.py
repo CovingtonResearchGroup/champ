@@ -63,7 +63,7 @@ class sim:
                 raise IndexError
             else:
                 # Check that layer elevations are in correct order
-                old_elev = None
+                old_elev = -1e10  # Big negative number
                 for i, elev in enumerate(layer_elevs):
                     if i != 0:
                         if elev <= old_elev:
