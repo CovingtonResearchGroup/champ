@@ -9,6 +9,7 @@ import numpy as np
 import pickle
 import glob
 import os
+import time
 
 slope_ref = 0.01
 Q_ref = 1.0
@@ -95,6 +96,16 @@ def test_spim_equiv():
     assert_approx_equal(eq_slope, sim_slope, 2)
     assert_approx_equal(eq_erosion, spim_erosion, 2)
     assert_approx_equal(eq_erosion, sim_erosion, 2)
-    # shutil.rmtree(os.path.join(plotdir, "spim"))
-    # shutil.rmtree(os.path.join(plotdir, "equil-sim"))
+    # For some reason this fails on my laptop, but not on Github. It may relate
+    # to something holding the files open, but I can't figure out what.
     shutil.rmtree(plotdir)
+    # This also didn't work (with up to 10 retries)
+    """delete_tries = 0
+    files_deleted = False
+    while delete_tries < 10 and not files_deleted:
+        try:
+            shutil.rmtree(plotdir)
+            files_deleted = True
+        except:
+            time.sleep(1)
+            delete_tries += 1"""
