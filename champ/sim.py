@@ -47,6 +47,34 @@ class sim:
     def erode(self):
         pass
 
+    def set_layers(self, layer_elevs):
+
+        if layer_elevs is not None:
+            # Check that number of contacts and K's match
+            n_layers = len(self.K)
+            n_transitions = len(layer_elevs)
+            if n_layers != n_transitions + 1:
+                print(
+                    (
+                        "Number of K values specified must be one more than number of "
+                        "transition elevations!"
+                    )
+                )
+                raise IndexError
+            else:
+                # Check that layer elevations are in correct order
+                old_elev = -1e10  # Big negative number
+                for i, elev in enumerate(layer_elevs):
+                    if i != 0:
+                        if elev <= old_elev:
+                            raise RuntimeError("Layer elevations in wrong order!")
+                        old_elev = elev
+
+                self.layer_elevs = np.array(layer_elevs)
+                self.layered_sim = True
+        else:
+            self.layered_sim = False
+
 
 class singleXC(sim):
     def __init__(
@@ -144,23 +172,8 @@ class singleXC(sim):
 
         self.trim = trim
         self.a = a
-        if layer_elevs is not None:
-            n_layers = len(K)
-            n_transitions = len(layer_elevs)
-            if n_layers != n_transitions + 1:
-                print(
-                    (
-                        "Number of K values specified must be one more than number of "
-                        "transition elevations!"
-                    )
-                )
-                raise IndexError
-            else:
-                self.layer_elevs = np.array(layer_elevs)
-                self.layered_sim = True
-        else:
-            self.layered_sim = False
         self.K = K
+        self.set_layers(layer_elevs)
 
     def calc_flow(self):
         """Calculate flow depth."""
@@ -322,23 +335,8 @@ class multiXC(sim):
         self.xc_n = xc_n
         self.trim = trim
         self.a = a
-        if layer_elevs is not None:
-            n_layers = len(K)
-            n_transitions = len(layer_elevs)
-            if n_layers != n_transitions + 1:
-                print(
-                    (
-                        "Number of K values specified must be one more than number"
-                        " of transition elevations!"
-                    )
-                )
-                raise IndexError
-            else:
-                self.layer_elevs = np.array(layer_elevs)
-                self.layered_sim = True
-        else:
-            self.layered_sim = False
         self.K = K
+        self.set_layers(layer_elevs)
 
         self.V_w = np.zeros(self.n_nodes - 1)
         self.A_w = np.zeros(self.n_nodes - 1)
@@ -544,3 +542,114 @@ class multiXC(sim):
                 # Timestep is too small, increase it
                 self.dt_erode = self.dt_erode * 1.5
                 print("Increasing timestep to " + str(self.dt_erode))
+
+
+class spim(sim):
+    """Simulation object for channel profile evolution using the stream power incision model."""
+
+    def __init__(
+        self,
+        x_arr,
+        z_arr,
+        uplift,
+        Q_w=0.1,
+        dt_erode=1.0,
+        a=1.0,
+        K=1e-5,
+        layer_elevs=None,
+        MIN_SLOPE=1e-8,
+    ):
+
+        """
+        Parameters
+        ----------
+        x_arr : ndarray
+            Array of distances in meters along the channel for the node locations.
+        z_arr : ndarray
+            Array of elevations in meters for nodes along the channel. Minimum y
+            values for each cross-section will be added to these elevations
+            during initialization, so that z_arr will represent the channel bottom.
+        uplift : float
+            Rate of change of baselevel. This distance is subtracted
+            from the elevation of the downstream boundary node during
+            each timestep.
+        Q_w : float, optional
+            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+        dt_erode : float, optional
+            Erosional time step in years. Default value is 1 year.
+        a : float, optional
+            Exponent in power law erosion rule (default=1).
+        K : float or list, optional
+            Erodibility in power law erosion rule (default = 1e-5).
+            If multiple layers are specified, then this is a list of
+            erodibilities listed from lowest to highest elevation.
+        layer_elevs : list of floats, optional
+            Specifies a list of elevations (from low to high), where rock
+            erodibility changes. If specified, K should be a list with
+            one more item than this list.
+        """
+        super(spim, self).__init__()
+        self.n_nodes = x_arr.size
+        self.L = x_arr.max() - x_arr.min()
+        self.x_arr = x_arr
+        self.dx = x_arr[1] - x_arr[0]
+        self.z_arr = z_arr
+        self.MIN_SLOPE = MIN_SLOPE
+        self.updateSlopes()
+        self.Q_w = Q_w
+        self.dt_erode = dt_erode
+        self.old_dt = dt_erode
+        self.a = a
+        self.n = (2.0 / 3.0) * a
+        self.K = K
+        self.uplift = uplift
+        self.dz = 0.0
+        if layer_elevs is not None:
+            self.set_layers(layer_elevs)
+            self.K_arr = np.zeros(self.n_nodes)
+            self.updateKs()
+        else:
+            self.layered_sim = False
+            self.K_arr = K * np.ones(self.n_nodes)
+
+    def run_one_step(self):
+        """Run one time step of simulation.
+
+        Calculates erosion for
+        a single time step and updates geometry.
+
+        Parameters
+        ----------
+
+        """
+
+        self.elapsed_time += self.dt_erode
+        self.timestep += 1
+        self.erode()
+        # Set old_dt for plotting erosion rates
+        self.old_dt = self.dt_erode
+
+    def erode(self):
+        self.dz = self.K_arr[1:] * self.slopes ** self.n * self.dt_erode
+        # erosion = self.dt_erode * self.dz
+        self.z_arr[1:] -= self.dz  # erosion
+        self.z_arr[0] -= self.uplift * self.dt_erode
+        self.updateSlopes()
+        if self.layered_sim:
+            self.updateKs()
+
+    def updateKs(self):
+        old_elev = None
+        for i, elev in enumerate(self.layer_elevs):
+            if i == 0:
+                layer_idx = self.z_arr < elev
+            else:
+                layer_idx = np.logical_and(self.z_arr < elev, self.z_arr >= old_elev)
+            self.K_arr[layer_idx] = self.K[i]
+            old_elev = elev
+        final_layer_idx = self.z_arr > elev
+        self.K_arr[final_layer_idx] = self.K[-1]
+
+    def updateSlopes(self):
+        self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / self.dx
+        self.slopes[self.slopes < 0] = self.MIN_SLOPE

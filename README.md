@@ -1,3 +1,7 @@
+<p align="center">
+<img src="https://github.com/CovingtonResearchGroup/CO2-speleogenesis/blob/spim/img/champ3.png" width="320" height="240">
+                                                                                                                        </p>
+
 # Champ - Channel morphodynamics in Python
 
 Champ is a Python package to simulate bedrock channel morphology in a single cross-section or a reach defined by multiple cross-sections.
@@ -19,3 +23,5 @@ python setup.py install
 * Code related to cross-section geometrical and flow calculations is contained in crossSection.py
 
 * Unit tests are included in the tests folder. They can be run from the command line with python -m pytest, assuming pytest is installed.
+
+*Thanks to Amanda Anders for creating our Champ logo!*

@@ -21,7 +21,5 @@ setup(
     include_dirs=[get_include()],
     ext_modules=cythonize(ext_modules, compiler_directives={"language_level": 3,}),
     zip_safe=False,
-    entry_points = {
-        'console_scripts': ['champ-runSim=champ.runSim:main'],
-        }
+    entry_points={"console_scripts": ["champ-runSim=champ.runSim:main"],},
 )
