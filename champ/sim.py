@@ -630,9 +630,9 @@ class spim(sim):
         self.old_dt = self.dt_erode
 
     def erode(self):
-        self.dz = self.K_arr[1:] * self.slopes ** self.n * self.dt_erode
+        self.dz = -self.K_arr[1:] * self.slopes ** self.n * self.dt_erode
         # erosion = self.dt_erode * self.dz
-        self.z_arr[1:] -= self.dz  # erosion
+        self.z_arr[1:] += self.dz  # erosion
         self.z_arr[0] -= self.uplift * self.dt_erode
         self.updateSlopes()
         if self.layered_sim:

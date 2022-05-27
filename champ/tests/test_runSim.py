@@ -6,6 +6,9 @@ from numpy.testing import (
 import shutil
 from champ.runSim import runSim
 import numpy as np
+import pickle
+import glob
+import os
 
 slope_ref = 0.01
 Q_ref = 1.0
@@ -56,4 +59,42 @@ def test_equil_multiXC():
         sim_params=sim_params,
     )
     assert_approx_equal(sim.slopes[1:].mean(), slope_ref, 2)
+    shutil.rmtree(plotdir)
+
+
+def test_spim_equiv():
+    sim_params = {"Q_w": 1, "adaptive_step": True, "xc_n": 300}
+    approx_eq_slope = 7e-3
+    sim = runSim(
+        n=5,
+        L=L_ref,
+        dz=L_ref * approx_eq_slope,
+        r_init=2.0,
+        endtime=10000,
+        dz0_dt=ref_erosion,
+        plotdir=plotdir,
+        run_equiv_spim=True,
+        sim_params=sim_params,
+        plot_every=5000,
+    )
+    final_spim_snap = glob.glob(os.path.join(plotdir, "spim", "snapshot*"))[-1]
+    spim_f = open(final_spim_snap, "rb")
+    spim = pickle.load(spim_f)
+    spim_f.close()
+    equil_snap = glob.glob(os.path.join(plotdir, "equil-sim", "snapshot*"))[0]
+    equil_f = open(equil_snap, "rb")
+    eq = pickle.load(equil_f)
+    equil_f.close()
+    eq_slope = eq.slopes.mean()
+    eq_erosion = (eq.dz / eq.old_dt).mean()
+    spim_slope = spim.slopes.mean()
+    spim_erosion = (spim.dz / spim.old_dt).mean()
+    sim_slope = sim.slopes.mean()
+    sim_erosion = (sim.dz / sim.old_dt).mean()
+    assert_approx_equal(eq_slope, spim_slope, 2)
+    assert_approx_equal(eq_slope, sim_slope, 2)
+    assert_approx_equal(eq_erosion, spim_erosion, 2)
+    assert_approx_equal(eq_erosion, sim_erosion, 2)
+    # shutil.rmtree(os.path.join(plotdir, "spim"))
+    # shutil.rmtree(os.path.join(plotdir, "equil-sim"))
     shutil.rmtree(plotdir)
