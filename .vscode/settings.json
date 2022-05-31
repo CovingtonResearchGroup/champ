@@ -4,5 +4,6 @@
         "**/co2_evo/*-figs/**": true,
         "**/co2_evo/newsim*/**": true
     },
-    "restructuredtext.confPath": "${workspaceFolder}/docs"
+    "restructuredtext.confPath": "${workspaceFolder}/docs",
+    "esbonio.sphinx.confDir": "${workspaceFolder}/docs"
 }
