@@ -29,6 +29,10 @@ from champ.sim import singleXC, multiXC, spim
 
 params_file = None
 
+# 10% allowed increase in timestep for plots or snapshots.
+# This avoids cases with very small dt to hit snapshots or plots.
+AllOWED_FRAC_DT_EXTENSION_FOR_OUTPUT = 1.1
+
 
 def runSim(
     n=5,
@@ -253,14 +257,14 @@ def runSim(
         if plot_by_years:
             # Check whether we need to adjust timestep to hit next plot
             time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
-            if sim.dt_erode > time_to_next_plot:
+            if AllOWED_FRAC_DT_EXTENSION_FOR_OUTPUT * sim.dt_erode > time_to_next_plot:
                 oldtimestep = sim.dt_erode
                 sim.dt_erode = time_to_next_plot
 
         if snapshot_by_years:
             # Check whether we need to adjust timestep to hit next snapshot
             time_to_next_snap = snapshot_every - (sim.elapsed_time % snapshot_every)
-            if sim.dt_erode > time_to_next_snap:
+            if AllOWED_FRAC_DT_EXTENSION_FOR_OUTPUT * sim.dt_erode > time_to_next_snap:
                 if plot_by_years:
                     if time_to_next_snap > time_to_next_plot:
                         # We will hit the snapshot later and get plot now
