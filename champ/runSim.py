@@ -232,10 +232,21 @@ def runSim(
                 plot_tuple = (copy.deepcopy(sim), plotdir, timestep_str)
                 plot_queue.put(plot_tuple)
         else:
-            t = int(np.round(sim.elapsed_time))
-            if t % plot_every == 0:
-                time_str = "%08d" % (t,)
-                print("Plotting at time: ", t)
+            t_int = int(np.round(sim.elapsed_time))
+            time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
+            # This logic is pretty convoluted, but it seems to correctly
+            # handle cases where the timestep is less than 1 and therefore
+            # simply rounding to the nearest int is ineffective.
+            if (
+                (t_int % plot_every == 0)
+                and ((sim.elapsed_time - sim.dt_erode) % plot_every > 1)
+                and (
+                    (time_to_next_plot < sim.dt_erode)
+                    or (plot_every - time_to_next_plot < sim.dt_erode)
+                )
+            ):
+                time_str = "%08d" % (t_int,)
+                print("Plotting at time: ", t_int)
                 plot_tuple = (copy.deepcopy(sim), plotdir, time_str)
                 plot_queue.put(plot_tuple)
         if not snapshot_by_years:
@@ -246,10 +257,21 @@ def runSim(
                 f = open(plotdir + "/snapshot-" + timestep_str + ".pkl", "wb")
                 pickle.dump(sim, f)
         else:
-            t = int(np.round(sim.elapsed_time))
-            if t % snapshot_every == 0:
-                time_str = "%08d" % (t,)
-                print("Snapshot at timestep: ", t)
+            t_int = int(np.round(sim.elapsed_time))
+            time_to_next_snap = snapshot_every - (sim.elapsed_time % snapshot_every)
+            # This logic is pretty convoluted, but it seems to correctly
+            # handle cases where the timestep is less than 1 and therefore
+            # simply rounding to the nearest int is ineffective.
+            if (
+                (t_int % snapshot_every == 0)
+                and ((sim.elapsed_time - sim.dt_erode) % snapshot_every > 1)
+                and (
+                    (time_to_next_snap < sim.dt_erode)
+                    or (snapshot_every - time_to_next_snap < sim.dt_erode)
+                )
+            ):
+                time_str = "%08d" % (t_int,)
+                print("Snapshot at timestep: ", t_int)
                 f = open(plotdir + "/snapshot-" + time_str + ".pkl", "wb")
                 pickle.dump(sim, f)
 
