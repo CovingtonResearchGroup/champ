@@ -544,6 +544,50 @@ class multiXC(sim):
                 print("Increasing timestep to " + str(self.dt_erode))
 
 
+class multiXCNormalFlow(multiXC):
+    """Simulation object for a channel profile with multiple cross-sections eroded by a
+    shear stress power law rule. That assumes normal flow conditions."""
+
+    def calc_flow(self):
+        """Calculates flow depths assuming normal flow.
+
+            Notes
+            -----
+            Starts at downstream end and propagates solution upstream. Flow is assumed
+            to be normal.
+
+            """
+        # Loop through cross-sections and solve for flow depths,
+        # starting at downstream end
+        for i, xc in enumerate(self.xcs):
+            old_fd = self.fd_mids[i]
+            if old_fd <= 0:
+                old_fd = xc.ymax - xc.ymin
+            xc.create_A_interp()
+            xc.create_P_interp()
+            norm_fd = xc.calcNormalFlowDepth(
+                self.Q_w, self.slopes[i], f=self.f, old_fd=old_fd
+            )
+            self.flow_type[i] = "norm"
+            if i == 0:
+                self.h[i] = norm_fd + self.z_arr[i]
+            self.h[i + 1] = self.z_arr[i + 1] + norm_fd
+            self.fd_mids[i] = norm_fd
+            # Calculate flow areas, wetted perimeters, hydraulic diameters,
+            # free surface widths, and velocities
+            self.A_w[i] = xc.calcA(depth=self.fd_mids[i])
+            self.P_w[i] = xc.calcP(depth=self.fd_mids[i])
+            self.V_w[i] = -self.Q_w / self.A_w[i]
+            self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
+            L, R = xc.findLR(self.fd_mids[i])
+            self.W[i] = xc.x[R] - xc.x[L]
+            # Set water line in cross-section object
+            xc.setFD(self.fd_mids[i])
+            # use bed slope for energy slope in this case
+            eSlope = self.slopes[i]
+            xc.setEnergySlope(eSlope)
+
+
 class spim(sim):
     """Simulation object for channel profile evolution using the stream power incision model."""
 

@@ -25,7 +25,7 @@ from champ.viz.standard_timestep_plots import (
     plot_elevation_profile,
     plot_slope_profile,
 )
-from champ.sim import singleXC, multiXC, spim
+from champ.sim import singleXC, multiXC, multiXCNormalFlow, spim
 
 params_file = None
 
@@ -52,6 +52,7 @@ def runSim(
     plot_by_years=True,
     n_plot_processes=1,
     run_equiv_spim=False,
+    assume_normal_flow=False,
     sim_params={},
 ):
 
@@ -141,7 +142,10 @@ def runSim(
                 print("Wrong number of elements in z_arr!")
                 return -1
             r = r_init * np.ones(n - 1)
-            sim = multiXC(x, z, init_radii=r, **sim_params)
+            if not assume_normal_flow:
+                sim = multiXC(x, z, init_radii=r, **sim_params)
+            else:
+                sim = multiXCNormalFlow(x, z, init_radii=r, **sim_params)
     else:
         # Restart from existing snapshot
         start_timestep_str = "%08d" % (start_from_snapshot_num,)
