@@ -775,7 +775,7 @@ class CrossSection:
         else:
             return -1
 
-    def calcK(self, depth, f=0.1):
+    def calcConvey(self, depth, f=0.1):
         """Calculate conveyance, K, for provided flow depth.
 
         Parameters
@@ -785,12 +785,12 @@ class CrossSection:
 
         Returns
         -------
-        K : float
-            Conveyance, K, where K = A * sqrt(2*g*D_H/f).
+        Convey : float
+            Conveyance = A * sqrt(2*g*D_H/f).
 
 
         """
         A = self.calcA(depth=depth)
         P = self.calcP(depth=depth)
-        K = A * sqrt(2 * g * (4 * A / P) / f)
-        return K
+        Convey = A * sqrt(2 * g * (4 * A / P) / f)
+        return Convey

@@ -593,6 +593,155 @@ class multiXCGVP(multiXC):
     """Simulation object for a channel profile with multiple cross-sections eroded by a
     shear stress power law rule. That assumes normal flow conditions."""
 
+    def __init__(
+        self,
+        x_arr,
+        z_arr,
+        Q_w=0.1,
+        f=0.1,
+        init_radii=0.5,
+        init_offsets=0.0,
+        xc_n=500,
+        dt_erode=1.0,
+        adaptive_step=False,
+        max_frac_erode=0.005,
+        trim=True,
+        a=1.0,
+        K=1e-5,
+        layer_elevs=None,
+    ):
+
+        """
+        Parameters
+        ----------
+        x_arr : ndarray
+            Array of distances in meters along the channel for the node locations.
+        z_arr: ndarray
+            Array of elevations in meters for nodes along the channel. Minimum y
+            values for each cross-section will be added to these elevations
+            during initialization, so that z_arr will represent the channel bottom.
+        Q_w : float, optional
+            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+        f : float, optional
+            Darcy-Weisbach friction factor (unitless), used in both water flow and air
+            flow calculations. Default is 0.1.
+        init_radii : float or ndarray, optional
+            Initial cross-section radii (meters). If a float then all cross-sections
+            will be assigned the same radius. If an array then each element
+            represents the radius of a single cross-section (length should be n-1
+            where n is the number of nodes). Default is 0.5 m.
+        init_offsets : float or ndarray, optional
+            These offsets will be added to y-values within initial cross-sections.
+            By default, y will be zero at the centroid of the initial cross-section.
+            Default value is zero. Should have length of n-1, where n is number of
+            nodes.
+        xc_n : int, optional
+            Number of points that will define the cave passage shape within a
+            cross-section. Default is 1000.
+        dt_erode : float, optional
+            Erosional time step in years. Default value is 1 year.
+        adaptive_step : boolean, optional
+            Whether or not to adjust timestep dynamically. Default is False.
+        max_frac_erode : float, optional
+            Maximum fraction of radial distance to erode within a single timestep
+            under adaptive time-stepping. If erosion exceeds this fraction, then
+            the timestep will be reduced. If erosion is much less than this fraction,
+            then the timestep will be increased. We have not conducted a detailed
+            stability analysis. However, initial tests show 0.01 leads to instability,
+            whereas the default value is stable. If instabilities occur, and adaptive
+            time-stepping is enabled, decreasing this fraction may help.
+            Default = 0.005.
+        trim : boolean, optional
+            Whether or not cross-sections should be trimmed as much of the
+            cross-section becomes dry. This enables maintenance of a high
+            resolution of the wet portion of the cross-section for simulations
+            with substantial incision. If this is set to False, long-term
+            simulations are likely to become unstable. Default is True.
+        a : float, optional
+            Exponent in power law erosion rule (default=1).
+        K : float or list, optional
+            Erodibility in power law erosion rule (default = 1e-5).
+            If multiple layers are specified, then this is a list of
+            erodibilities listed from lowest to highest elevation.
+        layer_elevs : list of floats, optional
+            Specifies a list of elevations (from low to high), where rock
+            erodibility changes. If specified, K should be a list with
+            one more item than this list.
+
+        Notes
+        -----
+        To maximize efficiency, use adapative time-stepping. Our tests of stability
+        suggest that increasing the number of points in the cross-section (xc_n)
+        decreases numerical stability, though it also increases accuracy with which
+        the cross-sectional shape is represented. Our default values of xc_n=500 and
+        max_frac_erode=0.005 are near the stability threshold for single cross-section
+        simulations we have run. Surprisingly, multiXC simulations seem somewhat more
+        stable. That is, a larger value of max_frac_erode will still be numerically
+        stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
+        of cross-sections can enhance instability, though normally large numbers of
+        cross-sections are needed to see this effect.
+        Increasing xc_n requires a decrease in max_frac_erode.
+        Similarly, if the precise shape of the cross-section is not of much concern,
+        one could decrease xc_n and increase max_frac_erode, while still maintaining
+        numerical stability. Note that this will speed up the simulations for two
+        reasons: 1) It decreases the number of points for which erosion must be
+        calculated, and 2) The timestep will adjust to a larger value, enabling
+        faster simulation of a certain duration of time.
+        """
+        super(multiXC, self).__init__()
+        self.singleXC = False
+        self.n_nodes = x_arr.size
+        self.L = x_arr.max() - x_arr.min()
+        self.x_arr = x_arr
+        self.z_arr = z_arr  # z is zero of xc coords
+        # Store initial z values so that absolute elevation can be calculated
+        # from XC y values
+        self.init_z = np.copy(z_arr)
+        # print('init_z=',self.init_z)
+        self.L_arr = x_arr[1:] - x_arr[:-1]
+
+        self.Q_w = Q_w
+
+        self.dt_erode = dt_erode
+        self.old_dt = dt_erode
+        self.adaptive_step = adaptive_step
+        self.max_frac_erode = max_frac_erode
+        self.xc_n = xc_n
+        self.trim = trim
+        self.a = a
+        self.K = K
+        self.set_layers(layer_elevs)
+
+        self.V_w = np.zeros(self.n_nodes)
+        self.A_w = np.zeros(self.n_nodes)
+        self.P_w = np.zeros(self.n_nodes)
+        self.D_H_w = np.zeros(self.n_nodes)
+        self.W = np.zeros(self.n_nodes)
+        self.fd = np.zeros(self.n_nodes)
+        self.init_offsets = np.ones(self.n_nodes) * init_offsets
+
+        self.h = np.zeros(self.n_nodes)
+        self.f = f
+        self.flow_type = np.zeros(self.n_nodes, dtype=object)
+
+        # Initialize cross-sections
+        self.xcs = []
+        self.radii = init_radii * np.ones(self.n_nodes)
+        ymins = []
+        for i in np.arange(self.n_nodes):
+            x, y = genCirc(self.radii[i], n=xc_n)
+            y = y + self.init_offsets[i]
+            this_xc = CrossSection(x, y)
+            self.xcs.append(this_xc)
+            ymins.append(this_xc.ymin)
+        self.ymins = np.array(ymins)
+        # Reset z to bottom of cross-sections
+        self.z_arr = self.z_arr + self.ymins
+        # self.z_arr[0] = self.z_arr[0] + self.ymins[0]
+        self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / (
+            self.x_arr[1:] - self.x_arr[:-1]
+        )
+
     def calc_flow(self):
         """Calculates flow depths assuming gradually varied open channel flow.
 
@@ -602,26 +751,92 @@ class multiXCGVP(multiXC):
             to be subcritical and gradually varied.
 
             """
+        for i, xc in enumerate(self.xcs[:-1]):
+            xc_up = self.xcs[i + 1]
+            # Renew interpolation functions
+            xc_up.create_A_interp()
+            xc_up.create_P_interp()
+            if i == 0:
+                xc.create_A_interp()
+                xc.create_P_interp()
+                norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], f=self.f)
+                self.h[i] = norm_fd + self.z_arr[i]
+                self.fd[i] = norm_fd
 
+            A_down = xc.calcA(depth=self.fd[i])
+            P_down = xc.calcP(depth=self.fd[i])
+            D_H_down = 4 * A_down / P_down
+            # K_down = xc.calcConvey(self.fd[i], f=self.f)
+            V_down = self.Q_w / A_down
+            V_head_down = V_down ** 2 / (2 * xc.g)
+            H_down = self.h[i] + V_head_down
+            S_f_down = self.f * V_down ** 2 / (2 * xc.g * D_H_down)
+            dx = self.x_arr[i + 1] - self.x_arr[i]
+            if self.fd[i + 1] >= 0:
+                fd_guess = self.fd[i]
+            else:
+                # Use depth from last timestep if available
+                fd_guess = self.fd[i + 1]
+            converged = False
+            abs_tol = 0.0001
+            iterations = 0
+            while not converged:
+                iterations += 1
+                print("iterations =", iterations, "  fd_guess =", fd_guess)
+                A_up = xc_up.calcA(depth=fd_guess)
+                P_up = xc_up.calcP(depth=fd_guess)
+                # K_up = xc_up.calcConvey(fd_guess, f=self.f)
+                V_up = self.Q_w / A_up
+                V_head_up = V_up ** 2 / (2 * xc_up.g)
+                D_H_up = 4 * A_up / P_up
+                # H_up = self.z_arr[i + 1] + fd_guess + V_head_up
+                S_f_up = self.f * V_up ** 2 / (2 * xc_up.g * D_H_up)
+                H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
+                fd_up_energy = H_up_energy - V_head_up - self.z_arr[i + 1]
+                err = fd_up_energy - fd_guess  # H_up - H_up_energy
+                print("err =", err)
+                if np.abs(err) < abs_tol:
+                    converged = True
+                    self.h[i + 1] = self.z_arr[i + 1] + fd_guess
+                    self.fd[i + 1] = fd_guess
+                else:
+                    if iterations == 1:
+                        prev_err = err
+                        prev_guess = fd_guess
+                        fd_guess = fd_guess + 0.7 * err
+                    else:
+                        assum_diff = prev_guess - fd_guess
+                        print("assum_diff =", assum_diff)
+                        err_diff = prev_err - err
+                        print("err_diff =", err_diff)
+                        prev_err = err
+                        prev_guess = fd_guess
+                        if err_diff > 1e-2:
+                            fd_guess = fd_guess - err * (assum_diff / err_diff)
+                        else:
+                            fd_guess = 0.5 * (fd_guess + fd_up_energy)
+
+            # Calculate flow areas, wetted perimeters, hydraulic diameters,
+            # free surface widths, and velocities
+            for i, xc in enumerate(self.xcs):
+                self.A_w[i] = xc.calcA(depth=self.fd[i])
+                self.P_w[i] = xc.calcP(depth=self.fd[i])
+                self.V_w[i] = -self.Q_w / self.A_w[i]
+                self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
+                L, R = xc.findLR(self.fd[i])
+                self.W[i] = xc.x[R] - xc.x[L]
+                # Set water line in cross-section object
+                xc.setFD(self.fd[i])
+                S_f = self.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
+                xc.setEnergySlope(S_f)
+
+        """
         # Loop through cross-sections and solve for flow depths,
         # starting at downstream end
         for i, xc in enumerate(self.xcs):
             # Renew interpolation functions
             xc.create_A_interp()
             xc.create_P_interp()
-            """
-            old_fd_down = self.h[i] - self.z_arr[i]
-            old_fd_up = self.h[i+1] - self.z_arr[i+1]
-            if old_fd_down <= 0:
-                old_fd_down = xc.ymax - xc.ymin
-            if old_fd_up <= 0:
-                old_fd_up = xc.ymax - xc.ymin
-            
-            norm_fd = xc.calcNormalFlowDepth(
-                self.Q_w, self.slopes[i], f=self.f, old_fd=old_fd
-            )
-            self.flow_type[i] = "norm"
-            """
             if i == 0:
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], f=self.f)
                 self.h[i] = norm_fd + self.z_arr[i]
@@ -656,6 +871,7 @@ class multiXCGVP(multiXC):
             S_f = (2 * self.Q_w / (K_up + K_down)) ** 2
             eSlope = S_f  # self.slopes[i]
             xc.setEnergySlope(eSlope)
+            """
 
     def fd_residual(self, fd_guess, fd_down=None, xc=None, dx=None, dz=None):
         """Calculate residual between guessed upstream flow depth and energy equation flow depth.
