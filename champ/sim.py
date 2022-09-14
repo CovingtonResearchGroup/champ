@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import root_scalar
 
 from champ.crossSection import CrossSection
 from champ.utils.ShapeGen import genCirc
@@ -586,6 +587,110 @@ class multiXCNormalFlow(multiXC):
             # use bed slope for energy slope in this case
             eSlope = self.slopes[i]
             xc.setEnergySlope(eSlope)
+
+
+class multiXCGVP(multiXC):
+    """Simulation object for a channel profile with multiple cross-sections eroded by a
+    shear stress power law rule. That assumes normal flow conditions."""
+
+    def calc_flow(self):
+        """Calculates flow depths assuming gradually varied open channel flow.
+
+            Notes
+            -----
+            Starts at downstream end and propagates solution upstream. Flow is assumed
+            to be subcritical and gradually varied.
+
+            """
+
+        # Loop through cross-sections and solve for flow depths,
+        # starting at downstream end
+        for i, xc in enumerate(self.xcs):
+            # Renew interpolation functions
+            xc.create_A_interp()
+            xc.create_P_interp()
+            """
+            old_fd_down = self.h[i] - self.z_arr[i]
+            old_fd_up = self.h[i+1] - self.z_arr[i+1]
+            if old_fd_down <= 0:
+                old_fd_down = xc.ymax - xc.ymin
+            if old_fd_up <= 0:
+                old_fd_up = xc.ymax - xc.ymin
+            
+            norm_fd = xc.calcNormalFlowDepth(
+                self.Q_w, self.slopes[i], f=self.f, old_fd=old_fd
+            )
+            self.flow_type[i] = "norm"
+            """
+            if i == 0:
+                norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], f=self.f)
+                self.h[i] = norm_fd + self.z_arr[i]
+            fd_down = self.h[i] - self.z_arr[i]
+            dx = self.x_arr[i + 1] - self.x_arr[i]
+            dz = self.z_arr[i + 1] - self.z_arr[i]
+            fd_guess = self.h[i + 1] - self.z_arr[i + 1]
+            if fd_guess <= 0:
+                fd_guess = fd_down
+
+            sol = root_scalar(
+                self.fd_residual,
+                x0=fd_guess,
+                x1=fd_guess * 0.9,
+                args=(fd_down, xc, dx, dz),
+            )
+            fd_up = sol.root
+            self.h[i + 1] = self.z_arr[i + 1] + fd_up
+            self.fd_mids[i] = (fd_up + fd_down) / 2.0
+            # Calculate flow areas, wetted perimeters, hydraulic diameters,
+            # free surface widths, and velocities
+            self.A_w[i] = xc.calcA(depth=self.fd_mids[i])
+            self.P_w[i] = xc.calcP(depth=self.fd_mids[i])
+            self.V_w[i] = -self.Q_w / self.A_w[i]
+            self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
+            L, R = xc.findLR(self.fd_mids[i])
+            self.W[i] = xc.x[R] - xc.x[L]
+            # Set water line in cross-section object
+            xc.setFD(self.fd_mids[i])
+            K_up = xc.calcK(fd_up, f=self.f)
+            K_down = xc.calcK(fd_down, f=self.f)
+            S_f = (2 * self.Q_w / (K_up + K_down)) ** 2
+            eSlope = S_f  # self.slopes[i]
+            xc.setEnergySlope(eSlope)
+
+    def fd_residual(self, fd_guess, fd_down=None, xc=None, dx=None, dz=None):
+        """Calculate residual between guessed upstream flow depth and energy equation flow depth.
+        
+        Parameters
+        ----------
+        fd_guess : float
+            Guessed upstream flow depth.
+        fd_down : float
+            Flow depth at downstream end.
+        xc_up : upstream champ.crossSection.CrossSection object
+        """
+        if (
+            (xc is not None)
+            and (fd_down is not None)
+            and (dx is not None)
+            and (dz is not None)
+        ):
+            A_up = xc.calcA(depth=fd_guess)
+            K_up = xc.calcK(fd_guess, f=self.f)
+            V_up = self.Q_w / A_up
+            V_head_up = V_up ** 2 / (2 * xc.g)
+
+            A_down = xc.calcA(depth=fd_down)
+            K_down = xc.calcK(fd_down, f=self.f)
+            V_down = self.Q_w / A_down
+            V_head_down = V_down ** 2 / (2 * xc.g)
+
+            S_f_guess = (2 * self.Q_w / (K_up + K_down)) ** 2
+            h_e_guess = S_f_guess * dx
+
+            fd_from_energy_eqn = dz + fd_down + V_head_down - V_head_up + h_e_guess
+            return fd_guess - fd_from_energy_eqn
+        else:
+            return None
 
 
 class spim(sim):
