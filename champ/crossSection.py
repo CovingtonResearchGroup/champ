@@ -599,14 +599,22 @@ class CrossSection:
 
     def crit_flow_depth_residual(self, depth, Q):
         A = self.A_interp(depth)
+        if A < SMALL:
+            A = SMALL
         L, R = self.findLR(depth)
         W = self.x[R] - self.x[L]
+        if W < SMALL:
+            W = SMALL
         return A ** 3 / W - Q ** 2 / g
 
     def abs_crit_flow_depth_residual(self, depth, Q):
         A = self.A_interp(depth)
+        if A < SMALL:
+            A = SMALL
         L, R = self.findLR(depth)
         W = self.x[R] - self.x[L]
+        if W < SMALL:
+            W = SMALL
         return abs(A ** 3 / W - Q ** 2 / g)
 
     def calcNormalFlowDepth(self, Q, slope, f=0.1, old_fd=None):
@@ -694,7 +702,11 @@ class CrossSection:
         upper_bound = fd * 1.25
         if upper_bound > 0.99 * maxdepth:
             upper_bound = 0.99 * maxdepth
-        if np.sign(SMALL) != upper_bound:
+        if np.sign(self.crit_flow_depth_residual(SMALL, Q)) != np.sign(
+            self.crit_flow_depth_residual(
+                upper_bound, Q
+            )  # Edited Max's sign check, as it didn't make sense. Hopefully this is correct.
+        ):
             sol = brentq(
                 self.crit_flow_depth_residual,
                 a=SMALL,

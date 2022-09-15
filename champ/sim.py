@@ -816,6 +816,14 @@ class multiXCGVF(multiXC):
                 if (np.abs(err) < abs_tol) or (iterations == self.max_iterations):
                     if np.abs(err) < abs_tol:
                         converged = True
+                    # Set water line in cross-section object
+                    xc_up.setFD(fd_guess)
+                    # Check whether we are below critical depth
+                    fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
+                    if fd_guess < fd_crit:
+                        # Force critical flow
+                        fd_guess = fd_crit
+                        xc_up.setFD(fd_guess)
                     self.h[i + 1] = self.z_arr[i + 1] + fd_guess
                     self.fd[i + 1] = fd_guess
                 else:
@@ -850,8 +858,6 @@ class multiXCGVF(multiXC):
             self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
             L, R = xc.findLR(self.fd[i])
             self.W[i] = xc.x[R] - xc.x[L]
-            # Set water line in cross-section object
-            xc.setFD(self.fd[i])
             S_f = self.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
             xc.setEnergySlope(S_f)
 
