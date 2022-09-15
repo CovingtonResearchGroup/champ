@@ -11,6 +11,7 @@ python runSim.py example-params.yml
 
 """
 
+from logging import raiseExceptions
 import pickle
 import sys
 import os
@@ -25,7 +26,7 @@ from champ.viz.standard_timestep_plots import (
     plot_elevation_profile,
     plot_slope_profile,
 )
-from champ.sim import singleXC, multiXC, multiXCNormalFlow, spim
+from champ.sim import singleXC, multiXC, multiXCNormalFlow, multiXCGVF, spim
 
 params_file = None
 
@@ -52,7 +53,7 @@ def runSim(
     plot_by_years=True,
     n_plot_processes=1,
     run_equiv_spim=False,
-    assume_normal_flow=False,
+    flow_solver="Original",
     sim_params={},
 ):
 
@@ -106,6 +107,9 @@ def runSim(
         Whether to also run a stream power incision model (SPIM) case that is calibrated
         such that erodibility produces the same equilibrium slope as a multiXC model
         run for the same uplift, discharge, and incision exponent (a).
+    flow_solver : string
+        Solver to use for flow calculations. Options are Original (default), Normal,
+        and GVF.
     sim_params : dict
         Dictionary of keyword arguments to be supplied to singleXC or multiXC for
         initialization of simulation object.
@@ -142,10 +146,16 @@ def runSim(
                 print("Wrong number of elements in z_arr!")
                 return -1
             r = r_init * np.ones(n - 1)
-            if not assume_normal_flow:
+            if flow_solver == "Original":
                 sim = multiXC(x, z, init_radii=r, **sim_params)
-            else:
+            elif flow_solver == "Normal":
                 sim = multiXCNormalFlow(x, z, init_radii=r, **sim_params)
+            elif flow_solver == "GVF":
+                r = r_init * np.ones(n)
+                sim = multiXCGVF(x, z, init_radii=r, **sim_params)
+            else:
+                print("Must choose valid flow_solver: Original, Normal, or GVP!")
+                raise ValueError("Flow solver value invalid.")
     else:
         # Restart from existing snapshot
         start_timestep_str = "%08d" % (start_from_snapshot_num,)

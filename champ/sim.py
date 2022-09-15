@@ -503,7 +503,10 @@ class multiXC(sim):
             else:
                 # print('layer_elevs=',self.layer_elevs)
                 # print('init_z=',self.init_z[i+1])
-                absolute_layer_elevs = self.layer_elevs - self.init_z[i + 1]
+                if len(self.init_z == len(self.xcs)):
+                    absolute_layer_elevs = self.layer_elevs - self.init_z[i]
+                else:
+                    absolute_layer_elevs = self.layer_elevs - self.init_z[i + 1]
                 # print('i=',i, ' abs_layer_elevs=',absolute_layer_elevs)
                 xc.erode_power_law_layered(
                     a=self.a,
@@ -519,7 +522,10 @@ class multiXC(sim):
         # Celerity_times_dt = np.abs(max(dz / self.slopes))
         # CFL = Celerity_times_dt / min((self.x_arr[1:] - self.x_arr[:-1]))
         # print('CFL=',CFL)
-        self.z_arr[1:] = self.z_arr[1:] + dz
+        if len(dz) == len(self.z_arr) + 1:
+            self.z_arr[1:] = self.z_arr[1:] + dz
+        else:
+            self.z_arr[1:] = self.z_arr[1:] + dz[1:]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / (
             self.x_arr[1:] - self.x_arr[:-1]
         )
@@ -589,7 +595,7 @@ class multiXCNormalFlow(multiXC):
             xc.setEnergySlope(eSlope)
 
 
-class multiXCGVP(multiXC):
+class multiXCGVF(multiXC):
     """Simulation object for a channel profile with multiple cross-sections eroded by a
     shear stress power law rule. That assumes normal flow conditions."""
 
@@ -609,6 +615,8 @@ class multiXCGVP(multiXC):
         a=1.0,
         K=1e-5,
         layer_elevs=None,
+        abs_tol=0.001,
+        max_iterations=50,
     ):
 
         """
@@ -667,6 +675,10 @@ class multiXCGVP(multiXC):
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with
             one more item than this list.
+        abs_tol : float
+            Maximum allowed error for flow solver.
+        max_iterations: int
+            Maximum number of allowed iterations for flow solver.
 
         Notes
         -----
@@ -724,6 +736,9 @@ class multiXCGVP(multiXC):
         self.f = f
         self.flow_type = np.zeros(self.n_nodes, dtype=object)
 
+        self.abs_tol = abs_tol
+        self.max_iterations = max_iterations
+
         # Initialize cross-sections
         self.xcs = []
         self.radii = init_radii * np.ones(self.n_nodes)
@@ -756,6 +771,9 @@ class multiXCGVP(multiXC):
             # Renew interpolation functions
             xc_up.create_A_interp()
             xc_up.create_P_interp()
+            xc_up.Q = self.Q_w  # Otherwise this is done by calcNormalFlowDepth.
+            # We need to do it explictly here for other XCs
+            # that aren't the first one.
             if i == 0:
                 xc.create_A_interp()
                 xc.create_P_interp()
@@ -778,11 +796,11 @@ class multiXCGVP(multiXC):
                 # Use depth from last timestep if available
                 fd_guess = self.fd[i + 1]
             converged = False
-            abs_tol = 0.0001
+            abs_tol = self.abs_tol
             iterations = 0
-            while not converged:
+            while not converged and iterations <= self.max_iterations:
                 iterations += 1
-                print("iterations =", iterations, "  fd_guess =", fd_guess)
+                # print("iterations =", iterations, "  fd_guess =", fd_guess)
                 A_up = xc_up.calcA(depth=fd_guess)
                 P_up = xc_up.calcP(depth=fd_guess)
                 # K_up = xc_up.calcConvey(fd_guess, f=self.f)
@@ -794,9 +812,10 @@ class multiXCGVP(multiXC):
                 H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
                 fd_up_energy = H_up_energy - V_head_up - self.z_arr[i + 1]
                 err = fd_up_energy - fd_guess  # H_up - H_up_energy
-                print("err =", err)
-                if np.abs(err) < abs_tol:
-                    converged = True
+                # print("err =", err)
+                if (np.abs(err) < abs_tol) or (iterations == self.max_iterations):
+                    if np.abs(err) < abs_tol:
+                        converged = True
                     self.h[i + 1] = self.z_arr[i + 1] + fd_guess
                     self.fd[i + 1] = fd_guess
                 else:
@@ -806,29 +825,35 @@ class multiXCGVP(multiXC):
                         fd_guess = fd_guess + 0.7 * err
                     else:
                         assum_diff = prev_guess - fd_guess
-                        print("assum_diff =", assum_diff)
+                        # print("assum_diff =", assum_diff)
                         err_diff = prev_err - err
-                        print("err_diff =", err_diff)
+                        # print("err_diff =", err_diff)
                         prev_err = err
                         prev_guess = fd_guess
-                        if err_diff > 1e-2:
-                            fd_guess = fd_guess - err * (assum_diff / err_diff)
-                        else:
-                            fd_guess = 0.5 * (fd_guess + fd_up_energy)
+                        # if err_diff > 1e-2:
+                        fd_guess = fd_guess - err * (assum_diff / err_diff)
+                        # else:
+                        #    print("Falling back on 0.5 error difference solver.")
+                        #    fd_guess = 0.5 * (fd_guess + fd_up_energy)
+            if not converged:
+                print(
+                    "Warning! Reached max iterations in flow solver. Current error is",
+                    err,
+                )
 
-            # Calculate flow areas, wetted perimeters, hydraulic diameters,
-            # free surface widths, and velocities
-            for i, xc in enumerate(self.xcs):
-                self.A_w[i] = xc.calcA(depth=self.fd[i])
-                self.P_w[i] = xc.calcP(depth=self.fd[i])
-                self.V_w[i] = -self.Q_w / self.A_w[i]
-                self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
-                L, R = xc.findLR(self.fd[i])
-                self.W[i] = xc.x[R] - xc.x[L]
-                # Set water line in cross-section object
-                xc.setFD(self.fd[i])
-                S_f = self.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
-                xc.setEnergySlope(S_f)
+        # Calculate flow areas, wetted perimeters, hydraulic diameters,
+        # free surface widths, and velocities
+        for i, xc in enumerate(self.xcs):
+            self.A_w[i] = xc.calcA(depth=self.fd[i])
+            self.P_w[i] = xc.calcP(depth=self.fd[i])
+            self.V_w[i] = -self.Q_w / self.A_w[i]
+            self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
+            L, R = xc.findLR(self.fd[i])
+            self.W[i] = xc.x[R] - xc.x[L]
+            # Set water line in cross-section object
+            xc.setFD(self.fd[i])
+            S_f = self.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
+            xc.setEnergySlope(S_f)
 
         """
         # Loop through cross-sections and solve for flow depths,

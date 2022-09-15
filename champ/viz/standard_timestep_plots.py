@@ -38,7 +38,7 @@ def plot_overlapping_XCs(sim, plotdir, timestep_str):
         if sim.xcs[0].x_total is not None:
             plot(sim.xcs[0].x_total, sim.xcs[0].y_total)
         plot(sim.xcs[0].x, sim.xcs[0].y)
-        wl = sim.fd_mids[0] + sim.xcs[0].y.min()
+        wl = sim.xcs[0].fd + sim.xcs[0].y.min()
         plot([-0.5, 0.5], [wl, wl])
         if sim.xcs[int(ceil(n / 2.0))].x_total is not None:
             plot(
@@ -86,7 +86,10 @@ def plot_slope_profile(sim, plotdir, timestep_str):
     fig = figure()
     xmid = (sim.x_arr[1:] + sim.x_arr[:-1]) / 2.0
     plot(xmid, sim.slopes)
-    plot(xmid, abs(sim.dz) / sim.old_dt)
+    if len(xmid) == len(sim.dz):
+        plot(xmid, abs(sim.dz) / sim.old_dt)
+    else:
+        plot(sim.x_arr, abs(sim.dz) / sim.old_dt)
     yscale("log")
     xlabel("Distance (m)")
     ylabel("Slope/Erosion rate (m/yr)")
