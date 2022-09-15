@@ -763,7 +763,8 @@ class multiXCGVF(multiXC):
             Notes
             -----
             Starts at downstream end and propagates solution upstream. Flow is assumed
-            to be subcritical and gradually varied.
+            to be subcritical and gradually varied. If flow depths go below critical
+            depth, then depth is assumed to be critical.
 
             """
         for i, xc in enumerate(self.xcs[:-1]):
