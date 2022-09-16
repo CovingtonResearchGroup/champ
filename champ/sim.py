@@ -1,8 +1,10 @@
 import numpy as np
-from scipy.optimize import root_scalar
+from scipy.optimize import root_scalar, minimize_scalar
 
 from champ.crossSection import CrossSection
 from champ.utils.ShapeGen import genCirc
+
+SMALL = 1e-5
 
 
 class sim:
@@ -796,6 +798,47 @@ class multiXCGVF(multiXC):
             else:
                 # Use depth from last timestep if available
                 fd_guess = self.fd[i + 1]
+            sol = root_scalar(
+                self.fd_residual,
+                args=(i + 1, H_down, S_f_down, dx),
+                x0=fd_guess,
+                x1=0.9 * fd_guess,
+            )
+            if sol.converged:
+                fd_sol = sol.root
+                flag = sol.flag
+                converged = sol.converged
+            else:
+                # Try minimization of abs error
+                res = minimize_scalar(
+                    self.fd_residual_abs,
+                    bracket=(0.5 * fd_guess, fd_guess),
+                    args=(i + 1, H_down, S_f_down, dx),
+                )
+                converged = res.success
+                flag = "used minimization solver"
+                fd_sol = res.x
+
+            xc_up.setFD(fd_sol)
+            fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
+            print(
+                "fd_sol =",
+                fd_sol,
+                "  fd_crit =",
+                fd_crit,
+                " converged =",
+                converged,
+                "  flag =",
+                flag,
+            )
+            if fd_sol < fd_crit:
+                # Force critical flow
+                fd_sol = fd_crit
+
+            self.h[i + 1] = self.z_arr[i + 1] + fd_sol
+            self.fd[i + 1] = fd_sol
+            xc_up.setFD(fd_sol)
+            """
             converged = False
             abs_tol = self.abs_tol
             iterations = 0
@@ -849,10 +892,12 @@ class multiXCGVF(multiXC):
                     "Warning! Reached max iterations in flow solver. Current error is",
                     err,
                 )
+                """
 
         # Calculate flow areas, wetted perimeters, hydraulic diameters,
         # free surface widths, and velocities
         for i, xc in enumerate(self.xcs):
+            print("i =", i, "  fd=", self.fd[i])
             self.A_w[i] = xc.calcA(depth=self.fd[i])
             self.P_w[i] = xc.calcP(depth=self.fd[i])
             self.V_w[i] = -self.Q_w / self.A_w[i]
@@ -862,83 +907,36 @@ class multiXCGVF(multiXC):
             S_f = self.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
             xc.setEnergySlope(S_f)
 
-        """
-        # Loop through cross-sections and solve for flow depths,
-        # starting at downstream end
-        for i, xc in enumerate(self.xcs):
-            # Renew interpolation functions
-            xc.create_A_interp()
-            xc.create_P_interp()
-            if i == 0:
-                norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], f=self.f)
-                self.h[i] = norm_fd + self.z_arr[i]
-            fd_down = self.h[i] - self.z_arr[i]
-            dx = self.x_arr[i + 1] - self.x_arr[i]
-            dz = self.z_arr[i + 1] - self.z_arr[i]
-            fd_guess = self.h[i + 1] - self.z_arr[i + 1]
-            if fd_guess <= 0:
-                fd_guess = fd_down
-
-            sol = root_scalar(
-                self.fd_residual,
-                x0=fd_guess,
-                x1=fd_guess * 0.9,
-                args=(fd_down, xc, dx, dz),
-            )
-            fd_up = sol.root
-            self.h[i + 1] = self.z_arr[i + 1] + fd_up
-            self.fd_mids[i] = (fd_up + fd_down) / 2.0
-            # Calculate flow areas, wetted perimeters, hydraulic diameters,
-            # free surface widths, and velocities
-            self.A_w[i] = xc.calcA(depth=self.fd_mids[i])
-            self.P_w[i] = xc.calcP(depth=self.fd_mids[i])
-            self.V_w[i] = -self.Q_w / self.A_w[i]
-            self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
-            L, R = xc.findLR(self.fd_mids[i])
-            self.W[i] = xc.x[R] - xc.x[L]
-            # Set water line in cross-section object
-            xc.setFD(self.fd_mids[i])
-            K_up = xc.calcK(fd_up, f=self.f)
-            K_down = xc.calcK(fd_down, f=self.f)
-            S_f = (2 * self.Q_w / (K_up + K_down)) ** 2
-            eSlope = S_f  # self.slopes[i]
-            xc.setEnergySlope(eSlope)
-            """
-
-    def fd_residual(self, fd_guess, fd_down=None, xc=None, dx=None, dz=None):
-        """Calculate residual between guessed upstream flow depth and energy equation flow depth.
+    def fd_residual(self, fd_guess, xc_up_idx, H_down, S_f_down, dx):
+        """Calculate residual between guessed upstream flow depth and energy
+           equation flow depth.
         
         Parameters
         ----------
         fd_guess : float
             Guessed upstream flow depth.
-        fd_down : float
-            Flow depth at downstream end.
-        xc_up : upstream champ.crossSection.CrossSection object
+        xc_idx : int
+            Index of current downstream cross-section.
         """
-        if (
-            (xc is not None)
-            and (fd_down is not None)
-            and (dx is not None)
-            and (dz is not None)
-        ):
-            A_up = xc.calcA(depth=fd_guess)
-            K_up = xc.calcK(fd_guess, f=self.f)
-            V_up = self.Q_w / A_up
-            V_head_up = V_up ** 2 / (2 * xc.g)
+        xc_up = self.xcs[xc_up_idx]
+        A_up = xc_up.calcA(depth=fd_guess)
+        P_up = xc_up.calcP(depth=fd_guess)
+        if A_up < SMALL:
+            A_up = SMALL
+        if P_up < SMALL:
+            P_up = SMALL
+        V_up = self.Q_w / A_up
+        V_head_up = V_up ** 2 / (2 * xc_up.g)
+        D_H_up = 4 * A_up / P_up
+        S_f_up = self.f * V_up ** 2 / (2 * xc_up.g * D_H_up)
+        H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
+        fd_up_energy = H_up_energy - V_head_up - self.z_arr[xc_up_idx]
+        err = fd_up_energy - fd_guess  # H_up - H_up_energy
+        return err
 
-            A_down = xc.calcA(depth=fd_down)
-            K_down = xc.calcK(fd_down, f=self.f)
-            V_down = self.Q_w / A_down
-            V_head_down = V_down ** 2 / (2 * xc.g)
-
-            S_f_guess = (2 * self.Q_w / (K_up + K_down)) ** 2
-            h_e_guess = S_f_guess * dx
-
-            fd_from_energy_eqn = dz + fd_down + V_head_down - V_head_up + h_e_guess
-            return fd_guess - fd_from_energy_eqn
-        else:
-            return None
+    def fd_residual_abs(self, fd_guess, xc_up_idx, H_down, S_f_down, dx):
+        fd_res = self.fd_residual(fd_guess, xc_up_idx, H_down, S_f_down, dx)
+        return abs(fd_res)
 
 
 class spim(sim):
