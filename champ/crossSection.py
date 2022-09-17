@@ -113,6 +113,10 @@ class CrossSection:
         P : float
             The perimeter of the selected portion of the cross-section.
         """
+        # If we exceed depth of trimmed XC, then use total
+        if (depth > self.ymax - self.ymin) and self.x_total is not None:
+            total = True
+
         if total:
             return calcP(
                 self.x_total, self.xp_total, self.y_total, self.yp_total, depth
@@ -141,6 +145,10 @@ class CrossSection:
         A : float
             The area of the selected portion of the cross-section.
         """
+        # If we exceed depth of trimmed XC, then use total
+        if (depth > self.ymax - self.ymin) and self.x_total is not None:
+            total = True
+
         if total:
             return calcA(
                 self.x_total, self.xp_total, self.y_total, self.yp_total, depth
@@ -227,11 +235,15 @@ class CrossSection:
 
     def setFD(self, fd):
         """Set the flow depth within the cross-section."""
-
-        maxdepth = self.ymax - self.ymin
+        if self.y_total is None:
+            maxdepth = self.ymax - self.ymin
+        else:
+            maxdepth = self.y_total.max() - self.ymin
         if fd > maxdepth:
             fd = maxdepth
-        self.fd = fd
+        if fd > self.ymax - self.ymin:
+            self.switchToTotalXC()
+        self.fd = fd    
         self.wetidx = self.y - self.ymin <= fd
 
     def setMaxVelPoint(self, fd):
@@ -529,16 +541,10 @@ class CrossSection:
                 # Water level is increasing
                 self.update_total_xc(nx, ny)
                 if (max(ny) - min(ny)) < add_factor * self.fd:
-                    # Switch to using total
-                    print("########################################")
-                    print("############ Switch! #############")
-                    print("########################################")
-                    nx = copy.deepcopy(self.x_total)
-                    ny = copy.deepcopy(self.y_total)
-                    self.x_total = None
-                    self.y_total = None
-                    self.back_to_total = True
+                    self.switchToTotalXC()
                     resample = False
+                    nx = self.x
+                    ny = self.y
 
         # Resample points by fitting spline
         if resample:
@@ -555,6 +561,24 @@ class CrossSection:
         self.ymin = min(ny)
         self.ymax = max(ny)
         self.n = len(nx)
+
+    def switchToTotalXC(self):
+        # Switch to using total
+        print("########################################")
+        print("############ Switch! #############")
+        print("########################################")
+        self.x = copy.deepcopy(self.x_total)
+        self.y = copy.deepcopy(self.y_total)
+        self.x_total = None
+        self.y_total = None
+        # Set new XC coordinates
+        self.rollXC()
+        self.create_pm()
+        self.ymin = min(self.x)
+        self.ymax = max(self.y)
+        self.n = len(self.x)
+        self.back_to_total = True
+
 
     def calcNormalFlow(self, depth, slope, f=0.1, use_interp=True):
         """Calculate normal discharge for given depth and slope.

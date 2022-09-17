@@ -821,7 +821,7 @@ class multiXCGVF(multiXC):
 
             xc_up.setFD(fd_sol)
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
-            print(
+            """print(
                 "fd_sol =",
                 fd_sol,
                 "  fd_crit =",
@@ -830,7 +830,7 @@ class multiXCGVF(multiXC):
                 converged,
                 "  flag =",
                 flag,
-            )
+            )"""
             if fd_sol < fd_crit:
                 # Force critical flow
                 fd_sol = fd_crit
@@ -897,7 +897,7 @@ class multiXCGVF(multiXC):
         # Calculate flow areas, wetted perimeters, hydraulic diameters,
         # free surface widths, and velocities
         for i, xc in enumerate(self.xcs):
-            print("i =", i, "  fd=", self.fd[i])
+            # print("i =", i, "  fd=", self.fd[i])
             self.A_w[i] = xc.calcA(depth=self.fd[i])
             self.P_w[i] = xc.calcP(depth=self.fd[i])
             self.V_w[i] = -self.Q_w / self.A_w[i]
