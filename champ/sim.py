@@ -902,8 +902,11 @@ class multiXCGVF(multiXC):
             self.P_w[i] = xc.calcP(depth=self.fd[i])
             self.V_w[i] = -self.Q_w / self.A_w[i]
             self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
-            L, R = xc.findLR(self.fd[i])
-            self.W[i] = xc.x[R] - xc.x[L]
+            if self.fd[i] < xc.ymax - xc.ymin:
+                L, R = xc.findLR(self.fd[i])
+                self.W[i] = xc.x[R] - xc.x[L]
+            else:
+                self.W[i] = 0.0
             S_f = self.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
             xc.setEnergySlope(S_f)
 

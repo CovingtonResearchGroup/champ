@@ -5,5 +5,7 @@
         "**/co2_evo/newsim*/**": true
     },
     "restructuredtext.confPath": "${workspaceFolder}/docs",
-    "esbonio.sphinx.confDir": "${workspaceFolder}/docs"
+    "esbonio.sphinx.confDir": "${workspaceFolder}/docs",
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true
 }
