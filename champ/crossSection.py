@@ -242,6 +242,7 @@ class CrossSection:
         if fd > maxdepth:
             fd = maxdepth
         if fd > self.ymax - self.ymin:
+            self.update_total_xc(self.x, self.y)
             self.switchToTotalXC()
         self.fd = fd
         self.wetidx = self.y - self.ymin <= fd
