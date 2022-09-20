@@ -243,7 +243,7 @@ class CrossSection:
             fd = maxdepth
         if fd > self.ymax - self.ymin:
             self.switchToTotalXC()
-        self.fd = fd    
+        self.fd = fd
         self.wetidx = self.y - self.ymin <= fd
 
     def setMaxVelPoint(self, fd):
@@ -463,8 +463,8 @@ class CrossSection:
             np.logical_and(self.x_total < 0, self.y_total > ny.max())
         ]
         # Slightly trim high-res XC to remove any connection across top
-        self.x2 = x2 = nx[ny < ny.max() - 0.02 * (ny.max() - ny.min())]
-        self.y2 = y2 = ny[ny < ny.max() - 0.02 * (ny.max() - ny.min())]
+        self.x2 = x2 = nx[ny < ny.max() - 0.05 * (ny.max() - ny.min())]
+        self.y2 = y2 = ny[ny < ny.max() - 0.05 * (ny.max() - ny.min())]
         self.x4 = x4 = self.x_total[
             np.logical_and(self.x_total > 0, self.y_total > ny.max())
         ]
@@ -578,7 +578,6 @@ class CrossSection:
         self.ymax = max(self.y)
         self.n = len(self.x)
         self.back_to_total = True
-
 
     def calcNormalFlow(self, depth, slope, f=0.1, use_interp=True):
         """Calculate normal discharge for given depth and slope.
