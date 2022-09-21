@@ -223,9 +223,6 @@ def runSim(
         sim.run_one_step()
         print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
         # Reset timestep if we have adjusted for plot or snapshot
-        if oldtimestep is not None:
-            sim.dt_erode = oldtimestep
-            oldtimestep = None
 
         # Check whether we have reached end of simulation
         if sim.elapsed_time >= endtime:
@@ -236,6 +233,10 @@ def runSim(
 
         if not single_XC_sim:
             sim.z_arr[0] -= dz0_dt * sim.dt_erode
+
+        if oldtimestep is not None:
+            sim.dt_erode = oldtimestep
+            oldtimestep = None
 
         # Output plots/snapshots by even timesteps or years
         if not plot_by_years:
