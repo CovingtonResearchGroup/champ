@@ -5,6 +5,7 @@ from numpy import (
     sign,
     roll,
     logical_and,
+    arange,
     where,
     linspace,
     sqrt,
@@ -73,7 +74,16 @@ class CrossSection:
         """
         Roll x and y points such that XC starts at maximum y value
         """
-        y_roll = self.y.size - self.y.argmax()
+        ymaxidx = self.y.argmax()
+        if self.x[ymaxidx] > 0:
+            # Max point is on RHS and needs to be shifted to left
+            idxs = arange(len(self.x))
+            left_ys = self.y[self.x < 0]
+            left_y_idxs = idxs[self.x < 0]
+            max_left_y_idx = left_ys.argmax()
+            ymaxidx = left_y_idxs[max_left_y_idx]
+
+        y_roll = self.y.size - ymaxidx
         self.x = roll(self.x, y_roll)
         self.y = roll(self.y, y_roll)
 
