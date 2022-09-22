@@ -3,8 +3,12 @@ from scipy.optimize import root_scalar, minimize_scalar
 
 from champ.crossSection import CrossSection
 from champ.utils.ShapeGen import genCirc
+import debugpy
 
 SMALL = 1e-5
+WARN_ERR = (
+    0.05  # Print warning if flow depth solver has residual larger than this value.
+)
 
 
 class sim:
@@ -798,13 +802,27 @@ class multiXCGVF(multiXC):
             else:
                 # Use depth from last timestep if available
                 fd_guess = self.fd[i + 1]
-            sol = root_scalar(
-                self.fd_residual,
-                args=(i + 1, H_down, S_f_down, dx),
-                x0=fd_guess,
-                x1=0.9 * fd_guess,
-            )
-            if sol.converged:
+            try:
+                sol = root_scalar(
+                    self.fd_residual,
+                    args=(i + 1, H_down, S_f_down, dx),
+                    method="brenth",
+                    x0=fd_guess,
+                    bracket=(0.1 * fd_guess, fd_guess * 1.5),
+                    xtol=0.001,
+                    rtol=0.005,
+                )
+                is_converged = sol.converged
+            except ValueError:
+                print("Falling back on minimization solver.")
+                is_converged = False
+            #            sol = root_scalar(
+            #                self.fd_residual,
+            #                args=(i + 1, H_down, S_f_down, dx),
+            #                x0=fd_guess,
+            #                x1=0.9 * fd_guess,
+            #            )
+            if is_converged:
                 fd_sol = sol.root
                 flag = sol.flag
                 converged = sol.converged
@@ -818,6 +836,12 @@ class multiXCGVF(multiXC):
                 converged = res.success
                 flag = "used minimization solver"
                 fd_sol = res.x
+            # Calculate actual flow depth residual
+            err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, dx)
+            if abs(err) > WARN_ERR:
+                print("*******************************************")
+                print("Warning! Flow depth solution is inaccurate. Error is", err)
+                print("*******************************************")
 
             xc_up.setFD(fd_sol)
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
@@ -838,61 +862,6 @@ class multiXCGVF(multiXC):
             self.h[i + 1] = self.z_arr[i + 1] + fd_sol
             self.fd[i + 1] = fd_sol
             xc_up.setFD(fd_sol)
-            """
-            converged = False
-            abs_tol = self.abs_tol
-            iterations = 0
-            while not converged and iterations <= self.max_iterations:
-                iterations += 1
-                # print("iterations =", iterations, "  fd_guess =", fd_guess)
-                A_up = xc_up.calcA(depth=fd_guess)
-                P_up = xc_up.calcP(depth=fd_guess)
-                # K_up = xc_up.calcConvey(fd_guess, f=self.f)
-                V_up = self.Q_w / A_up
-                V_head_up = V_up ** 2 / (2 * xc_up.g)
-                D_H_up = 4 * A_up / P_up
-                # H_up = self.z_arr[i + 1] + fd_guess + V_head_up
-                S_f_up = self.f * V_up ** 2 / (2 * xc_up.g * D_H_up)
-                H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
-                fd_up_energy = H_up_energy - V_head_up - self.z_arr[i + 1]
-                err = fd_up_energy - fd_guess  # H_up - H_up_energy
-                # print("err =", err)
-                if (np.abs(err) < abs_tol) or (iterations == self.max_iterations):
-                    if np.abs(err) < abs_tol:
-                        converged = True
-                    # Set water line in cross-section object
-                    xc_up.setFD(fd_guess)
-                    # Check whether we are below critical depth
-                    fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
-                    if fd_guess < fd_crit:
-                        # Force critical flow
-                        fd_guess = fd_crit
-                        xc_up.setFD(fd_guess)
-                    self.h[i + 1] = self.z_arr[i + 1] + fd_guess
-                    self.fd[i + 1] = fd_guess
-                else:
-                    if iterations == 1:
-                        prev_err = err
-                        prev_guess = fd_guess
-                        fd_guess = fd_guess + 0.7 * err
-                    else:
-                        assum_diff = prev_guess - fd_guess
-                        # print("assum_diff =", assum_diff)
-                        err_diff = prev_err - err
-                        # print("err_diff =", err_diff)
-                        prev_err = err
-                        prev_guess = fd_guess
-                        # if err_diff > 1e-2:
-                        fd_guess = fd_guess - err * (assum_diff / err_diff)
-                        # else:
-                        #    print("Falling back on 0.5 error difference solver.")
-                        #    fd_guess = 0.5 * (fd_guess + fd_up_energy)
-            if not converged:
-                print(
-                    "Warning! Reached max iterations in flow solver. Current error is",
-                    err,
-                )
-                """
 
         # Calculate flow areas, wetted perimeters, hydraulic diameters,
         # free surface widths, and velocities
