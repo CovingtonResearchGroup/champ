@@ -570,7 +570,8 @@ class CrossSection:
         self.rollXC()
         self.create_pm()
         self.ymin = min(ny)
-        self.ymax = max(ny)
+        # Use LHS ymax rather than total. This works because of roll.
+        self.ymax = ny[0]  # max(ny)
         self.n = len(nx)
 
     def switchToTotalXC(self):
@@ -586,7 +587,8 @@ class CrossSection:
         self.rollXC()
         self.create_pm()
         self.ymin = min(self.x)
-        self.ymax = max(self.y)
+        # Use LHS ymax rather than total. This works because of roll.
+        self.ymax = self.y[0]  # max(self.y)
         self.n = len(self.x)
         self.back_to_total = True
 
