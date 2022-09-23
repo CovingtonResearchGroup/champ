@@ -528,7 +528,7 @@ class multiXC(sim):
         # Celerity_times_dt = np.abs(max(dz / self.slopes))
         # CFL = Celerity_times_dt / min((self.x_arr[1:] - self.x_arr[:-1]))
         # print('CFL=',CFL)
-        if len(dz) == len(self.z_arr) + 1:
+        if len(dz) == len(self.z_arr) - 1:
             self.z_arr[1:] = self.z_arr[1:] + dz
         else:
             self.z_arr[1:] = self.z_arr[1:] + dz[1:]
