@@ -61,13 +61,12 @@ class sim:
 
     def apply_uplift(self):
         if isinstance(self.uplift, list):
-            if self.elapsed_time >= self.uplift_times[self.uplift_idx]:
-                if self.uplift_idx < len(self.uplift_times) - 1:
+            if self.uplift_idx < len(self.uplift) - 1:
+                if self.elapsed_time >= self.uplift_times[self.uplift_idx]:
                     self.uplift_idx += 1
             uplift = self.uplift[self.uplift_idx]
         else:
             uplift = self.uplift
-        print("uplift=", uplift)
         self.z_arr[0] -= uplift * self.dt_erode
 
     def set_layers(self, layer_elevs):
