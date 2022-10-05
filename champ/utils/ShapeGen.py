@@ -1,6 +1,6 @@
 """Functions to generate cross-section x-y pairs for different shapes."""
 
-from numpy import sin, cos, pi, linspace
+from numpy import sin, cos, pi, linspace, zeros
 
 
 # Generate x, y points for an ellipse. Can set rotation angle with theta
@@ -23,7 +23,7 @@ def genEll(r1, r2, theta=0, n=1000):
         x and y values for points in cross-section.
     """
 
-    t = linspace(0, 2*pi - 2*pi/n, n - 1)
+    t = linspace(0, 2 * pi - 2 * pi / n, n - 1)
     x = r1 * cos(t)
     y = r2 * sin(t)
 
@@ -101,3 +101,35 @@ def genSemiEll(r1, r2, n=1000):
     y = r2 * sin(t)
 
     return x, y
+
+
+def genTrap(bottom_width=1, side_slope=1, height=1, n=1000):
+    """Generate an trapezoidal open channel.
+
+    Parameters
+    ----------
+    bottom_width : float
+        Width of flat bed of trapezoid.
+    side_slope : float
+        slope of trapezoid sides.
+    height : float
+        total height of sides.
+    n : int
+        Number of points in cross-section.
+    Returns
+    -------
+    x,y : ndarray
+        x and y values for points in cross-section.
+    """
+
+    b = bottom_width
+    z = side_slope
+    h = height
+    x0 = -b / 2 - z * h
+    x = linspace(x0, -x0, n)
+    y = zeros(n)
+    y[x < -b / 2] = -(x[x < -b / 2] + b / 2) / z
+    y[x > b / 2] = (x[x > b / 2] - b / 2) / z
+
+    return x, y
+
