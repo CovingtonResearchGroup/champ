@@ -2,6 +2,12 @@
 
 from numpy import sin, cos, pi, linspace, zeros
 
+shape_name_map = {"trapezoid": "genTrap"}
+
+
+def name_to_function(name):
+    return shape_name_map[name]
+
 
 # Generate x, y points for an ellipse. Can set rotation angle with theta
 def genEll(r1, r2, theta=0, n=1000):

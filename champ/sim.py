@@ -2,13 +2,16 @@ import numpy as np
 from scipy.optimize import root_scalar, minimize_scalar
 
 from champ.crossSection import CrossSection
-from champ.utils.ShapeGen import genCirc
+from champ.utils.ShapeGen import name_to_function, genCirc
+from champ.utils import ShapeGen
 import debugpy
 
 SMALL = 1e-5
 WARN_ERR = (
     0.05  # Print warning if flow depth solver has residual larger than this value.
 )
+alpha = 1.1  # Coriolis coefficient, assumed constant but could vary with velocity
+# distribution.
 
 
 class sim:
@@ -248,6 +251,7 @@ class multiXC(sim):
         Q_w=0.1,
         f=0.1,
         init_radii=0.5,
+        shape_dict=None,
         init_offsets=0.0,
         xc_n=500,
         dt_erode=1.0,
@@ -280,6 +284,9 @@ class multiXC(sim):
             will be assigned the same radius. If an array then each element
             represents the radius of a single cross-section (length should be n-1
             where n is the number of nodes). Default is 0.5 m.
+        shape_dict : dict
+            A dictionary of cross-sectional shape parameters, including name and
+            keyword parameters for function in ShapeGen.
         init_offsets : float or ndarray, optional
             These offsets will be added to y-values within initial cross-sections.
             By default, y will be zero at the centroid of the initial cross-section.
@@ -389,11 +396,22 @@ class multiXC(sim):
         self.radii = init_radii * np.ones(self.n_nodes - 1)
         ymins = []
         for i in np.arange(self.n_nodes - 1):
-            x, y = genCirc(self.radii[i], n=xc_n)
+            if shape_dict is None:
+                x, y = genCirc(self.radii[i], n=xc_n)
+
+            else:
+                if i == 0:
+                    shape_name = shape_dict["name"]
+                    shape_dict.pop("name")
+                    shape_func_name = name_to_function(shape_name)
+                    func_string = "ShapeGen." + shape_func_name + "(**shape_dict)"
+                x, y = eval(func_string)
+
             y = y + self.init_offsets[i]
             this_xc = CrossSection(x, y)
             self.xcs.append(this_xc)
             ymins.append(this_xc.ymin)
+
         self.ymins = np.array(ymins)
         # Reset z to bottom of cross-sections
         self.z_arr[1:] = self.z_arr[1:] + self.ymins
@@ -843,7 +861,7 @@ class multiXCGVF(multiXC):
             D_H_down = 4 * A_down / P_down
             # K_down = xc.calcConvey(self.fd[i], f=self.f)
             V_down = self.Q_w / A_down
-            V_head_down = V_down ** 2 / (2 * xc.g)
+            V_head_down = alpha * V_down ** 2 / (2 * xc.g)
             H_down = self.h[i] + V_head_down
             S_f_down = self.f * V_down ** 2 / (2 * xc.g * D_H_down)
             dx = self.x_arr[i + 1] - self.x_arr[i]
@@ -948,7 +966,7 @@ class multiXCGVF(multiXC):
         if P_up < SMALL:
             P_up = SMALL
         V_up = self.Q_w / A_up
-        V_head_up = V_up ** 2 / (2 * xc_up.g)
+        V_head_up = alpha * V_up ** 2 / (2 * xc_up.g)
         D_H_up = 4 * A_up / P_up
         S_f_up = self.f * V_up ** 2 / (2 * xc_up.g * D_H_up)
         H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
