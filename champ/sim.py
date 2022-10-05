@@ -848,7 +848,7 @@ class multiXCGVF(multiXC):
             self.x_arr[1:] - self.x_arr[:-1]
         )
 
-    def calc_flow(self):
+    def calc_flow(self, h0=None):
         """Calculates flow depths assuming gradually varied open channel flow.
 
             Notes
@@ -869,9 +869,13 @@ class multiXCGVF(multiXC):
             if i == 0:
                 xc.create_A_interp()
                 xc.create_P_interp()
-                norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], f=self.f)
-                self.h[i] = norm_fd + self.z_arr[i]
-                self.fd[i] = norm_fd
+                if h0 is None:
+                    norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], f=self.f)
+                    self.h[i] = norm_fd + self.z_arr[i]
+                    self.fd[i] = norm_fd
+                else:
+                    self.h[i] = h0
+                    self.fd[i] = h0 - self.z_arr[i]
 
             A_down = xc.calcA(depth=self.fd[i])
             P_down = xc.calcP(depth=self.fd[i])
