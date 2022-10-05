@@ -46,7 +46,6 @@ def runSim(
     snapdir=None,
     plotdir="./default-figs/",
     start_from_snapshot_num=0,
-    dz0_dt=0.00025,
     snapshot_every=1000,
     plot_every=100,
     snapshot_by_years=True,
@@ -82,10 +81,6 @@ def runSim(
         If set to a nonzero value, then the simulation will be
         started from that snapshot number within plotdir. If set
         to zero, then a new simulation is started.
-    dz0_dt : float
-        Rate of change of baselevel. This distance is subtracted
-        from the elevation of the downstream boundary node during
-        each timestep.
     snapshot_every : int
         Number of years/timesteps after which to record a pickled CO2_1D object.
         These snapshots can easily be used to restart a simulation from a
@@ -181,8 +176,12 @@ def runSim(
         else:
             K_eqsim = sim.K
         eq_dz = sim.z_arr[-1] - sim.z_arr[0]
+        if isinstance(sim.uplift, list):
+            uplift = sim.uplift[0]
+        else:
+            uplift = sim.uplift
         eq_sim = runEquilibrationSim(
-            dz0_dt,
+            uplift,
             sim.Q_w,
             K_eqsim,
             a=sim.a,
@@ -191,11 +190,13 @@ def runSim(
             plotdir=os.path.join(plotdir, "equil-sim/"),
         )
         eq_slope = eq_sim["equil_slope"]
-        K_equiv = calcEquivK(dz0_dt, eq_slope, sim.a)
+        K_equiv = calcEquivK(uplift, eq_slope, sim.a)
         spim_sim_params = {
             "Q_w": sim.Q_w,
             "a": sim.a,
             "K": K_equiv,
+            "uplift": sim.uplift,
+            "uplift_times": sim.uplift_times,
         }
         if "layer_elevs" in sim_params:
             spim_sim_params["layer_elevs"] = sim_params["layer_elevs"]
@@ -209,7 +210,6 @@ def runSim(
             dz=eq_dz,
             endtime=endtime,
             plotdir=os.path.join(plotdir, "spim/"),
-            dz0_dt=dz0_dt,
             plot_every=plot_every,
             snapshot_every=snapshot_every,
             start_from_snapshot_num=start_from_snapshot_num,
@@ -231,8 +231,8 @@ def runSim(
             if sim.timestep >= endstep:
                 finished = True
 
-        if not single_XC_sim:
-            sim.z_arr[0] -= dz0_dt * sim.dt_erode
+        # if not single_XC_sim:
+        #    sim.z_arr[0] -= dz0_dt * sim.dt_erode
 
         if oldtimestep is not None:
             sim.dt_erode = oldtimestep
@@ -404,13 +404,13 @@ def runEquilibrationSim(
         "max_frac_erode": max_frac_erode,
         "a": a,
         "K": K,
+        "uplift": uplift,
     }
     eq_sim = runSim(
         n=n,
         L=L,
         dz=dz,
         r_init=r_init,
-        dz0_dt=uplift,
         plotdir=plotdir,
         endtime=mintime,
         snapshot_every=10000,
@@ -424,7 +424,7 @@ def runEquilibrationSim(
     erosion_greater_than_uplift_steps = 0
     while not converged:
         eq_sim.run_one_step()
-        eq_sim.z_arr[0] -= uplift * eq_sim.dt_erode
+        # eq_sim.z_arr[0] -= uplift * eq_sim.dt_erode
         avg_erosion = eq_sim.dz.mean() / eq_sim.dt_erode
         if np.abs(1.0 - np.abs(avg_erosion / uplift)) < mean_tol:
             # Met mean erosion rate tolerance for equilibrium
@@ -512,7 +512,6 @@ def runSPIM(
     z_arr=None,
     endtime=1000,
     plotdir="./spim/",
-    dz0_dt=0.00025,
     plot_every=100,
     snapshot_every=1000,
     start_from_snapshot_num=0,
@@ -540,10 +539,6 @@ def runSPIM(
         Path to directory that will hold plots and outputs. This directory
         will be created if it does not exist. If starting from previous snapshot,
         snapshot must be in this directory.
-    dz0_dt : float
-        Rate of change of baselevel. This distance is subtracted
-        from the elevation of the downstream boundary node during
-        each timestep.
     start_from_snapshot_num : int
         If set to a nonzero value, then the simulation will be
         started from that snapshot number within plotdir. If set
@@ -583,7 +578,7 @@ def runSPIM(
         if len(z) != len(x):
             print("Wrong number of elements in z_arr!")
             return -1
-        sim = spim(x, z, dz0_dt, **sim_params)
+        sim = spim(x, z, **sim_params)
     else:
         # Restart from existing snapshot
         start_timestep_str = "%08d" % (start_from_snapshot_num,)

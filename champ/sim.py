@@ -15,6 +15,9 @@ class sim:
     def __init__(self):
         self.elapsed_time = 0.0
         self.timestep = 0
+        self.singleXC = False
+        self.uplift = 0.0
+        self.uplift_times = None
 
     def update_params(self, sim_params):
         """
@@ -46,6 +49,8 @@ class sim:
         self.timestep += 1
         self.calc_flow()
         self.erode()
+        if not self.singleXC:
+            self.apply_uplift()
 
     # Dummy functions that will be defined in child classes
     def calc_flow(self):
@@ -53,6 +58,17 @@ class sim:
 
     def erode(self):
         pass
+
+    def apply_uplift(self):
+        if isinstance(self.uplift, list):
+            if self.elapsed_time >= self.uplift_times[self.uplift_idx]:
+                if self.uplift_idx < len(self.uplift_times) - 1:
+                    self.uplift_idx += 1
+            uplift = self.uplift[self.uplift_idx]
+        else:
+            uplift = self.uplift
+        print("uplift=", uplift)
+        self.z_arr[0] -= uplift * self.dt_erode
 
     def set_layers(self, layer_elevs):
 
@@ -236,6 +252,8 @@ class multiXC(sim):
         init_offsets=0.0,
         xc_n=500,
         dt_erode=1.0,
+        uplift=0.0,
+        uplift_times=None,
         adaptive_step=False,
         max_frac_erode=0.005,
         trim=True,
@@ -273,6 +291,13 @@ class multiXC(sim):
             cross-section. Default is 1000.
         dt_erode : float, optional
             Erosional time step in years. Default value is 1 year.
+        uplift : float or list of floats
+            Rate of change of baselevel. This distance is subtracted
+            from the elevation of the downstream boundary node during
+            each timestep.
+        uplift_times : list
+            Times in years at which uplift rates change. This argument is included if 
+            uplift is a list of different uplift rates.
         adaptive_step : boolean, optional
             Whether or not to adjust timestep dynamically. Default is False.
         max_frac_erode : float, optional
@@ -337,6 +362,9 @@ class multiXC(sim):
 
         self.dt_erode = dt_erode
         self.old_dt = dt_erode
+        self.uplift = uplift
+        self.uplift_times = uplift_times
+        self.uplift_idx = 0
         self.adaptive_step = adaptive_step
         self.max_frac_erode = max_frac_erode
         self.xc_n = xc_n
@@ -556,6 +584,17 @@ class multiXC(sim):
                 self.dt_erode = self.dt_erode * 1.5
                 print("Increasing timestep to " + str(self.dt_erode))
 
+    # def apply_uplift(self):
+    #    """Apply uplift rate at base level."""
+    #    if self.uplift is list:
+    #        if self.elapsed_time >= self.uplift_times[self.uplift_idx]:
+    #            self.uplift_idx += 1
+    #        uplift = self.uplift[self.uplift_idx]
+    #    else:
+    #        uplift = self.uplift
+    #
+    #    sim.z_arr[0] -= uplift * self.dt_erode
+
 
 class multiXCNormalFlow(multiXC):
     """Simulation object for a channel profile with multiple cross-sections eroded by a
@@ -615,6 +654,8 @@ class multiXCGVF(multiXC):
         init_offsets=0.0,
         xc_n=500,
         dt_erode=1.0,
+        uplift=0.0,
+        uplift_times=None,
         adaptive_step=False,
         max_frac_erode=0.005,
         trim=True,
@@ -654,6 +695,13 @@ class multiXCGVF(multiXC):
             cross-section. Default is 1000.
         dt_erode : float, optional
             Erosional time step in years. Default value is 1 year.
+        uplift : float or list of floats
+            Rate of change of baselevel. This distance is subtracted
+            from the elevation of the downstream boundary node during
+            each timestep.
+        uplift_times : list
+            Times in years at which uplift rates change. This argument is included if 
+            uplift is a list of different uplift rates.        
         adaptive_step : boolean, optional
             Whether or not to adjust timestep dynamically. Default is False.
         max_frac_erode : float, optional
@@ -722,6 +770,9 @@ class multiXCGVF(multiXC):
 
         self.dt_erode = dt_erode
         self.old_dt = dt_erode
+        self.uplift = uplift
+        self.uplift_times = uplift_times
+        self.uplift_idx = 0
         self.adaptive_step = adaptive_step
         self.max_frac_erode = max_frac_erode
         self.xc_n = xc_n
@@ -882,7 +933,7 @@ class multiXCGVF(multiXC):
     def fd_residual(self, fd_guess, xc_up_idx, H_down, S_f_down, dx):
         """Calculate residual between guessed upstream flow depth and energy
            equation flow depth.
-        
+
         Parameters
         ----------
         fd_guess : float
@@ -918,7 +969,8 @@ class spim(sim):
         self,
         x_arr,
         z_arr,
-        uplift,
+        uplift=0.0,
+        uplift_times=None,
         Q_w=0.1,
         dt_erode=1.0,
         a=1.0,
@@ -936,10 +988,13 @@ class spim(sim):
             Array of elevations in meters for nodes along the channel. Minimum y
             values for each cross-section will be added to these elevations
             during initialization, so that z_arr will represent the channel bottom.
-        uplift : float
+        uplift : float or list of floats
             Rate of change of baselevel. This distance is subtracted
             from the elevation of the downstream boundary node during
             each timestep.
+        uplift_times : list
+            Times in years at which uplift rates change. This argument is included if 
+            dz0_dt is a list of different uplift rates.
         Q_w : float, optional
             Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
         dt_erode : float, optional
@@ -970,6 +1025,9 @@ class spim(sim):
         self.n = (2.0 / 3.0) * a
         self.K = K
         self.uplift = uplift
+        self.uplift_times = uplift_times
+        if uplift_times is not None:
+            self.uplift_idx = 0
         self.dz = 0.0
         if layer_elevs is not None:
             self.set_layers(layer_elevs)
@@ -993,6 +1051,10 @@ class spim(sim):
         self.elapsed_time += self.dt_erode
         self.timestep += 1
         self.erode()
+        self.apply_uplift()
+        self.updateSlopes()
+        if self.layered_sim:
+            self.updateKs()
         # Set old_dt for plotting erosion rates
         self.old_dt = self.dt_erode
 
@@ -1000,10 +1062,6 @@ class spim(sim):
         self.dz = -self.K_arr[1:] * self.slopes ** self.n * self.dt_erode
         # erosion = self.dt_erode * self.dz
         self.z_arr[1:] += self.dz  # erosion
-        self.z_arr[0] -= self.uplift * self.dt_erode
-        self.updateSlopes()
-        if self.layered_sim:
-            self.updateKs()
 
     def updateKs(self):
         old_elev = None
