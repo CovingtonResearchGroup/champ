@@ -284,9 +284,10 @@ class multiXC(sim):
             will be assigned the same radius. If an array then each element
             represents the radius of a single cross-section (length should be n-1
             where n is the number of nodes). Default is 0.5 m.
-        shape_dict : dict
+        shape_dict : dict, optional
             A dictionary of cross-sectional shape parameters, including name and
-            keyword parameters for function in ShapeGen.
+            keyword parameters for function in ShapeGen. If this is provided,
+            then init_radii is ignored.
         init_offsets : float or ndarray, optional
             These offsets will be added to y-values within initial cross-sections.
             By default, y will be zero at the centroid of the initial cross-section.
@@ -390,6 +391,7 @@ class multiXC(sim):
         self.h = np.zeros(self.n_nodes)
         self.f = f
         self.flow_type = np.zeros(self.n_nodes - 1, dtype=object)
+        self.shape_dict = shape_dict
 
         # Initialize cross-sections
         self.xcs = []
@@ -398,7 +400,6 @@ class multiXC(sim):
         for i in np.arange(self.n_nodes - 1):
             if shape_dict is None:
                 x, y = genCirc(self.radii[i], n=xc_n)
-
             else:
                 if i == 0:
                     shape_name = shape_dict["name"]
@@ -668,6 +669,7 @@ class multiXCGVF(multiXC):
         Q_w=0.1,
         f=0.1,
         init_radii=0.5,
+        shape_dict=None,
         init_offsets=0.0,
         xc_n=500,
         dt_erode=1.0,
@@ -702,6 +704,10 @@ class multiXCGVF(multiXC):
             will be assigned the same radius. If an array then each element
             represents the radius of a single cross-section (length should be n-1
             where n is the number of nodes). Default is 0.5 m.
+        shape_dict: dict, optional
+            A dictionary of cross-sectional shape parameters, including name and
+            keyword parameters for function in ShapeGen. If this is provided,
+            then init_radii is ignored.
         init_offsets : float or ndarray, optional
             These offsets will be added to y-values within initial cross-sections.
             By default, y will be zero at the centroid of the initial cross-section.
@@ -812,17 +818,28 @@ class multiXCGVF(multiXC):
 
         self.abs_tol = abs_tol
         self.max_iterations = max_iterations
+        self.shape_dict = shape_dict
 
         # Initialize cross-sections
         self.xcs = []
         self.radii = init_radii * np.ones(self.n_nodes)
         ymins = []
         for i in np.arange(self.n_nodes):
-            x, y = genCirc(self.radii[i], n=xc_n)
+            if shape_dict is None:
+                x, y = genCirc(self.radii[i], n=xc_n)
+            else:
+                if i == 0:
+                    shape_name = shape_dict["name"]
+                    shape_dict.pop("name")
+                    shape_func_name = name_to_function(shape_name)
+                    func_string = "ShapeGen." + shape_func_name + "(**shape_dict)"
+                x, y = eval(func_string)
+
             y = y + self.init_offsets[i]
             this_xc = CrossSection(x, y)
             self.xcs.append(this_xc)
             ymins.append(this_xc.ymin)
+
         self.ymins = np.array(ymins)
         # Reset z to bottom of cross-sections
         self.z_arr = self.z_arr + self.ymins
