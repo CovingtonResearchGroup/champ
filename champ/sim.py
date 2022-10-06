@@ -1,3 +1,4 @@
+from click import option
 import numpy as np
 from scipy.optimize import root_scalar, minimize_scalar
 
@@ -909,20 +910,21 @@ class multiXCGVF(multiXC):
                 xc.set_f_from_n_mann(D_H_down)
             S_f_down = xc.f * V_down ** 2 / (2 * xc.g * D_H_down)
             dx = self.x_arr[i + 1] - self.x_arr[i]
-            if self.fd[i + 1] >= 0:
-                fd_guess = self.fd[i]
-            else:
-                # Use depth from last timestep if available
+            if self.fd[i + 1] > 0:
                 fd_guess = self.fd[i + 1]
+            else:
+                # Use depth from previous XC if available
+                fd_guess = self.fd[i]
+            print(fd_guess)
             try:
                 sol = root_scalar(
                     self.fd_residual,
                     args=(i + 1, H_down, S_f_down, dx),
                     method="brenth",
                     x0=fd_guess,
-                    bracket=(0.1 * fd_guess, fd_guess * 1.5),
-                    xtol=0.001,
-                    rtol=0.005,
+                    bracket=(0.8 * fd_guess, fd_guess * 1.2),
+                    xtol=0.0001,
+                    rtol=0.0005,
                 )
                 is_converged = sol.converged
             except ValueError:
@@ -946,10 +948,14 @@ class multiXCGVF(multiXC):
                     args=(i + 1, H_down, S_f_down, dx),
                 )
                 converged = res.success
+                print(
+                    "converged =", converged,
+                )
                 flag = "used minimization solver"
                 fd_sol = res.x
             # Calculate actual flow depth residual
             err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, dx)
+            print("i=", i, "  err=", err, " fd=", fd_sol)
             if abs(err) > WARN_ERR:
                 print("*******************************************")
                 print("Warning! Flow depth solution is inaccurate. Error is", err)
