@@ -668,6 +668,7 @@ class multiXCGVF(multiXC):
         z_arr,
         Q_w=0.1,
         f=0.1,
+        n_mann=None,
         init_radii=0.5,
         shape_dict=None,
         init_offsets=0.0,
@@ -696,9 +697,14 @@ class multiXCGVF(multiXC):
             during initialization, so that z_arr will represent the channel bottom.
         Q_w : float, optional
             Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
-        f : float, optional
-            Darcy-Weisbach friction factor (unitless), used in both water flow and air
-            flow calculations. Default is 0.1.
+        f : float or ndarray, optional
+            Darcy-Weisbach friction factor (unitless). If an array is provided with
+            a length equal to the number of cross-sections, then independent values
+            will be asigned to each cross-section. Default is 0.1.
+        n_mann: float or ndarray, optional
+            Manning's n. If specified, then f will be calculated from n_mann
+            and R_h during flow calculations (which will still use the Darcy-
+            Weisbach equation). Default is None.
         init_radii : float or ndarray, optional
             Initial cross-section radii (meters). If a float then all cross-sections
             will be assigned the same radius. If an array then each element
@@ -813,7 +819,10 @@ class multiXCGVF(multiXC):
         self.init_offsets = np.ones(self.n_nodes) * init_offsets
 
         self.h = np.zeros(self.n_nodes)
-        self.f = f
+        """if np.size(f) == 1:
+            self.f = f*np.ones(self.n_nodes)
+        else:
+            self.f = f"""
         self.flow_type = np.zeros(self.n_nodes, dtype=object)
 
         self.abs_tol = abs_tol
@@ -836,7 +845,19 @@ class multiXCGVF(multiXC):
                 x, y = eval(func_string)
 
             y = y + self.init_offsets[i]
-            this_xc = CrossSection(x, y)
+            if n_mann is None:
+                if np.size(f) == 1:
+                    xc_f = f
+                else:
+                    xc_f = f[i]
+                this_xc = CrossSection(x, y, f=xc_f)
+            else:
+                if np.size(n_mann) == 1:
+                    xc_n_mann = n_mann
+                else:
+                    xc_n_mann = n_mann[i]
+                this_xc = CrossSection(x, y, n_mann=xc_n_mann)
+
             self.xcs.append(this_xc)
             ymins.append(this_xc.ymin)
 
@@ -884,7 +905,9 @@ class multiXCGVF(multiXC):
             V_down = self.Q_w / A_down
             V_head_down = alpha * V_down ** 2 / (2 * xc.g)
             H_down = self.h[i] + V_head_down
-            S_f_down = self.f * V_down ** 2 / (2 * xc.g * D_H_down)
+            if xc.n_mann is not None:
+                xc.set_f_from_n_mann(D_H_down)
+            S_f_down = xc.f * V_down ** 2 / (2 * xc.g * D_H_down)
             dx = self.x_arr[i + 1] - self.x_arr[i]
             if self.fd[i + 1] >= 0:
                 fd_guess = self.fd[i]
@@ -965,7 +988,9 @@ class multiXCGVF(multiXC):
                 self.W[i] = xc.x[R] - xc.x[L]
             else:
                 self.W[i] = 0.0
-            S_f = self.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
+            if xc.n_mann is not None:
+                xc.set_f_from_n_mann(self.D_H_w[i])
+            S_f = xc.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
             xc.setEnergySlope(S_f)
 
     def fd_residual(self, fd_guess, xc_up_idx, H_down, S_f_down, dx):
@@ -989,7 +1014,9 @@ class multiXCGVF(multiXC):
         V_up = self.Q_w / A_up
         V_head_up = alpha * V_up ** 2 / (2 * xc_up.g)
         D_H_up = 4 * A_up / P_up
-        S_f_up = self.f * V_up ** 2 / (2 * xc_up.g * D_H_up)
+        if xc_up.n_mann is not None:
+            xc_up.set_f_from_n_mann(D_H_up)
+        S_f_up = xc_up.f * V_up ** 2 / (2 * xc_up.g * D_H_up)
         H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
         fd_up_energy = H_up_energy - V_head_up - self.z_arr[xc_up_idx]
         err = fd_up_energy - fd_guess  # H_up - H_up_energy

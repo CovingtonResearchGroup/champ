@@ -41,7 +41,7 @@ class CrossSection:
 
     """
 
-    def __init__(self, x, y, z0=0.01 / 30.0):  # z0=roughness height
+    def __init__(self, x, y, z0=0.01 / 30.0, f=0.1, n_mann=None):
         """
         Parameters
         ----------
@@ -52,6 +52,12 @@ class CrossSection:
             Array of y values (vertical position) of points that make up cross-section.
         z0: float, optional
             Roughness height in meters. Default value is 1/30 of a cm.
+        f: float, optional
+            Darcy-Weisbach Friction factor. Default is 0.1.
+        n_mann: float, optional
+            Manning's n. If specified, then f will be calculated from n_mann
+            and R_h during flow calculations (which will still use the Darcy-
+            Weisbach equation). Default is None.
         """
         self.g = g
         self.n = len(x)
@@ -64,6 +70,8 @@ class CrossSection:
         self.ymax = max(y)
         self.create_pm()
         self.z0 = z0
+        self.f = f
+        self.n_mann = n_mann
         self.setFD(self.ymax - self.ymin)
         self.setMaxVelPoint(self.fd)
         self.Q = 0.0
@@ -621,6 +629,11 @@ class CrossSection:
         else:
             Q = 0.0
         return Q
+
+    def set_f_from_n_mann(self, D_H):
+        R_H = D_H / 4
+        f = 8 * g * self.n_mann ** 2 / (R_H ** (1 / 3))
+        self.f = f
 
     def normal_discharge_residual(self, depth, slope, f, desiredQ):
         return desiredQ - self.calcNormalFlow(depth, slope, f=f)
