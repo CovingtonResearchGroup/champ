@@ -600,7 +600,7 @@ class CrossSection:
         self.n = len(self.x)
         self.back_to_total = True
 
-    def calcNormalFlow(self, depth, slope, f=0.1, use_interp=True):
+    def calcNormalFlow(self, depth, slope, use_interp=True):
         """Calculate normal discharge for given depth and slope.
 
         Parameters
@@ -609,8 +609,6 @@ class CrossSection:
             Flow depth for which to calculate discharge.
         slope : float
             Channel slope for which to calculate discharge.
-        f : float, optional
-            Darcy-Weisbach friction factor of channel. Default is f=0.1.
         use_interp : boolean, optional
             Whether to use the area and perimeter interpolation functions
             rather than the cross-section wall points in calculating normal
@@ -625,7 +623,9 @@ class CrossSection:
             A = self.calcA(depth=depth)
         if Pw > 0 and A > 0 and depth > 0:
             D_H = 4.0 * A / Pw
-            Q = sign(slope) * A * sqrt(2.0 * g * abs(slope) * D_H / f)
+            if self.n_mann is not None:
+                self.set_f_from_n_mann(D_H)
+            Q = sign(slope) * A * sqrt(2.0 * g * abs(slope) * D_H / self.f)
         else:
             Q = 0.0
         return Q
@@ -635,16 +635,16 @@ class CrossSection:
         f = 8 * g * self.n_mann ** 2 / (R_H ** (1 / 3))
         self.f = f
 
-    def normal_discharge_residual(self, depth, slope, f, desiredQ):
-        return desiredQ - self.calcNormalFlow(depth, slope, f=f)
+    def normal_discharge_residual(self, depth, slope, desiredQ):
+        return desiredQ - self.calcNormalFlow(depth, slope)
 
-    def abs_normal_discharge_residual(self, depth, slope, f, desiredQ):
-        return np.abs(desiredQ - self.calcNormalFlow(depth, slope, f=f))
+    def abs_normal_discharge_residual(self, depth, slope, desiredQ):
+        return np.abs(desiredQ - self.calcNormalFlow(depth, slope))
 
-    def head_discharge_residual(self, y_in, y_out, L, slope, f, desiredQ):
+    def head_discharge_residual(self, y_in, y_out, L, slope, desiredQ):
         avg_flow_depth = (y_out + y_in) / 2.0
         head_slope = (y_in - y_out) / L + slope
-        return desiredQ - self.calcNormalFlow(avg_flow_depth, head_slope, f=f)
+        return desiredQ - self.calcNormalFlow(avg_flow_depth, head_slope)
 
     def crit_flow_depth_residual(self, depth, Q):
         A = self.A_interp(depth)
@@ -666,7 +666,7 @@ class CrossSection:
             W = SMALL
         return abs(A ** 3 / W - Q ** 2 / g)
 
-    def calcNormalFlowDepth(self, Q, slope, f=0.1, old_fd=None):
+    def calcNormalFlowDepth(self, Q, slope, old_fd=None):
         """Calculate flow depth for a prescribed discharge.
 
         Parameters
@@ -675,8 +675,6 @@ class CrossSection:
             Prescribed discharge.
         slope : float
             Slope of channel bed.
-        f : float
-            Darcy-Weisbach friction factor. Default is f=0.1.
         old_fd : float
             Previous flow depth. This will be used to restrict upper bound
             on calculated flow depth. Default is None, for which the max depth
@@ -701,18 +699,18 @@ class CrossSection:
             upper_bound = maxdepth
         else:
             upper_bound = old_fd * 1.1  # 25
-        calcFullFlow = self.calcNormalFlow(maxdepth, slope, f=f, use_interp=False)
+        calcFullFlow = self.calcNormalFlow(maxdepth, slope, use_interp=False)
         if Q >= calcFullFlow and not self.ymax > self.y.max():
             return -1
         else:
-            SMALL_Q = self.normal_discharge_residual(SMALL, slope, f, Q)
-            upper_bound_Q = self.normal_discharge_residual(upper_bound, slope, f, Q)
+            SMALL_Q = self.normal_discharge_residual(SMALL, slope, Q)
+            upper_bound_Q = self.normal_discharge_residual(upper_bound, slope, Q)
             if np.sign(SMALL_Q) != np.sign(upper_bound_Q):
                 sol = brentq(
                     self.normal_discharge_residual,
                     a=SMALL,
                     b=upper_bound,
-                    args=(slope, f, Q),
+                    args=(slope, Q),
                     full_output=False,
                 )
                 fd = sol
@@ -720,7 +718,7 @@ class CrossSection:
                 sol = minimize_scalar(
                     self.abs_normal_discharge_residual,
                     bounds=[SMALL, upper_bound],
-                    args=(slope, f, Q),
+                    args=(slope, Q),
                     method="bounded",
                 )
                 fd = sol.x
@@ -775,7 +773,7 @@ class CrossSection:
 
         return crit_depth
 
-    def calcPipeFullHeadGrad(self, Q, f=0.1):
+    def calcPipeFullHeadGrad(self, Q):
         """Calculate head gradient for prescribed discharge under pipe-full
         conditions.
 
@@ -783,9 +781,7 @@ class CrossSection:
         ----------
         Q : float
             Prescribed discharge.
-        f : float, optional
-            Darcy-Weisbach friction factor. Default is f=0.1.
-
+        
         Returns
         -------
         delh : float
@@ -796,9 +792,11 @@ class CrossSection:
         Pw = self.calcP()
         A = self.calcA()
         D_H = 4.0 * A / Pw
-        return (Q ** 2 / A ** 2) * f / (2.0 * g * D_H)
+        if self.n_mann is not None:
+            self.set_f_from_n_mann(D_H)
+        return (Q ** 2 / A ** 2) * self.f / (2.0 * g * D_H)
 
-    def calcUpstreamHead(self, Q, slope, y_out, L, f=0.1):
+    def calcUpstreamHead(self, Q, slope, y_out, L):
         """Calculate upstream head to drive prescribed discharge under
         partially backflooded conditions.
 
@@ -812,9 +810,7 @@ class CrossSection:
             Flow depth at outlet.
         L : float
             Length of channel segment.
-        f : float, optional
-            Darcy-Weisbach friction factor. Default is f=0.1.
-
+        
         Returns
         -------
         y_in : float
@@ -823,12 +819,12 @@ class CrossSection:
 
         """
         maxdepth = self.ymax - self.ymin
-        head_res_a = self.head_discharge_residual(SMALL, y_out, L, slope, f, Q)
-        head_res_b = self.head_discharge_residual(maxdepth, y_out, L, slope, f, Q)
+        head_res_a = self.head_discharge_residual(SMALL, y_out, L, slope, Q)
+        head_res_b = self.head_discharge_residual(maxdepth, y_out, L, slope, Q)
         if np.sign(head_res_a) * np.sign(head_res_b) == -1:
             sol = root_scalar(
                 self.head_discharge_residual,
-                args=(y_out, L, slope, f, Q),
+                args=(y_out, L, slope, Q),
                 bracket=(SMALL, maxdepth),
             )  # x0=y_out, x1=maxdepth)#, bracket=(SMALL,maxdepth) )
             y_in = sol.root
@@ -836,7 +832,7 @@ class CrossSection:
         else:
             return -1
 
-    def calcConvey(self, depth, f=0.1):
+    def calcConvey(self, depth):
         """Calculate conveyance, K, for provided flow depth.
 
         Parameters
@@ -853,5 +849,7 @@ class CrossSection:
         """
         A = self.calcA(depth=depth)
         P = self.calcP(depth=depth)
-        Convey = A * sqrt(2 * g * (4 * A / P) / f)
+        if self.n_mann is not None:
+            self.set_f_from_n_mann(4 * A / P)
+        Convey = A * sqrt(2 * g * (4 * A / P) / self.f)
         return Convey
