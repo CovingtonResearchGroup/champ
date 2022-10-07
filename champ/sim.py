@@ -1,6 +1,6 @@
 from click import option
 import numpy as np
-from scipy.optimize import root_scalar, minimize_scalar
+from scipy.optimize import root_scalar, minimize_scalar, shgo
 
 from champ.crossSection import CrossSection
 from champ.utils.ShapeGen import name_to_function, genCirc
@@ -918,6 +918,7 @@ class multiXCGVF(multiXC):
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
             # print(fd_guess)
             try:
+                # raise ValueError
                 sol = root_scalar(
                     self.fd_residual,
                     args=(i + 1, H_down, S_f_down, dx),
@@ -937,22 +938,31 @@ class multiXCGVF(multiXC):
             #                x0=fd_guess,
             #                x1=0.9 * fd_guess,
             #            )
+
             if is_converged:
                 fd_sol = sol.root
                 flag = sol.flag
                 converged = sol.converged
             else:
                 # Try minimization of abs error
-                res = minimize_scalar(
+                # res = minimize_scalar(
+                #    self.fd_residual_abs,
+                #    bracket=(fd_crit, 1.1 * fd_guess),
+                #    args=(i + 1, H_down, S_f_down, dx),
+                # )
+                fd_max = xc.ymax - xc.ymin
+                res = shgo(
                     self.fd_residual_abs,
-                    bracket=(fd_crit, 1.1 * fd_guess),
+                    [(fd_crit, fd_max),],
+                    n=32,
+                    sampling_method="sobol",
                     args=(i + 1, H_down, S_f_down, dx),
                 )
-                converged = res.success
+                # converged = res.success
                 # print("converged =", converged, "  fun=", res.fun)
-                print(res)
-                flag = "used minimization solver"
-                fd_sol = res.x
+                # print(res)
+                # flag = "used minimization solver"
+                fd_sol = res.x[0]
             # Calculate actual flow depth residual
             err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, dx)
             print("i=", i, "  err=", err, " fd=", fd_sol)
