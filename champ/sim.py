@@ -304,7 +304,7 @@ class multiXC(sim):
             from the elevation of the downstream boundary node during
             each timestep.
         uplift_times : list
-            Times in years at which uplift rates change. This argument is included if 
+            Times in years at which uplift rates change. This argument is included if
             uplift is a list of different uplift rates.
         adaptive_step : boolean, optional
             Whether or not to adjust timestep dynamically. Default is False.
@@ -622,12 +622,12 @@ class multiXCNormalFlow(multiXC):
     def calc_flow(self):
         """Calculates flow depths assuming normal flow.
 
-            Notes
-            -----
-            Starts at downstream end and propagates solution upstream. Flow is assumed
-            to be normal.
+        Notes
+        -----
+        Starts at downstream end and propagates solution upstream. Flow is assumed
+        to be normal.
 
-            """
+        """
         # Loop through cross-sections and solve for flow depths,
         # starting at downstream end
         for i, xc in enumerate(self.xcs):
@@ -730,8 +730,8 @@ class multiXCGVF(multiXC):
             from the elevation of the downstream boundary node during
             each timestep.
         uplift_times : list
-            Times in years at which uplift rates change. This argument is included if 
-            uplift is a list of different uplift rates.        
+            Times in years at which uplift rates change. This argument is included if
+            uplift is a list of different uplift rates.
         adaptive_step : boolean, optional
             Whether or not to adjust timestep dynamically. Default is False.
         max_frac_erode : float, optional
@@ -873,13 +873,13 @@ class multiXCGVF(multiXC):
     def calc_flow(self, h0=None):
         """Calculates flow depths assuming gradually varied open channel flow.
 
-            Notes
-            -----
-            Starts at downstream end and propagates solution upstream. Flow is assumed
-            to be subcritical and gradually varied. If flow depths go below critical
-            depth, then depth is assumed to be critical.
+        Notes
+        -----
+        Starts at downstream end and propagates solution upstream. Flow is assumed
+        to be subcritical and gradually varied. If flow depths go below critical
+        depth, then depth is assumed to be critical.
 
-            """
+        """
         for i, xc in enumerate(self.xcs[:-1]):
             xc_up = self.xcs[i + 1]
             # Renew interpolation functions
@@ -915,16 +915,17 @@ class multiXCGVF(multiXC):
             else:
                 # Use depth from previous XC if available
                 fd_guess = self.fd[i]
-            print(fd_guess)
+            fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
+            # print(fd_guess)
             try:
                 sol = root_scalar(
                     self.fd_residual,
                     args=(i + 1, H_down, S_f_down, dx),
                     method="brenth",
                     x0=fd_guess,
-                    bracket=(0.8 * fd_guess, fd_guess * 1.2),
-                    xtol=0.0001,
-                    rtol=0.0005,
+                    bracket=(fd_crit, fd_guess * 1.2),
+                    # xtol=0.00001,
+                    # rtol=0.0005,
                 )
                 is_converged = sol.converged
             except ValueError:
@@ -944,13 +945,12 @@ class multiXCGVF(multiXC):
                 # Try minimization of abs error
                 res = minimize_scalar(
                     self.fd_residual_abs,
-                    bracket=(0.5 * fd_guess, fd_guess),
+                    bracket=(fd_crit, 1.1 * fd_guess),
                     args=(i + 1, H_down, S_f_down, dx),
                 )
                 converged = res.success
-                print(
-                    "converged =", converged,
-                )
+                # print("converged =", converged, "  fun=", res.fun)
+                print(res)
                 flag = "used minimization solver"
                 fd_sol = res.x
             # Calculate actual flow depth residual
@@ -962,7 +962,6 @@ class multiXCGVF(multiXC):
                 print("*******************************************")
 
             xc_up.setFD(fd_sol)
-            fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
             """print(
                 "fd_sol =",
                 fd_sol,
@@ -1009,6 +1008,12 @@ class multiXCGVF(multiXC):
             Guessed upstream flow depth.
         xc_idx : int
             Index of current downstream cross-section.
+        H_down : float
+            Head at downstream cross-section.
+        S_f_down : float
+            Friction slope at downstream cross-section
+        dx : float
+            Distance between cross-sections.
         """
         xc_up = self.xcs[xc_up_idx]
         A_up = xc_up.calcA(depth=fd_guess)
@@ -1025,7 +1030,7 @@ class multiXCGVF(multiXC):
         S_f_up = xc_up.f * V_up ** 2 / (2 * xc_up.g * D_H_up)
         H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
         fd_up_energy = H_up_energy - V_head_up - self.z_arr[xc_up_idx]
-        err = fd_up_energy - fd_guess  # H_up - H_up_energy
+        err = fd_up_energy - fd_guess
         return err
 
     def fd_residual_abs(self, fd_guess, xc_up_idx, H_down, S_f_down, dx):
@@ -1064,7 +1069,7 @@ class spim(sim):
             from the elevation of the downstream boundary node during
             each timestep.
         uplift_times : list
-            Times in years at which uplift rates change. This argument is included if 
+            Times in years at which uplift rates change. This argument is included if
             dz0_dt is a list of different uplift rates.
         Q_w : float, optional
             Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
