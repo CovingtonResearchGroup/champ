@@ -899,7 +899,6 @@ class multiXCGVF(multiXC):
                     self.h[i] = h0
                     self.fd[i] = h0 - self.z_arr[i]
 
-            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
             A_down = xc.calcA(depth=self.fd[i])
             P_down = xc.calcP(depth=self.fd[i])
             D_H_down = 4 * A_down / P_down
@@ -916,13 +915,14 @@ class multiXCGVF(multiXC):
             else:
                 # Use depth from previous XC if available
                 fd_guess = self.fd[i]
+            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
             # print(fd_guess)
             try:
                 # Search for best bracket
                 n_search = 10
                 fd_search = np.linspace(
-                    fd_guess * 1.5, min([fd_crit, norm_fd]), n_search
+                    fd_guess * 1.5, 0.8 * min([fd_crit, norm_fd]), n_search
                 )
                 bracket_found = False
                 sign_this_res = None
@@ -932,6 +932,7 @@ class multiXCGVF(multiXC):
                     this_res = self.fd_residual(
                         fd_search[j], i + 1, H_down, S_f_down, dx
                     )
+                    # print("this_res =", this_res)
                     sign_this_res = np.sign(this_res)
                     if sign_old_res is not None:
                         if sign_this_res * sign_old_res == -1:
@@ -941,7 +942,7 @@ class multiXCGVF(multiXC):
                             bracket_found = True
                     sign_old_res = sign_this_res
                     j += 1
-
+                # print("bracket found =", bracket_found)
                 if not bracket_found:
                     low_bracket = fd_crit
                     high_bracket = fd_guess * 1.2
@@ -994,7 +995,7 @@ class multiXCGVF(multiXC):
                 fd_sol = res.x[0]
             # Calculate actual flow depth residual
             err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, dx)
-            print("i=", i, "  err=", err, " fd=", fd_sol)
+            # print("i=", i, "  err=", err, " fd=", fd_sol)
             if abs(err) > WARN_ERR:
                 print("*******************************************")
                 print("Warning! Flow depth solution is inaccurate. Error is", err)
