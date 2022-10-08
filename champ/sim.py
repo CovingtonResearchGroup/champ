@@ -891,14 +891,15 @@ class multiXCGVF(multiXC):
             if i == 0:
                 xc.create_A_interp()
                 xc.create_P_interp()
+                norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
                 if h0 is None:
-                    norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], f=self.f)
                     self.h[i] = norm_fd + self.z_arr[i]
                     self.fd[i] = norm_fd
                 else:
                     self.h[i] = h0
                     self.fd[i] = h0 - self.z_arr[i]
 
+            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
             A_down = xc.calcA(depth=self.fd[i])
             P_down = xc.calcP(depth=self.fd[i])
             D_H_down = 4 * A_down / P_down
@@ -918,15 +919,41 @@ class multiXCGVF(multiXC):
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
             # print(fd_guess)
             try:
-                # raise ValueError
+                # Search for best bracket
+                n_search = 10
+                fd_search = np.linspace(
+                    fd_guess * 1.5, min([fd_crit, norm_fd]), n_search
+                )
+                bracket_found = False
+                sign_this_res = None
+                sign_old_res = None
+                j = 0
+                while not bracket_found and j + 1 < len(fd_search):
+                    this_res = self.fd_residual(
+                        fd_search[j], i + 1, H_down, S_f_down, dx
+                    )
+                    sign_this_res = np.sign(this_res)
+                    if sign_old_res is not None:
+                        if sign_this_res * sign_old_res == -1:
+                            # We have a sign change in residual
+                            low_bracket = fd_search[j]
+                            high_bracket = fd_search[j - 1]
+                            bracket_found = True
+                    sign_old_res = sign_this_res
+                    j += 1
+
+                if not bracket_found:
+                    low_bracket = fd_crit
+                    high_bracket = fd_guess * 1.2
+
                 sol = root_scalar(
                     self.fd_residual,
                     args=(i + 1, H_down, S_f_down, dx),
                     method="brenth",
                     x0=fd_guess,
-                    bracket=(fd_crit, fd_guess * 1.2),
-                    # xtol=0.00001,
-                    # rtol=0.0005,
+                    bracket=(low_bracket, high_bracket),
+                    xtol=0.00001,
+                    rtol=0.00005,
                 )
                 is_converged = sol.converged
             except ValueError:
@@ -953,7 +980,9 @@ class multiXCGVF(multiXC):
                 fd_max = xc.ymax - xc.ymin
                 res = shgo(
                     self.fd_residual_abs,
-                    [(fd_crit, fd_max),],
+                    [
+                        (fd_crit, fd_max),
+                    ],
                     n=32,
                     sampling_method="sobol",
                     args=(i + 1, H_down, S_f_down, dx),
