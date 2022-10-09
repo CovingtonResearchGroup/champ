@@ -636,9 +636,7 @@ class multiXCNormalFlow(multiXC):
                 old_fd = xc.ymax - xc.ymin
             xc.create_A_interp()
             xc.create_P_interp()
-            norm_fd = xc.calcNormalFlowDepth(
-                self.Q_w, self.slopes[i], f=self.f, old_fd=old_fd
-            )
+            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], old_fd=old_fd)
             self.flow_type[i] = "norm"
             if i == 0:
                 self.h[i] = norm_fd + self.z_arr[i]
