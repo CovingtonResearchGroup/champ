@@ -1,7 +1,8 @@
 import numpy as np
 from numpy.testing import assert_allclose
+from scipy.interpolate import interp1d
 
-from champ.sim import singleXC, multiXC
+from champ.sim import singleXC, multiXC, multiXCGVF
 
 g = 9.8
 L_per_m3 = 1000.0
@@ -87,3 +88,37 @@ def test_multiXC_backflooded_flow():
     V_norm = np.sqrt(2 * g * sim.slopes * sim.D_H_w / f)
     V[sim.flow_type == "norm"] = V_norm[sim.flow_type == "norm"]
     assert_allclose(V * sim.A_w, Q * np.ones(n - 1), rtol=0.05)
+
+
+def test_multiXCGVF_solver_vs_Chow():
+    ft_per_m = 3.28
+    bottom_width = 20.0 / ft_per_m
+    height = 6.0 / ft_per_m
+    Q_cfs = 400.0
+    cumecs_per_cfs = 0.0283
+    Q = Q_cfs * cumecs_per_cfs
+    Manning_n = 0.025
+    L = 2500 / ft_per_m
+
+    shape_dict = {
+        "name": "trapezoid",
+        "bottom_width": bottom_width,
+        "side_slope": 2,
+        "height": height,
+    }
+    x = np.linspace(0, L, 100)
+    bed_slope = 0.0016
+    z = bed_slope * x
+    sim = multiXCGVF(x, z, shape_dict=shape_dict, n_mann=Manning_n, Q_w=Q)
+    sim.calc_flow(h0=5 / ft_per_m)
+    f = interp1d(sim.x_arr * ft_per_m, sim.fd * ft_per_m)
+    # X and flow depth values from Chow textbook example case
+    x_chow = np.array(
+        [155, 318, 493, 684, 898, 1155, 1314, 1515, 1641, 1797, 1917, 2075, 2214, 2401]
+    )
+    fd_chow = np.array(
+        [4.8, 4.6, 4.4, 4.2, 4, 3.8, 3.7, 3.6, 3.55, 3.5, 3.47, 3.44, 3.42, 3.4]
+    )
+    # Interpolate model outputs to Chow x positions
+    fd_mod = f(x_chow)
+    assert_allclose(fd_mod, fd_chow, rtol=0.002)

@@ -636,9 +636,7 @@ class multiXCNormalFlow(multiXC):
                 old_fd = xc.ymax - xc.ymin
             xc.create_A_interp()
             xc.create_P_interp()
-            norm_fd = xc.calcNormalFlowDepth(
-                self.Q_w, self.slopes[i], f=self.f, old_fd=old_fd
-            )
+            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], old_fd=old_fd)
             self.flow_type[i] = "norm"
             if i == 0:
                 self.h[i] = norm_fd + self.z_arr[i]
@@ -891,8 +889,8 @@ class multiXCGVF(multiXC):
             if i == 0:
                 xc.create_A_interp()
                 xc.create_P_interp()
+                norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
                 if h0 is None:
-                    norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], f=self.f)
                     self.h[i] = norm_fd + self.z_arr[i]
                     self.fd[i] = norm_fd
                 else:
@@ -915,16 +913,18 @@ class multiXCGVF(multiXC):
             else:
                 # Use depth from previous XC if available
                 fd_guess = self.fd[i]
-            fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
+            crit_fd = xc_up.calcCritFlowDepth(self.Q_w)
+
             # print(fd_guess)
             try:
                 # raise ValueError
+                fd_min_guess = max([crit_fd, norm_fd * 0.5])
                 sol = root_scalar(
                     self.fd_residual,
                     args=(i + 1, H_down, S_f_down, dx),
                     method="brenth",
                     x0=fd_guess,
-                    bracket=(fd_crit, fd_guess * 1.2),
+                    bracket=(fd_min_guess, fd_guess * 1.2),
                     # xtol=0.00001,
                     # rtol=0.0005,
                 )
@@ -953,7 +953,7 @@ class multiXCGVF(multiXC):
                 fd_max = xc.ymax - xc.ymin
                 res = shgo(
                     self.fd_residual_abs,
-                    [(fd_crit, fd_max),],
+                    [(crit_fd, fd_max),],
                     n=32,
                     sampling_method="sobol",
                     args=(i + 1, H_down, S_f_down, dx),
@@ -965,7 +965,7 @@ class multiXCGVF(multiXC):
                 fd_sol = res.x[0]
             # Calculate actual flow depth residual
             err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, dx)
-            print("i=", i, "  err=", err, " fd=", fd_sol)
+            # print("i=", i, "  err=", err, " fd=", fd_sol)
             if abs(err) > WARN_ERR:
                 print("*******************************************")
                 print("Warning! Flow depth solution is inaccurate. Error is", err)
@@ -982,9 +982,9 @@ class multiXCGVF(multiXC):
                 "  flag =",
                 flag,
             )"""
-            if fd_sol < fd_crit:
+            if fd_sol < crit_fd:
                 # Force critical flow
-                fd_sol = fd_crit
+                fd_sol = crit_fd
 
             self.h[i + 1] = self.z_arr[i + 1] + fd_sol
             self.fd[i + 1] = fd_sol
