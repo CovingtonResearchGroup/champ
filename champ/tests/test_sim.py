@@ -121,4 +121,4 @@ def test_multiXCGVF_solver_vs_Chow():
     )
     # Interpolate model outputs to Chow x positions
     fd_mod = f(x_chow)
-    assert_allclose(fd_mod, fd_chow, rtol=0.002)
+    assert_allclose(fd_mod, fd_chow, rtol=0.003, atol=0.01)

@@ -43,18 +43,17 @@ def test_make_all_timestep_plots():
     )
     assert os.path.isfile(os.path.join(plotdir, "Slope-" + timestep_str + ".png"))
     assert os.path.isfile(os.path.join(plotdir, "3D-XC-" + timestep_str + ".png"))
-    shutil.rmtree(plotdir)
+    # shutil.rmtree(plotdir)
 
 
 def test_spim_plots():
-    sim_params = {"Q_w": 1, "adaptive_step": False}
+    sim_params = {"Q_w": 1, "adaptive_step": False, "uplift": ref_erosion}
     runSim(
         n=5,
         L=L_ref,
         dz=dz_ref,
         r_init=2.0,
         endtime=50,
-        dz0_dt=ref_erosion,
         plotdir=plotdir,
         snapshot_every=10,
         snapshot_by_years=False,
@@ -66,7 +65,7 @@ def test_spim_plots():
     assert os.path.isfile(os.path.join(plotdir, "1-Erosion-slope-width-v-distance.png"))
     assert os.path.isfile(os.path.join(plotdir, "1-Morphodynamics.png"))
     assert os.path.isfile(os.path.join(plotdir, "1-Final-Morphology.png"))
-    shutil.rmtree(plotdir)
+    # shutil.rmtree(plotdir)
 
 
 """ This tests fails on github because headless doesn't work.

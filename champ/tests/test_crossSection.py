@@ -10,12 +10,13 @@ from champ.utils.ShapeGen import genCirc, genEll
 
 r = 1.0
 n = 1000
+f = 0.1
 x, y = genCirc(r, n=n)
-xc_Circ = CrossSection(x, y)
+xc_Circ = CrossSection(x, y, f=f)
 a = r
 b = 2 * r
 x, y = genEll(a, b, n=n)
-xc_Ellip = CrossSection(x, y)
+xc_Ellip = CrossSection(x, y, f=f)
 x, y = genEll(a, b, n=n, theta=0.1 * np.pi)
 xc_Ellip_rot = CrossSection(x, y)
 
@@ -195,7 +196,7 @@ def test_erode_power_law():
     slope = 0.001
     xc_Circ.create_A_interp()
     xc_Circ.create_P_interp()
-    xc_Circ.Q = xc_Circ.calcNormalFlow(r, slope=slope, f=f)
+    xc_Circ.Q = xc_Circ.calcNormalFlow(r, slope=slope)
     rho = 1000.0  # kg/m^3
     g = 9.8  # m/s^2
     T_avg_analytical = rho * g * A * slope / P_w
@@ -216,8 +217,9 @@ def test_erode_power_law_layered():
     # Recreate XC after erosion
     r = 1.0
     n = 1000
+    f = 0.1
     x, y = genCirc(r, n=n)
-    xc_Circ = CrossSection(x, y)
+    xc_Circ = CrossSection(x, y, f=f)
     a = 1.0
     dt = 1.0
     f = 0.1
@@ -227,7 +229,7 @@ def test_erode_power_law_layered():
     xc_Circ.create_P_interp()
     delh = xc_Circ.calcPipeFullHeadGrad(Q)
     xc_Circ.setEnergySlope(delh)
-    xc_Circ.calcNormalFlowDepth(Q, slope, f=f)
+    xc_Circ.calcNormalFlowDepth(Q, slope)
     # Zero erosion step rearranges x and y values so they will
     # align with dr after next erosion step.
     xc_Circ.erode_power_law_layered(a=a, dt=dt, K=[0, 0], layer_elevs=[0.0])
@@ -241,13 +243,14 @@ def test_calcNormalFlow():
     # Recreate XC after erosion
     r = 1.0
     n = 1000
+    f = 0.1
     x, y = genCirc(r, n=n)
-    xc_Circ = CrossSection(x, y)
+    xc_Circ = CrossSection(x, y, f=f)
     xc_Circ.create_A_interp()
     xc_Circ.create_P_interp()
     fd = r
     slope = 0.001
-    Q_calc = xc_Circ.calcNormalFlow(fd, slope, f=0.1, use_interp=False)
+    Q_calc = xc_Circ.calcNormalFlow(fd, slope, use_interp=False)
     Q_by_hand = 0.98347  # Calculated by hand from D-W eqn
     assert_approx_equal(Q_calc, Q_by_hand, significant=2)
 
@@ -256,14 +259,15 @@ def test_calcNormalFlow_with_interp():
     # Recreate XC after erosion
     r = 1.0
     n = 1000
+    f = 0.1
     x, y = genCirc(r, n=n)
-    xc_Circ = CrossSection(x, y)
+    xc_Circ = CrossSection(x, y, f=f)
     fd = r
     slope = 0.001
     xc_Circ.setMaxVelPoint(fd)
     xc_Circ.create_A_interp()
     xc_Circ.create_P_interp()
-    Q_calc = xc_Circ.calcNormalFlow(fd, slope, f=0.1, use_interp=True)
+    Q_calc = xc_Circ.calcNormalFlow(fd, slope, use_interp=True)
     Q_by_hand = 0.98347
     assert_approx_equal(Q_calc, Q_by_hand, significant=2)
 
@@ -272,13 +276,14 @@ def test_calcNormalFlowDepth():
     # Recreate XC after erosion
     r = 1.0
     n = 1000
+    f = 0.1
     x, y = genCirc(r, n=n)
-    xc_Circ = CrossSection(x, y)
+    xc_Circ = CrossSection(x, y, f=f)
     xc_Circ.create_A_interp()
     xc_Circ.create_P_interp()
     Q = 0.98347  # by hand half full circular pipe
     slope = 0.001
-    fd = xc_Circ.calcNormalFlowDepth(Q, slope, f=0.1)
+    fd = xc_Circ.calcNormalFlowDepth(Q, slope)
     assert_approx_equal(fd, 1.0, significant=2)
 
 
@@ -286,10 +291,11 @@ def test_calcPipeFullHeadGrad():
     # Recreate XC after erosion
     r = 1.0
     n = 1000
+    f = 0.1
     x, y = genCirc(r, n=n)
-    xc_Circ = CrossSection(x, y)
+    xc_Circ = CrossSection(x, y, f=f)
     Q = 1.0
-    dh_calc = xc_Circ.calcPipeFullHeadGrad(Q, f=0.1)
+    dh_calc = xc_Circ.calcPipeFullHeadGrad(Q)
     dh_by_hand = 0.00025847
     assert_approx_equal(dh_calc, dh_by_hand, significant=3)
 
@@ -298,10 +304,9 @@ def test_erode():
     # Recreate XC after erosion
     r = 1.0
     n = 1000
+    f = 0.1
     x, y = genCirc(r, n=n)
-    xc_Circ = CrossSection(x, y)
-    x, y = genCirc(r, n=n)
-    xc_Circ = CrossSection(x, y)
+    xc_Circ = CrossSection(x, y, f=f)
     erode_factor = 0.05
     xc_Circ.setMaxVelPoint(r * 2)
     r_l = xc_Circ.calcR_l()
@@ -318,10 +323,9 @@ def test_erode_half():
     # Recreate XC after erosion
     r = 1.0
     n = 1000
+    f = 0.1
     x, y = genCirc(r, n=n)
-    xc_Circ = CrossSection(x, y)
-    x, y = genCirc(r, n=n)
-    xc_Circ = CrossSection(x, y)
+    xc_Circ = CrossSection(x, y, f=f)
     erode_factor = 0.05
     xc_Circ.setFD(r)
     xc_Circ.setMaxVelPoint(r)

@@ -112,6 +112,7 @@ class singleXC(sim):
         adaptive_step=False,
         max_frac_erode=0.005,
         f=0.1,
+        n_mann=None,
         xc_n=500,
         trim=True,
         a=1.0,
@@ -126,6 +127,10 @@ class singleXC(sim):
         f : float, optional
             Darcy-Weisbach friction factor (unitless), used in both water flow and air
             flow calculations. Default is 0.1.
+        n_mann: float or ndarray, optional
+            Manning's n. If specified, then f will be calculated from n_mann
+            and R_h during flow calculations (which will still use the Darcy-
+            Weisbach equation). Default is None.        
         init_radius : float, optional
             Initial cross-section radius (meters). Default is 1 m.
         xc_n : int, optional
@@ -194,7 +199,7 @@ class singleXC(sim):
         self.xc_n = xc_n
 
         x, y = genCirc(init_radius, n=xc_n)
-        self.xc = CrossSection(x, y)
+        self.xc = CrossSection(x, y, f=f, n_mann=n_mann)
 
         self.trim = trim
         self.a = a
@@ -206,12 +211,10 @@ class singleXC(sim):
         old_fd = self.xc.fd
         self.xc.create_A_interp()
         self.xc.create_P_interp()
-        norm_fd = self.xc.calcNormalFlowDepth(
-            self.Q_w, self.slope, f=self.f, old_fd=old_fd
-        )
+        norm_fd = self.xc.calcNormalFlowDepth(self.Q_w, self.slope, old_fd=old_fd)
         if norm_fd == -1:
             # pipefull
-            delh = self.xc.calcPipeFullHeadGrad(self.Q_w, f=self.f)
+            delh = self.xc.calcPipeFullHeadGrad(self.Q_w)
             self.xc.setEnergySlope(delh)
         else:
             self.xc.setEnergySlope(self.slope)
@@ -985,9 +988,9 @@ class multiXCGVF(multiXC):
                 "  flag =",
                 flag,
             )"""
-            if fd_sol < crit_fd:
+            if fd_sol < fd_crit:
                 # Force critical flow
-                fd_sol = crit_fd
+                fd_sol = fd_crit
 
             self.h[i + 1] = self.z_arr[i + 1] + fd_sol
             self.fd[i + 1] = fd_sol

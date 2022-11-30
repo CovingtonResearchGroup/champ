@@ -26,7 +26,7 @@ def test_equil_singleXC():
     L, R = sim.xc.findLR(sim.xc.fd)
     w = sim.xc.x[R] - sim.xc.x[L]
     assert_approx_equal(w, w_ref, 3)
-    shutil.rmtree(plotdir)
+    # shutil.rmtree(plotdir)
 
 
 def test_layered_erosion_singleXC():
@@ -48,23 +48,22 @@ def test_layered_erosion_singleXC():
 
 
 def test_equil_multiXC():
-    sim_params = {"Q_w": 1, "adaptive_step": True}
+    sim_params = {"Q_w": 1, "adaptive_step": True, "uplift": ref_erosion}
     sim = runSim(
         n=5,
         L=L_ref,
         dz=dz_ref,
         r_init=2.0,
         endtime=1000,
-        dz0_dt=ref_erosion,
         plotdir=plotdir,
         sim_params=sim_params,
     )
     assert_approx_equal(sim.slopes[1:].mean(), slope_ref, 2)
-    shutil.rmtree(plotdir)
+    # shutil.rmtree(plotdir)
 
 
 def test_spim_equiv():
-    sim_params = {"Q_w": 1, "adaptive_step": True, "xc_n": 300}
+    sim_params = {"Q_w": 1, "adaptive_step": True, "xc_n": 300, "uplift": ref_erosion}
     approx_eq_slope = 7e-3
     sim = runSim(
         n=5,
@@ -72,33 +71,37 @@ def test_spim_equiv():
         dz=L_ref * approx_eq_slope,
         r_init=2.0,
         endtime=10000,
-        dz0_dt=ref_erosion,
         plotdir=plotdir,
         run_equiv_spim=True,
         sim_params=sim_params,
         plot_every=5000,
     )
     final_spim_snap = glob.glob(os.path.join(plotdir, "spim", "snapshot*"))[-1]
+    print("final spim=", final_spim_snap)
     spim_f = open(final_spim_snap, "rb")
     spim = pickle.load(spim_f)
-    spim_f.close()
     equil_snap = glob.glob(os.path.join(plotdir, "equil-sim", "snapshot*"))[0]
+    print("equil = ", equil_snap)
     equil_f = open(equil_snap, "rb")
     eq = pickle.load(equil_f)
-    equil_f.close()
+    print("file opened")
+    print("file closed")
     eq_slope = eq.slopes.mean()
     eq_erosion = (eq.dz / eq.old_dt).mean()
     spim_slope = spim.slopes.mean()
     spim_erosion = (spim.dz / spim.old_dt).mean()
     sim_slope = sim.slopes.mean()
     sim_erosion = (sim.dz / sim.old_dt).mean()
+    print("sim slope=", sim_slope, "  spim slope=", spim_slope)
     assert_approx_equal(eq_slope, spim_slope, 2)
     assert_approx_equal(eq_slope, sim_slope, 2)
     assert_approx_equal(eq_erosion, spim_erosion, 2)
     assert_approx_equal(eq_erosion, sim_erosion, 2)
     # For some reason this fails on my laptop, but not on Github. It may relate
     # to something holding the files open, but I can't figure out what.
-    shutil.rmtree(plotdir)
+    spim_f.close()
+    equil_f.close()
+    # shutil.rmtree(plotdir)
     # This also didn't work (with up to 10 retries)
     """delete_tries = 0
     files_deleted = False
