@@ -251,6 +251,7 @@ class multiXC(sim):
         z_arr,
         Q_w=0.1,
         f=0.1,
+        n_mann=None,
         init_radii=0.5,
         shape_dict=None,
         init_offsets=0.0,
@@ -277,9 +278,14 @@ class multiXC(sim):
             during initialization, so that z_arr will represent the channel bottom.
         Q_w : float, optional
             Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
-        f : float, optional
-            Darcy-Weisbach friction factor (unitless), used in both water flow and air
-            flow calculations. Default is 0.1.
+        f : float or ndarray, optional
+            Darcy-Weisbach friction factor (unitless). If an array is provided with
+            a length equal to the number of cross-sections, then independent values
+            will be asigned to each cross-section. Default is 0.1.
+        n_mann: float or ndarray, optional
+            Manning's n. If specified, then f will be calculated from n_mann
+            and R_h during flow calculations (which will still use the Darcy-
+            Weisbach equation). Default is None.
         init_radii : float or ndarray, optional
             Initial cross-section radii (meters). If a float then all cross-sections
             will be assigned the same radius. If an array then each element
@@ -391,38 +397,57 @@ class multiXC(sim):
 
         self.h = np.zeros(self.n_nodes)
         self.f = f
+        self.n_mann = n_mann
         self.flow_type = np.zeros(self.n_nodes - 1, dtype=object)
         self.shape_dict = shape_dict
+        self.init_radii = init_radii
+        self.initialize_XCs(self.n_nodes - 1)
 
+    def initialize_XCs(self, n_xcs):
         # Initialize cross-sections
         self.xcs = []
-        self.radii = init_radii * np.ones(self.n_nodes - 1)
+        self.radii = self.init_radii * np.ones(n_xcs)
         ymins = []
-        for i in np.arange(self.n_nodes - 1):
-            if shape_dict is None:
-                x, y = genCirc(self.radii[i], n=xc_n)
+        for i in np.arange(n_xcs):
+            if self.shape_dict is None:
+                x, y = genCirc(self.radii[i], n=self.xc_n)
             else:
                 if i == 0:
-                    shape_name = shape_dict["name"]
-                    shape_dict.pop("name")
+                    shape_name = self.shape_dict["name"]
+                    self.shape_dict.pop("name")
                     shape_func_name = name_to_function(shape_name)
-                    func_string = "ShapeGen." + shape_func_name + "(**shape_dict)"
+                    func_string = "ShapeGen." + shape_func_name + "(**self.shape_dict)"
                 x, y = eval(func_string)
 
             y = y + self.init_offsets[i]
-            this_xc = CrossSection(x, y)
+            if self.n_mann is None:
+                if np.size(self.f) == 1:
+                    xc_f = self.f
+                else:
+                    xc_f = self.f[i]
+                this_xc = CrossSection(x, y, f=xc_f)
+            else:
+                if np.size(self.n_mann) == 1:
+                    xc_n_mann = self.n_mann
+                else:
+                    xc_n_mann = self.n_mann[i]
+                this_xc = CrossSection(x, y, n_mann=xc_n_mann)
+
             self.xcs.append(this_xc)
             ymins.append(this_xc.ymin)
 
         self.ymins = np.array(ymins)
         # Reset z to bottom of cross-sections
-        self.z_arr[1:] = self.z_arr[1:] + self.ymins
-        self.z_arr[0] = self.z_arr[0] + self.ymins[0]
+        if len(self.z_arr) == len(self.ymins):
+            self.z_arr = self.z_arr + self.ymins
+        else:
+            self.z_arr[1:] = self.z_arr[1:] + self.ymins
+            self.z_arr[0] = self.z_arr[0] + self.ymins[0]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / (
             self.x_arr[1:] - self.x_arr[:-1]
         )
 
-    def calc_flow(self):
+    def calc_flow(self, h0=None):
         """Calculates flow depths and hydraulic head values along channel.
 
         Notes
@@ -436,6 +461,9 @@ class multiXC(sim):
         within the downstream cross-section.
 
         """
+        # Set downstream head if provided
+        if h0 is not None:
+            self.h[0] = h0
         # Loop through cross-sections and solve for flow depths,
         # starting at downstream end
         for i, xc in enumerate(self.xcs):
@@ -455,9 +483,9 @@ class multiXC(sim):
             over_normal_capacity = False
             if not backflooded:
                 norm_fd = xc.calcNormalFlowDepth(
-                    self.Q_w, self.slopes[i], f=self.f, old_fd=old_fd
+                    self.Q_w, self.slopes[i], old_fd=old_fd
                 )
-                if (norm_fd < xc.ymax - xc.ymin) and i == 0:
+                if (norm_fd < xc.ymax - xc.ymin) and i == 0 and h0 is None:
                     # Transition downstream head boundary to normal flow depth
                     # If we don't do this, we can get stuck in full-pipe conditions
                     # because of downstream boundary head.
@@ -466,11 +494,11 @@ class multiXC(sim):
                     over_normal_capacity = True
             if over_normal_capacity or backflooded:
                 self.flow_type[i] = "full"
-                if i == 0:
+                if i == 0 and h0 is None:
                     # if downstream boundary set head to top of cross-section
                     self.h[0] = self.z_arr[0] + xc.ymax - xc.ymin
                 # We have a full pipe, calculate head gradient instead
-                delh = xc.calcPipeFullHeadGrad(self.Q_w, f=self.f)
+                delh = xc.calcPipeFullHeadGrad(self.Q_w)
                 self.h[i + 1] = self.h[i] + delh * self.L_arr[i]
                 self.fd_mids[i] = xc.ymax - xc.ymin
             else:
@@ -483,7 +511,7 @@ class multiXC(sim):
                 if partial_backflood:  # upstream node is flooded above normal depth
                     self.flow_type[i] = "pbflood"
                     y_in = xc.calcUpstreamHead(
-                        self.Q_w, self.slopes[i], y_out, self.L_arr[i], f=self.f
+                        self.Q_w, self.slopes[i], y_out, self.L_arr[i]
                     )
                     if (
                         y_in > 0 and (y_out + y_in) / 2.0 < xc.ymax - xc.ymin
@@ -492,7 +520,7 @@ class multiXC(sim):
                         self.fd_mids[i] = (y_out + y_in) / 2.0
                     else:
                         # We need full pipe to push needed Q
-                        delh = xc.calcPipeFullHeadGrad(self.Q_w, f=self.f)
+                        delh = xc.calcPipeFullHeadGrad(self.Q_w)
                         self.h[i + 1] = self.h[i] + delh * self.L_arr[i]
                         self.fd_mids[i] = xc.ymax - xc.ymin
                         self.flow_type[i] = "full"
@@ -513,7 +541,7 @@ class multiXC(sim):
                 #    self.fd_mids[i] = (y_out+y_in)/2.
                 else:
                     self.flow_type[i] = "norm"
-                    if i == 0:
+                    if i == 0 and h0 is None:
                         self.h[i] = norm_fd + self.z_arr[i]
                     # dz = slopes[i]*(x[i+1] - x[i])
                     self.h[i + 1] = self.z_arr[i + 1] + norm_fd
@@ -602,17 +630,6 @@ class multiXC(sim):
                 # Timestep is too small, increase it
                 self.dt_erode = self.dt_erode * 1.5
                 print("Increasing timestep to " + str(self.dt_erode))
-
-    # def apply_uplift(self):
-    #    """Apply uplift rate at base level."""
-    #    if self.uplift is list:
-    #        if self.elapsed_time >= self.uplift_times[self.uplift_idx]:
-    #            self.uplift_idx += 1
-    #        uplift = self.uplift[self.uplift_idx]
-    #    else:
-    #        uplift = self.uplift
-    #
-    #    sim.z_arr[0] -= uplift * self.dt_erode
 
 
 class multiXCNormalFlow(multiXC):
@@ -818,55 +835,15 @@ class multiXCGVF(multiXC):
         self.init_offsets = np.ones(self.n_nodes) * init_offsets
 
         self.h = np.zeros(self.n_nodes)
-        """if np.size(f) == 1:
-            self.f = f*np.ones(self.n_nodes)
-        else:
-            self.f = f"""
         self.flow_type = np.zeros(self.n_nodes, dtype=object)
 
         self.abs_tol = abs_tol
         self.max_iterations = max_iterations
+        self.f = f
+        self.n_mann = n_mann
         self.shape_dict = shape_dict
-
-        # Initialize cross-sections
-        self.xcs = []
-        self.radii = init_radii * np.ones(self.n_nodes)
-        ymins = []
-        for i in np.arange(self.n_nodes):
-            if shape_dict is None:
-                x, y = genCirc(self.radii[i], n=xc_n)
-            else:
-                if i == 0:
-                    shape_name = shape_dict["name"]
-                    shape_dict.pop("name")
-                    shape_func_name = name_to_function(shape_name)
-                    func_string = "ShapeGen." + shape_func_name + "(**shape_dict)"
-                x, y = eval(func_string)
-
-            y = y + self.init_offsets[i]
-            if n_mann is None:
-                if np.size(f) == 1:
-                    xc_f = f
-                else:
-                    xc_f = f[i]
-                this_xc = CrossSection(x, y, f=xc_f)
-            else:
-                if np.size(n_mann) == 1:
-                    xc_n_mann = n_mann
-                else:
-                    xc_n_mann = n_mann[i]
-                this_xc = CrossSection(x, y, n_mann=xc_n_mann)
-
-            self.xcs.append(this_xc)
-            ymins.append(this_xc.ymin)
-
-        self.ymins = np.array(ymins)
-        # Reset z to bottom of cross-sections
-        self.z_arr = self.z_arr + self.ymins
-        # self.z_arr[0] = self.z_arr[0] + self.ymins[0]
-        self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / (
-            self.x_arr[1:] - self.x_arr[:-1]
-        )
+        self.init_radii = init_radii
+        self.initialize_XCs(self.n_nodes)
 
     def calc_flow(self, h0=None):
         """Calculates flow depths assuming gradually varied open channel flow.
@@ -913,20 +890,46 @@ class multiXCGVF(multiXC):
             else:
                 # Use depth from previous XC if available
                 fd_guess = self.fd[i]
-            crit_fd = xc_up.calcCritFlowDepth(self.Q_w)
-
+            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
+            fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
             # print(fd_guess)
             try:
-                # raise ValueError
-                fd_min_guess = max([crit_fd, norm_fd * 0.5])
+                # Search for best bracket
+                n_search = 10
+                fd_search = np.linspace(
+                    fd_guess * 1.5, 0.8 * min([fd_crit, norm_fd]), n_search
+                )
+                bracket_found = False
+                sign_this_res = None
+                sign_old_res = None
+                j = 0
+                while not bracket_found and j + 1 < len(fd_search):
+                    this_res = self.fd_residual(
+                        fd_search[j], i + 1, H_down, S_f_down, dx
+                    )
+                    # print("this_res =", this_res)
+                    sign_this_res = np.sign(this_res)
+                    if sign_old_res is not None:
+                        if sign_this_res * sign_old_res == -1:
+                            # We have a sign change in residual
+                            low_bracket = fd_search[j]
+                            high_bracket = fd_search[j - 1]
+                            bracket_found = True
+                    sign_old_res = sign_this_res
+                    j += 1
+                # print("bracket found =", bracket_found)
+                if not bracket_found:
+                    low_bracket = fd_crit
+                    high_bracket = fd_guess * 1.2
+
                 sol = root_scalar(
                     self.fd_residual,
                     args=(i + 1, H_down, S_f_down, dx),
                     method="brenth",
                     x0=fd_guess,
-                    bracket=(fd_min_guess, fd_guess * 1.2),
-                    # xtol=0.00001,
-                    # rtol=0.0005,
+                    bracket=(low_bracket, high_bracket),
+                    xtol=0.00001,
+                    rtol=0.00005,
                 )
                 is_converged = sol.converged
             except ValueError:
@@ -953,7 +956,7 @@ class multiXCGVF(multiXC):
                 fd_max = xc.ymax - xc.ymin
                 res = shgo(
                     self.fd_residual_abs,
-                    [(crit_fd, fd_max),],
+                    [(fd_crit, fd_max),],
                     n=32,
                     sampling_method="sobol",
                     args=(i + 1, H_down, S_f_down, dx),
