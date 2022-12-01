@@ -49,6 +49,7 @@ def get_results(plotdir):
     years = []
     x = []
     z = []
+    dz_dt_base = 0
     snap_every = 1000  # Note this seems hard-coded and should be fixed
     for snapnum, snapshot in enumerate(snapshots):
         print("loading snapshot ", snapnum)
