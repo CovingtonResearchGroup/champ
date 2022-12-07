@@ -353,12 +353,12 @@ class CrossSection:
 
         if method == "area":
             u_top = (
-                r_l ** 2 * np.log(r_l / z0)
-                - 3.0 / 2 * r_l ** 2
+                r_l**2 * np.log(r_l / z0)
+                - 3.0 / 2 * r_l**2
                 + 2.0 * r_l * z0
-                - z0 ** 2 / 2.0
+                - z0**2 / 2.0
             )
-            u_bottom = z0 ** 2 + r_l ** 2 - 2 * z0 * r_l
+            u_bottom = z0**2 + r_l**2 - 2 * z0 * r_l
             u_i = 1.0 / np.log(r_l / z0) * u_top / u_bottom
 
         self.umax = Q / (a_i * u_i).sum()
@@ -420,7 +420,7 @@ class CrossSection:
         self.setMaxVelPoint(self.fd)
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
-        self.dr = dt * K * T_b ** a
+        self.dr = dt * K * T_b**a
         self.erode(self.dr)
 
     def erode_power_law_layered(self, a=1.0, dt=1.0, K=[1e-5, 2e-5], layer_elevs=[-2]):
@@ -542,6 +542,8 @@ class CrossSection:
                         start_found = False
                         while not start_found:
                             max_y_idx += 1
+                            if max_y_idx == len(ny):
+                                max_y_idx = 0
                             if nx[max_y_idx] < 0:
                                 start_found = True
                     # Roll top point in XC to start of array
@@ -632,7 +634,7 @@ class CrossSection:
 
     def set_f_from_n_mann(self, D_H):
         R_H = D_H / 4
-        f = 8 * g * self.n_mann ** 2 / (R_H ** (1 / 3))
+        f = 8 * g * self.n_mann**2 / (R_H ** (1 / 3))
         self.f = f
 
     def normal_discharge_residual(self, depth, slope, desiredQ):
@@ -654,7 +656,7 @@ class CrossSection:
         W = self.x[R] - self.x[L]
         if W < SMALL:
             W = SMALL
-        return A ** 3 / W - Q ** 2 / g
+        return A**3 / W - Q**2 / g
 
     def abs_crit_flow_depth_residual(self, depth, Q):
         A = self.A_interp(depth)
@@ -664,7 +666,7 @@ class CrossSection:
         W = self.x[R] - self.x[L]
         if W < SMALL:
             W = SMALL
-        return abs(A ** 3 / W - Q ** 2 / g)
+        return abs(A**3 / W - Q**2 / g)
 
     def calcNormalFlowDepth(self, Q, slope, old_fd=None):
         """Calculate flow depth for a prescribed discharge.
@@ -781,7 +783,7 @@ class CrossSection:
         ----------
         Q : float
             Prescribed discharge.
-        
+
         Returns
         -------
         delh : float
@@ -794,7 +796,7 @@ class CrossSection:
         D_H = 4.0 * A / Pw
         if self.n_mann is not None:
             self.set_f_from_n_mann(D_H)
-        return (Q ** 2 / A ** 2) * self.f / (2.0 * g * D_H)
+        return (Q**2 / A**2) * self.f / (2.0 * g * D_H)
 
     def calcUpstreamHead(self, Q, slope, y_out, L):
         """Calculate upstream head to drive prescribed discharge under
@@ -810,7 +812,7 @@ class CrossSection:
             Flow depth at outlet.
         L : float
             Length of channel segment.
-        
+
         Returns
         -------
         y_in : float
