@@ -1238,6 +1238,7 @@ class multiXCGVF_midXCs(multiXC):
 
         """
         for i, xc in enumerate(self.xcs[:-1]):
+            # print("i=", i)
             xc_up = self.xcs[i + 1]
             # Renew interpolation functions
             xc_up.create_A_interp()
@@ -1269,7 +1270,7 @@ class multiXCGVF_midXCs(multiXC):
             V_down = self.Q_w / A_down
             V_head_down = alpha * V_down**2 / (2 * xc.g)
             zmid = (self.z_arr[i] + self.z_arr[i + 1]) / 2
-            H_down = self.fd_mids[i] - zmid + V_head_down
+            H_down = self.fd_mids[i] + zmid + V_head_down
             if xc.n_mann is not None:
                 xc.set_f_from_n_mann(D_H_down)
             S_f_down = xc.f * V_down**2 / (2 * xc.g * D_H_down)
@@ -1282,6 +1283,7 @@ class multiXCGVF_midXCs(multiXC):
                 fd_guess = self.fd_mids[i]
             norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
+            debugpy.breakpoint()
             # print(fd_guess)
             try:
                 # Search for best bracket
@@ -1439,7 +1441,12 @@ class multiXCGVF_midXCs(multiXC):
             xc_up.set_f_from_n_mann(D_H_up)
         S_f_up = xc_up.f * V_up**2 / (2 * xc_up.g * D_H_up)
         H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
-        fd_up_energy = H_up_energy - V_head_up - self.z_arr[xc_up_idx]
+
+        fd_up_energy = (
+            H_up_energy
+            - V_head_up
+            - (self.z_arr[xc_up_idx] + self.z_arr[xc_up_idx + 1]) / 2
+        )
         err = fd_up_energy - fd_guess
         return err
 
