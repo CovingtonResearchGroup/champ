@@ -26,7 +26,14 @@ from champ.viz.standard_timestep_plots import (
     plot_elevation_profile,
     plot_slope_profile,
 )
-from champ.sim import singleXC, multiXC, multiXCNormalFlow, multiXCGVF, spim
+from champ.sim import (
+    singleXC,
+    multiXC,
+    multiXCNormalFlow,
+    multiXCGVF,
+    multiXCGVF_midXCs,
+    spim,
+)
 
 params_file = None
 
@@ -148,6 +155,8 @@ def runSim(
             elif flow_solver == "GVF":
                 r = r_init * np.ones(n)
                 sim = multiXCGVF(x, z, init_radii=r, **sim_params)
+            elif flow_solver == "GVF_midXCs":
+                sim = multiXCGVF_midXCs(x, z, init_radii=r, **sim_params)
             else:
                 print("Must choose valid flow_solver: Original, Normal, or GVP!")
                 raise ValueError("Flow solver value invalid.")
