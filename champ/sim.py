@@ -607,7 +607,10 @@ class multiXC(sim):
         # CFL = Celerity_times_dt / min((self.x_arr[1:] - self.x_arr[:-1]))
         # print('CFL=',CFL)
         if len(dz) == len(self.z_arr) - 1:
-            self.z_arr[1:] = self.z_arr[1:] + dz
+            # Average upstream and downstream erosion rates
+            # to calculate rates on nodes
+            self.z_arr[1:-1] = self.z_arr[1:-1] + (dz[1:] + dz[:-1]) / 2
+            self.z_arr[-1] = self.z_arr[-1] + dz[-1]
         else:
             self.z_arr[1:] = self.z_arr[1:] + dz[1:]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / (
@@ -1283,7 +1286,7 @@ class multiXCGVF_midXCs(multiXC):
                 fd_guess = self.fd_mids[i]
             norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
-            debugpy.breakpoint()
+            # debugpy.breakpoint()
             # print(fd_guess)
             try:
                 # Search for best bracket
@@ -1381,9 +1384,15 @@ class multiXCGVF_midXCs(multiXC):
             )"""
             if fd_sol < fd_crit:
                 # Force critical flow
+                print("******************************")
+                print("Enforcing critical flow at XC ", i)
+                print("******************************")
                 fd_sol = fd_crit
 
             self.h[i + 1] = self.z_arr[i + 1] + (fd_sol + self.fd_mids[i]) / 2
+            if self.h[i + 1] < self.h[i]:
+                print("Reversed head gradient!")
+                debugpy.breakpoint()
             self.fd_mids[i + 1] = fd_sol
             xc_up.setFD(fd_sol)
             # Extrapolate head at final upstream node
