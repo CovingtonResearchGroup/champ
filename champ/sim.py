@@ -72,6 +72,10 @@ class sim:
         else:
             uplift = self.uplift
         self.z_arr[0] -= uplift * self.dt_erode
+        # Recalculate downstream slope after uplift
+        self.slopes[0] = (self.z_arr[1] - self.z_arr[0]) / (
+            self.x_arr[1] - self.x_arr[0]
+        )
 
     def set_layers(self, layer_elevs):
 
@@ -609,9 +613,34 @@ class multiXC(sim):
         if len(dz) == len(self.z_arr) - 1:
             # Average upstream and downstream erosion rates
             # to calculate rates on nodes
-            self.z_arr[1:-1] = self.z_arr[1:-1] + (dz[1:] + dz[:-1]) / 2
-            self.z_arr[-1] = self.z_arr[-1] + dz[-1]
+            # Seems more stable than applying erosion to upstream node
+            # self.z_arr[1:-1] = self.z_arr[1:-1] + (dz[1:] + dz[:-1]) / 2
+            # Asymmetric weighting Much more stable that weighting the downstream
+            # erosion, which is surprising
+            # self.z_arr[1:-1] = self.z_arr[1:-1] + (2 * dz[1:] + dz[:-1]) / 3
+            # Still eventially unstable
+            # self.z_arr[1:-1] = self.z_arr[1:-1] + dz[1:]
+            # self.z_arr[-1] = self.z_arr[-1] + dz[-1]
+            # Original formulation, but quite unstable for GVF midXCs solver
+            self.z_arr[1:] = self.z_arr[1:] + dz
+
+            # Highly unstable
+            # if isinstance(self.uplift, list):
+            #    if self.uplift_idx < len(self.uplift) - 1:
+            #        if self.elapsed_time >= self.uplift_times[self.uplift_idx]:
+            #            self.uplift_idx += 1
+            #    uplift = self.uplift[self.uplift_idx]
+            # else:
+            #    uplift = self.uplift
+
+            # dz_tot = np.zeros(self.n_nodes)
+            # dz_tot[1:] = dz
+            # dz_tot[0] = -uplift * self.dt_erode
+            # self.z_arr[1:] = self.z_arr[1:] + (dz_tot[1:] + dz_tot[:-1]) / 2
         else:
+            # Somewhat more stable? Instability creeps in from upstream?
+            # self.z_arr[1:-1] = self.z_arr[1:-1] + (dz[1:-1] + dz[2:]) / 2
+            # self.z_arr[-1] = self.z_arr[-1] + dz[-1]
             self.z_arr[1:] = self.z_arr[1:] + dz[1:]
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / (
             self.x_arr[1:] - self.x_arr[:-1]
