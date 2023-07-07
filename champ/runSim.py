@@ -59,6 +59,7 @@ def runSim(
     plot_by_years=True,
     n_plot_processes=1,
     run_equiv_spim=False,
+    equiv_sim_max_erode=0.05,
     flow_solver="Original",
     sim_params={},
 ):
@@ -109,6 +110,8 @@ def runSim(
         Whether to also run a stream power incision model (SPIM) case that is calibrated
         such that erodibility produces the same equilibrium slope as a multiXC model
         run for the same uplift, discharge, and incision exponent (a).
+    equiv_sim_max_erode : float
+        Maximum erosion setting for equilibration sim used in equivalent SPIM run.
     flow_solver : string
         Solver to use for flow calculations. Options are Original (default), Normal,
         and GVF.
@@ -196,6 +199,7 @@ def runSim(
             a=sim.a,
             L=sim.L,
             dz=eq_dz,
+            max_frac_erode=equiv_sim_max_erode,
             plotdir=os.path.join(plotdir, "equil-sim/"),
         )
         eq_slope = eq_sim["equil_slope"]
