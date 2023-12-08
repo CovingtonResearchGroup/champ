@@ -59,6 +59,8 @@ def runSim(
     plot_by_years=True,
     n_plot_processes=1,
     run_equiv_spim=False,
+    run_width_adjusting_spim=False,
+    width_adjustment_exponent=(3/2)*(3/16)**0.9,
     equiv_sim_max_erode=0.05,
     flow_solver="Original",
     sim_params={},
@@ -110,6 +112,12 @@ def runSim(
         Whether to also run a stream power incision model (SPIM) case that is calibrated
         such that erodibility produces the same equilibrium slope as a multiXC model
         run for the same uplift, discharge, and incision exponent (a).
+    run_width_adjusting_spim : boolean
+        Whether to run a stream power incision model case that accounts for dynamic width,
+        assuming width scales with slope, per Attal et al. (2008).
+    width_adjustment_exponent : float
+        Value to add to slope exponent, a, in SPIM to account for adjusting width. 
+        Default=(3/2)*(3/16)**0.9.
     equiv_sim_max_erode : float
         Maximum erosion setting for equilibration sim used in equivalent SPIM run.
     flow_solver : string
@@ -228,6 +236,27 @@ def runSim(
             start_from_snapshot_num=start_from_snapshot_num,
             sim_params=spim_sim_params,
         )
+
+        if run_width_adjusting_spim and not single_XC_sim:
+            K_equiv = calcEquivK(uplift, eq_slope, sim.a + width_adjustment_exponent)
+            spim_sim_params_adjusted = {
+                "Q_w": sim.Q_w,
+                "a": sim.a + width_adjustment_exponent,
+                "K": K_equiv,
+                "uplift": sim.uplift,
+                "uplift_times": sim.uplift_times,
+            }
+
+            runSPIM(
+                L=sim.L,
+                dz=eq_dz,
+                endtime=endtime,
+                plotdir=os.path.join(plotdir, "spim-width-adjusting/"),
+                plot_every=plot_every,
+                snapshot_every=snapshot_every,
+                start_from_snapshot_num=start_from_snapshot_num,
+                sim_params=spim_sim_params_adjusted,
+            )
 
     finished = False
     oldtimestep = None
