@@ -1,0 +1,22 @@
+n: 50
+L: 1000.
+dz: 15.
+r_init: 0.5
+endtime: 200000
+plotdir: './resolution-tests/test-spim-equiv-run-figs/'
+start_from_snapshot_num: 0
+dz0_dt: 0.0001
+snapshot_every: 1000
+plot_every: 100
+run_equiv_spim: True
+
+sim_params:
+  Q_w: 1.
+  dt_erode: 1
+  adaptive_step: True
+  max_frac_erode: 0.005
+  xc_n: 300
+  trim: True
+  a: 1
+  K: [2e-5, 0.5e-5, 2e-5]
+  layer_elevs: [-10, -3]
