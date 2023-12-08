@@ -17,7 +17,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import os
 
 
-def make_all_standard_timestep_plots(sim, plotdir, timestep_str):
+def make_all_standard_timestep_plots(sim, plotdir, timestep_str, xmax=5):
     # Check whether plotdir exists
     if not os.path.exists(plotdir):
         os.makedirs(plotdir)
@@ -27,7 +27,7 @@ def make_all_standard_timestep_plots(sim, plotdir, timestep_str):
     if not sim.singleXC:
         plot_elevation_profile(sim, plotdir, timestep_str)
         plot_slope_profile(sim, plotdir, timestep_str)
-        plot_3D_XCs(sim, plotdir, timestep_str)
+        plot_3D_XCs(sim, plotdir, timestep_str, xmax=xmax)
     # close("all")
 
 
@@ -99,7 +99,7 @@ def plot_slope_profile(sim, plotdir, timestep_str):
     close(fig)
 
 
-def plot_3D_XCs(sim, plotdir, timestep_str):
+def plot_3D_XCs(sim, plotdir, timestep_str, xmax=5):
     # Create 3d XC fig
     fig = figure()
     ax = fig.add_subplot(111, projection="3d")
@@ -144,7 +144,7 @@ def plot_3D_XCs(sim, plotdir, timestep_str):
     water_poly = Poly3DCollection(verts, facecolors="blue")
     water_poly.set_alpha(0.35)
     ax.add_collection3d(water_poly)  # , zdir='y')
-    xlim([-5, 5])
+    xlim([-xmax, xmax])
     ax.view_init(elev=10, azim=-35)
     ax.set_xlabel("Cross-channel distance (m)")
     ax.set_ylabel("Longitudinal distance (m)")
