@@ -1,11 +1,10 @@
-from click import option
 import numpy as np
 from scipy.optimize import root_scalar, minimize_scalar, shgo
 
 from champ.crossSection import CrossSection
 from champ.utils.ShapeGen import name_to_function, genCirc
 from champ.utils import ShapeGen
-import debugpy
+# import debugpy
 
 SMALL = 1e-5
 WARN_ERR = (
@@ -1421,7 +1420,7 @@ class multiXCGVF_midXCs(multiXC):
             self.h[i + 1] = self.z_arr[i + 1] + (fd_sol + self.fd_mids[i]) / 2
             if self.h[i + 1] < self.h[i]:
                 print("Reversed head gradient!")
-                debugpy.breakpoint()
+                # debugpy.breakpoint()
             self.fd_mids[i + 1] = fd_sol
             xc_up.setFD(fd_sol)
             # Extrapolate head at final upstream node
