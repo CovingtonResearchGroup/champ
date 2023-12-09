@@ -12,22 +12,6 @@ champ.utils.ShapeGen module
    :undoc-members:
    :show-inheritance:
 
-champ.utils.fastCalcA module
-----------------------------
-
-.. automodule:: champ.utils.fastCalcA
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-champ.utils.fastCalcP module
-----------------------------
-
-.. automodule:: champ.utils.fastCalcP
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 champ.utils.fastInterp module
 -----------------------------
 

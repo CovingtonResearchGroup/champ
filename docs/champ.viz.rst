@@ -28,14 +28,6 @@ champ.viz.make\_mp4 module
    :undoc-members:
    :show-inheritance:
 
-champ.viz.make\_plots\_from\_snapshots module
----------------------------------------------
-
-.. automodule:: champ.viz.make_plots_from_snapshots
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 champ.viz.make\_spim\_plots\_from\_snapshots module
 ---------------------------------------------------
 
