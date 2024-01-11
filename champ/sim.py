@@ -602,7 +602,7 @@ class multiXC(sim):
             else:
                 # print('layer_elevs=',self.layer_elevs)
                 # print('init_z=',self.init_z[i+1])
-                if len(self.init_z == len(self.xcs)):
+                if len(self.init_z) == len(self.xcs):
                     absolute_layer_elevs = self.layer_elevs - self.init_z[i]
                 else:
                     absolute_layer_elevs = self.layer_elevs - self.init_z[i + 1]
