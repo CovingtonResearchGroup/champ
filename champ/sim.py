@@ -765,6 +765,8 @@ class multiXCGVF(multiXC):
         layer_solubility=None,
         K_sol=1e-5,
         a_sol=0.5,
+        mixed_regime=False,
+        upstream_bnd_type="Normal",
     ):
         """
         Parameters
@@ -849,7 +851,15 @@ class multiXCGVF(multiXC):
             Erodibility in dissolution power law erosion rule (default = 1e-5).
         a_sol : float, optional
             Exponent in power law erosion rule for dissolution. (Default=0.5)
-
+        mixed_regime : boolean
+            If set to true, then used a mixed-regime flow solver than allows
+            transitions between supercritical and subcritical flow. If set
+            to False, then shallowest allowed flows are critical flow. Default
+            is False. The mixed-regime solver uses the approach described
+            in the HEC-RAS Technical Reference Manual.
+        upstream_bnd_type : string
+            What type of boundary condition to apply at the upstream boundary
+            if solving for mixed-regime flow. 'Normal' or 'Critical'.
 
         Notes
         -----
@@ -912,6 +922,8 @@ class multiXCGVF(multiXC):
 
         self.h = np.zeros(self.n_nodes)
         self.flow_type = np.zeros(self.n_nodes, dtype=object)
+        self.mixed_regime = mixed_regime
+        self.upstream_bnd_type = upstream_bnd_type
 
         self.abs_tol = abs_tol
         self.max_iterations = max_iterations
@@ -926,9 +938,12 @@ class multiXCGVF(multiXC):
 
         Notes
         -----
-        Starts at downstream end and propagates solution upstream. Flow is assumed
+        Starts at downstream end and propagates solution upstream. Unless
+        the mixed-regime option is enabled, then flow is assumed
         to be subcritical and gradually varied. If flow depths go below critical
-        depth, then depth is assumed to be critical.
+        depth, then depth is assumed to be critical. For the mixed-regime
+        option, flow is allowed to transition between subcritical and
+        supercritical.
 
         """
         for i, xc in enumerate(self.xcs[:-1]):
@@ -1052,17 +1067,6 @@ class multiXCGVF(multiXC):
                 print("Warning! Flow depth solution is inaccurate. Error is", err)
                 print("*******************************************")
 
-            xc_up.setFD(fd_sol)
-            """print(
-                "fd_sol =",
-                fd_sol,
-                "  fd_crit =",
-                fd_crit,
-                " converged =",
-                converged,
-                "  flag =",
-                flag,
-            )"""
             if fd_sol < fd_crit:
                 # Force critical flow
                 fd_sol = fd_crit
