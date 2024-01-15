@@ -762,6 +762,9 @@ class multiXCGVF(multiXC):
         layer_elevs=None,
         abs_tol=0.001,
         max_iterations=50,
+        layer_solubility=None,
+        K_sol=1e-5,
+        a_sol=0.5,
     ):
         """
         Parameters
@@ -839,6 +842,14 @@ class multiXCGVF(multiXC):
             Maximum allowed error for flow solver.
         max_iterations: int
             Maximum number of allowed iterations for flow solver.
+        layer_solubility : list of booleans, optional
+            Specifies which layers, if any, are soluble. Set soluble layers to
+            True.
+        K_sol : float, optional
+            Erodibility in dissolution power law erosion rule (default = 1e-5).
+        a_sol : float, optional
+            Exponent in power law erosion rule for dissolution. (Default=0.5)
+
 
         Notes
         -----
@@ -885,6 +896,10 @@ class multiXCGVF(multiXC):
         self.trim = trim
         self.a = a
         self.K = K
+        self.K_sol = K_sol
+        self.a_sol = a_sol
+        self.layer_solubility = layer_solubility
+
         self.set_layers(layer_elevs)
 
         self.V_w = np.zeros(self.n_nodes)
