@@ -981,7 +981,7 @@ class multiXCGVF(multiXC):
             else:
                 # Use depth from previous XC if available
                 fd_guess = self.fd[i]
-            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
+            norm_fd = xc_up.calcNormalFlowDepth(self.Q_w, self.slopes[i + 1])
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
             # print(fd_guess)
             try:
@@ -1070,6 +1070,7 @@ class multiXCGVF(multiXC):
             if fd_sol < fd_crit:
                 # Force critical flow
                 fd_sol = fd_crit
+                self.flow_type = "crit"
 
             self.h[i + 1] = self.z_arr[i + 1] + fd_sol
             self.fd[i + 1] = fd_sol
