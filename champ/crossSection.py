@@ -297,17 +297,16 @@ class CrossSection:
             ).sum()  # A was self.sA. not sure if this matters
             cy = (1 / (6 * A)) * ((self.y + self.ym) * m).sum()
         else:
-            m = (
-                self.xm[self.wetidx] * self.y[self.wetidx]
-                - self.x[self.wetidx] * self.ym[self.wetidx]
-            )
+            xwet = self.x[self.wetidx]
+            ywet = self.y[self.wetidx]
+            xwetm = rollm(xwet)
+            ywetm = rollm(ywet)
+            m = xwetm * ywet - xwet * ywetm
             A = self.calcA(depth=self.fd)
             cx = (1 / (6 * A)) * (
-                (self.x[self.wetidx] + self.xm[self.wetidx]) * m
+                (xwet + xwetm) * m
             ).sum()  # A was self.sA. not sure if this matters
-            cy = (1 / (6 * A)) * (
-                (self.y[self.wetidx] + self.ym[self.wetidx]) * m
-            ).sum()
+            cy = (1 / (6 * A)) * ((ywet + ywetm) * m).sum()
         return cx, cy
 
     def calcR_l(self, wantidx=None):
