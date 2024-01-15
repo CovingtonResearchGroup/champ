@@ -281,7 +281,7 @@ class CrossSection:
         self.xmaxVel = mx
         self.ymaxVel = my
 
-    def findCentroid(self):
+    def findCentroid(self, wet=False):
         """Find the centroid of the cross-section.
 
         Returns
@@ -289,12 +289,25 @@ class CrossSection:
         cx, cy : float
             The x and y coordinates of the centroid.
         """
-        m = self.xm * self.y - self.x * self.ym
-        A = self.calcA()
-        cx = (1 / (6 * A)) * (
-            (self.x + self.xm) * m
-        ).sum()  # A was self.sA. not sure if this matters
-        cy = (1 / (6 * A)) * ((self.y + self.ym) * m).sum()
+        if wet is False:
+            m = self.xm * self.y - self.x * self.ym
+            A = self.calcA()
+            cx = (1 / (6 * A)) * (
+                (self.x + self.xm) * m
+            ).sum()  # A was self.sA. not sure if this matters
+            cy = (1 / (6 * A)) * ((self.y + self.ym) * m).sum()
+        else:
+            m = (
+                self.xm[self.wetidx] * self.y[self.wetidx]
+                - self.x[self.wetidx] * self.ym[self.wetidx]
+            )
+            A = self.calcA(depth=self.fd)
+            cx = (1 / (6 * A)) * (
+                (self.x[self.wetidx] + self.xm[self.wetidx]) * m
+            ).sum()  # A was self.sA. not sure if this matters
+            cy = (1 / (6 * A)) * (
+                (self.y[self.wetidx] + self.ym[self.wetidx]) * m
+            ).sum()
         return cx, cy
 
     def calcR_l(self, wantidx=None):
