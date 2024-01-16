@@ -1167,9 +1167,11 @@ class multiXCGVF(multiXC):
                                 # Use depth from previous XC if available
                                 fd_guess = self.fd_super[i]
                             xc_down = self.xcs[i - 1]
-                            norm_fd = xc_down.calcNormalFlowDepth(
-                                xc_down.Q, self.slopes[i - 1]
-                            )
+                            if i > 1:
+                                this_slope = self.slopes[i - 2]
+                            else:
+                                this_slope = self.slopes[i - 1]
+                            norm_fd = xc_down.calcNormalFlowDepth(xc_down.Q, this_slope)
                             fd_crit = xc_down.calcCritFlowDepth(xc_down.Q)
 
                             try:
