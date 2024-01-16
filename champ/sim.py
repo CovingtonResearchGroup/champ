@@ -1115,6 +1115,11 @@ class multiXCGVF(multiXC):
                     if self.flow_type[i] == "crit":
                         # If this is a node previously set to critical, start
                         # or continue supercritical solution from here.
+                        if solve_super == False:
+                            # We have just encountered a new section flagged
+                            # as critical. Set depth to critical and begin
+                            # downstream solution for supercritical flow.
+                            self.fd_super[i] = self.fd[i]
                         solve_super = True
 
                     if solve_super:
@@ -1136,34 +1141,43 @@ class multiXCGVF(multiXC):
 
                         if SF_super < SF_sub:
                             solve_super = False
+                            self.flow_type[i] = "subcrit"
                         else:
                             # Supercritical solution has greater specific force.
                             # Solve for supercritical flow.
 
+                            # Set current upstream section to supercritical
+                            # and flow depth to that from supercritical
+                            # solution.
+                            self.flow_type[i] = "supercrit"                            
+                            self.fd[i] = self.fd_super[i]
+                            xc_up.setFD(self.fd[i])
                             P_up_super = xc_up.calcP(depth=self.fd_super[i])
                             D_H_up_super = 4 * A_up_super / P_up_super
-                            V_up_super = self.Q_w / A_up_super
-                            V_head_up = alpha * V_up**2 / (2 * xc_up.g)
+                            V_up_super = xc_up.Q / A_up_super
+                            V_head_up = alpha * V_up_super**2 / (2 * xc_up.g)
                             H_up = self.h_super[i] + V_head_up
-                            S_f_down = xc.f * V_down**2 / (2 * xc.g * D_H_down)
+                            S_f_up = (
+                                xc_up.f * V_up_super**2 / (2 * xc_up.g * D_H_up_super)
+                            )
                             dx = self.x_arr[i + 1] - self.x_arr[i]
-                            if self.fd[i + 1] > 0:
-                                fd_guess = self.fd[i + 1]
+                            if self.fd_super[i + 1] > 0:
+                                fd_guess = self.fd_super[i + 1]
                             else:
                                 # Use depth from previous XC if available
-                                fd_guess = self.fd[i]
+                                fd_guess = self.fd_super[i]
                             xc_down = self.xcs[i - 1]
-                            norm_fd = xc_up.calcNormalFlowDepth(
-                                self.Q_w, self.slopes[i + 1]
+                            norm_fd = xc_down.calcNormalFlowDepth(
+                                xc_down.Q, self.slopes[i - 1]
                             )
-                            fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
+                            fd_crit = xc_down.calcCritFlowDepth(xc_down.Q)
 
                             try:
                                 # Search for best bracket
                                 n_search = 10
                                 fd_search = np.linspace(
                                     fd_guess * 1.5,
-                                    0.8 * min([fd_crit, norm_fd]),
+                                    0.05 * min([fd_crit, norm_fd]),
                                     n_search,
                                 )
                                 bracket_found = False
@@ -1172,7 +1186,12 @@ class multiXCGVF(multiXC):
                                 j = 0
                                 while not bracket_found and j + 1 < len(fd_search):
                                     this_res = self.fd_residual(
-                                        fd_search[j], i + 1, H_down, S_f_down, dx
+                                        fd_search[j],
+                                        i - 1,
+                                        H_up,
+                                        S_f_up,
+                                        dx,
+                                        solve_upstream=False,
                                     )
                                     # print("this_res =", this_res)
                                     sign_this_res = np.sign(this_res)
@@ -1186,12 +1205,12 @@ class multiXCGVF(multiXC):
                                     j += 1
                                 # print("bracket found =", bracket_found)
                                 if not bracket_found:
-                                    low_bracket = fd_crit
+                                    low_bracket = 0.1 * fd_crit
                                     high_bracket = fd_guess * 1.2
 
                                 sol = root_scalar(
                                     self.fd_residual,
-                                    args=(i + 1, H_down, S_f_down, dx),
+                                    args=(i - 1, H_up, S_f_up, dx, solve_upstream=False),
                                     method="brenth",
                                     x0=fd_guess,
                                     bracket=(low_bracket, high_bracket),
@@ -1220,15 +1239,15 @@ class multiXCGVF(multiXC):
                                 #    bracket=(fd_crit, 1.1 * fd_guess),
                                 #    args=(i + 1, H_down, S_f_down, dx),
                                 # )
-                                fd_max = xc.ymax - xc.ymin
+                                #fd_max = xc.ymax - xc.ymin
                                 res = shgo(
                                     self.fd_residual_abs,
                                     [
-                                        (fd_crit, fd_max),
+                                        (0.05*fd_crit, fd_crit),
                                     ],
                                     n=32,
                                     sampling_method="sobol",
-                                    args=(i + 1, H_down, S_f_down, dx),
+                                    args=(i - 1, H_up, S_f_up, dx),
                                 )
                                 # converged = res.success
                                 # print("converged =", converged, "  fun=", res.fun)
@@ -1236,7 +1255,7 @@ class multiXCGVF(multiXC):
                                 # flag = "used minimization solver"
                                 fd_sol = res.x[0]
                             # Calculate actual flow depth residual
-                            err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, dx)
+                            err = self.fd_residual(fd_sol, i - 1, H_up, S_f_up, dx)
                             # print("i=", i, "  err=", err, " fd=", fd_sol)
                             if abs(err) > WARN_ERR:
                                 print("*******************************************")
@@ -1246,14 +1265,14 @@ class multiXCGVF(multiXC):
                                 )
                                 print("*******************************************")
 
-                            if fd_sol < fd_crit:
-                                # Force critical flow
-                                fd_sol = fd_crit
-                                self.flow_type = "crit"
-
-                            self.h[i + 1] = self.z_arr[i + 1] + fd_sol
-                            self.fd[i + 1] = fd_sol
-                            xc_up.setFD(fd_sol)
+                            
+                            self.h_super[i - 1] = self.z_arr[i + 1] + fd_sol
+                            self.fd_super[i - 1] = fd_sol
+                            if i==1:
+                                # Last iteration. Need to set downstream flowdepth
+                                # to supercritical solution.
+                                xc_down.setFD(fd_sol)
+                                self.flow_type[i-1] = 'supercrit'
 
         # Calculate flow areas, wetted perimeters, hydraulic diameters,
         # free surface widths, and velocities
@@ -1273,7 +1292,9 @@ class multiXCGVF(multiXC):
             S_f = xc.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
             xc.setEnergySlope(S_f)
 
-    def fd_residual(self, fd_guess, xc_up_idx, H_down, S_f_down, dx):
+    def fd_residual(
+        self, fd_guess, xc_guess_idx, H_known, S_f_known, dx, solve_upstream=True
+    ):
         """Calculate residual between guessed upstream flow depth and energy
            equation flow depth.
 
@@ -1281,35 +1302,43 @@ class multiXCGVF(multiXC):
         ----------
         fd_guess : float
             Guessed upstream flow depth.
-        xc_idx : int
-            Index of current downstream cross-section.
-        H_down : float
-            Head at downstream cross-section.
-        S_f_down : float
-            Friction slope at downstream cross-section
+        xc_guess_idx : int
+            Index of cross-section with unknown flow depth.
+        H_known : float
+            Head at cross-section with known flow depth.
+        S_f_known : float
+            Friction slope at cross-section with known flow depth.
         dx : float
             Distance between cross-sections.
+        solve_upstream : boolean
+            Whether to solve in the upstream (True) or downstream (False)
+            direction. True for subcritical and False for supercritical
+            flow. Default True.
         """
-        xc_up = self.xcs[xc_up_idx]
-        A_up = xc_up.calcA(depth=fd_guess)
-        P_up = xc_up.calcP(depth=fd_guess)
-        if A_up < SMALL:
-            A_up = SMALL
-        if P_up < SMALL:
-            P_up = SMALL
-        V_up = self.Q_w / A_up
-        V_head_up = alpha * V_up**2 / (2 * xc_up.g)
-        D_H_up = 4 * A_up / P_up
-        if xc_up.n_mann is not None:
-            xc_up.set_f_from_n_mann(D_H_up)
-        S_f_up = xc_up.f * V_up**2 / (2 * xc_up.g * D_H_up)
-        H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
-        fd_up_energy = H_up_energy - V_head_up - self.z_arr[xc_up_idx]
-        err = fd_up_energy - fd_guess
+        xc_guess = self.xcs[xc_guess_idx]
+        A_guess = xc_guess.calcA(depth=fd_guess)
+        P_guess = xc_guess.calcP(depth=fd_guess)
+        if A_guess < SMALL:
+            A_guess = SMALL
+        if P_guess < SMALL:
+            P_guess = SMALL
+        V_guess = self.Q_w / A_guess
+        V_head_guess = alpha * V_guess**2 / (2 * xc_guess.g)
+        D_H_guess = 4 * A_guess / P_guess
+        if xc_guess.n_mann is not None:
+            xc_guess.set_f_from_n_mann(D_H_guess)
+        S_f_guess = xc_guess.f * V_guess**2 / (2 * xc_guess.g * D_H_guess)
+        if solve_upstream:
+            dH_sign = 1
+        else:
+            dH_sign = -1
+        H_guess_energy = H_known + dH_sign * 0.5 * (S_f_known + S_f_guess) * dx
+        fd_guess_energy = H_guess_energy - V_head_guess - self.z_arr[xc_guess_idx]
+        err = fd_guess_energy - fd_guess
         return err
 
-    def fd_residual_abs(self, fd_guess, xc_up_idx, H_down, S_f_down, dx):
-        fd_res = self.fd_residual(fd_guess, xc_up_idx, H_down, S_f_down, dx)
+    def fd_residual_abs(self, fd_guess, xc_up_idx, H_down, S_f_down, dx,solve_upstream=True):
+        fd_res = self.fd_residual(fd_guess, xc_up_idx, H_down, S_f_down, dx, solve_upstream=solve_upstream)
         return abs(fd_res)
 
 
