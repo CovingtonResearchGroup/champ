@@ -1139,7 +1139,7 @@ class multiXCGVF(multiXC):
 
                         ### Think next about logic for specific force comparison
 
-                        if SF_super < SF_sub:
+                        if SF_super < SF_sub and self.flow_type[i] != "crit":
                             solve_super = False
                             self.flow_type[i] = "subcrit"
                         else:
