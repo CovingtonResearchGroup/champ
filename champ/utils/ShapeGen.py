@@ -2,7 +2,12 @@
 
 from numpy import sin, cos, pi, linspace, zeros
 
-shape_name_map = {"trapezoid": "genTrap"}
+shape_name_map = {"trapezoid": "genTrap",
+                  "ellipse": "genEll",
+                  "semi-ellipse":"genSemiEll",
+                  "circle": "genCirc",
+                  "semi-circle": "genSemiCirc",
+                  "rectangular":"genRectOpen",}
 
 
 def name_to_function(name):
@@ -139,3 +144,16 @@ def genTrap(bottom_width=1, side_slope=1, height=1, n=1000):
 
     return x, y
 
+
+
+def genRectOpen(width=1, height=1, n=500):
+    x = linspace(-height, width+height,n)
+    x[x<0] = 0
+    x[x>width] = width
+    left_size = len(x[x==0])
+    right_size = len(x[x==width])
+    y = zeros(n)
+    y[x==0] = linspace(0,height, left_size)
+    y[x==width] = linspace(0,height, right_size)
+    x = x - width/2
+    return x, y
