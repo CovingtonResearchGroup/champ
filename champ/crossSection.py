@@ -413,7 +413,7 @@ class CrossSection:
         """Sets the energy slope within the cross-section."""
         self.eSlope = slope
 
-    def erode_power_law(self, a=1.0, K=1e-5, dt=1.0):
+    def erode_power_law(self, a=1.0, K=1e-5, dt=1.0, trim=True):
         """Erode wall according to a power law function of shear stress.
 
         Parameters
@@ -424,6 +424,8 @@ class CrossSection:
             Multiplicative constant in the power law (default is K=1e-5).
         dt : float, optional
             Timestep for erosion (in years). Default is 1 year.
+        trim : Boolean, optional
+            Whether cross-section with large dry portion should be trimmed. Default = True.
         Notes
         -----
         Erodes the wall according to:
@@ -433,9 +435,9 @@ class CrossSection:
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
         self.dr = dt * K * T_b**a
-        self.erode(self.dr)
+        self.erode(self.dr, trim=trim)
 
-    def erode_power_law_layered(self, a=1.0, dt=1.0, K=[1e-5, 2e-5], layer_elevs=[-2]):
+    def erode_power_law_layered(self, a=1.0, dt=1.0, K=[1e-5, 2e-5], layer_elevs=[-2], trim=True):
         """Erode wall according to a power law function of shear stress with erodibility
         varying by elevation.
 
@@ -449,6 +451,8 @@ class CrossSection:
             List containing elevations where layer erodibilities change.
         dt : float, optional
             Timestep for erosion (in years). Default is 1 year.
+        trim : Boolean, optional
+            Whether cross-section with large dry portion should be trimmed. Default = True.
         Notes
         -----
         Erodes the wall according to:
@@ -473,7 +477,7 @@ class CrossSection:
 
         self.dr[final_layer_idx] = dt * K[-1] * T_b[final_layer_idx] ** a
         # self.dr = K*T_b**a
-        self.erode(self.dr)
+        self.erode(self.dr, trim=trim)
 
     def update_total_xc(self, nx, ny):
         """Updates total cross-section to include newest part of the actively

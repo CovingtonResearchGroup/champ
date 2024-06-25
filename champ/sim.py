@@ -7,7 +7,7 @@ from champ.utils import ShapeGen
 # import debugpy
 
 SMALL = 1e-5
-WARN_ERR = (
+PERCENT_WARN_ERR = (
     0.05  # Print warning if flow depth solver has residual larger than this value.
 )
 alpha = 1.1  # Coriolis coefficient, assumed constant but could vary with velocity
@@ -229,10 +229,10 @@ class singleXC(sim):
         """Erode the cross-section.
         """
         if not self.layered_sim:
-            self.xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode)
+            self.xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode, trim=self.trim,)
         else:
             self.xc.erode_power_law_layered(
-                a=self.a, K=self.K, layer_elevs=self.layer_elevs, dt=self.dt_erode
+                a=self.a, K=self.K, layer_elevs=self.layer_elevs, dt=self.dt_erode, trim=self.trim,
             )
         if self.adaptive_step:
             # Check for percent change in radial distance
@@ -607,7 +607,7 @@ class multiXC(sim):
         old_ymins = self.ymins.copy()
         for i, xc in enumerate(self.xcs):
             if not self.layered_sim:
-                xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode)
+                xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode, trim=self.trim,)
             else:
                 # print('layer_elevs=',self.layer_elevs)
                 # print('init_z=',self.init_z[i+1])
@@ -621,6 +621,7 @@ class multiXC(sim):
                     K=self.K,
                     layer_elevs=absolute_layer_elevs,
                     dt=self.dt_erode,
+                    trim=self.trim,
                 )
                 if self.layer_solubility is not None:
                     if len(self.layer_solubility) == len(self.K):
@@ -631,6 +632,7 @@ class multiXC(sim):
                             K=K_sol_list,
                             layer_elevs=absolute_layer_elevs,
                             dt=self.dt_erode,
+                            trim=self.trim,
                         )
                     else:
                         print(
@@ -1019,11 +1021,16 @@ class multiXCGVF(multiXC):
         self.W = np.zeros(self.n_nodes)
         self.fd = np.zeros(self.n_nodes)
         self.fd_super = np.zeros(self.n_nodes)
+        self.fd_sub = np.zeros(self.n_nodes)
+        self.fd_crit = np.zeros(self.n_nodes)
         self.init_offsets = np.ones(self.n_nodes) * init_offsets
 
         self.h = np.zeros(self.n_nodes)
         self.h_super = np.zeros(self.n_nodes)
         self.flow_type = np.zeros(self.n_nodes, dtype=object)
+        self.fd_err = np.zeros(self.n_nodes)
+        self.SF_sub = np.zeros(self.n_nodes)
+        self.SF_super = np.zeros(self.n_nodes)
         self.mixed_regime = mixed_regime
         self.upstream_bnd_type = upstream_bnd_type
 
@@ -1085,6 +1092,7 @@ class multiXCGVF(multiXC):
                 fd_guess = self.fd[i]
             norm_fd = xc_up.calcNormalFlowDepth(self.Q_w, self.slopes[i])
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
+            self.fd_crit[i] = fd_crit
 
             try:
                 # Search for best bracket
@@ -1163,16 +1171,21 @@ class multiXCGVF(multiXC):
                 fd_sol = res.x[0]
             # Calculate actual flow depth residual
             err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, dx)
-            # print("i=", i, "  err=", err, " fd=", fd_sol)
-            if abs(err) > WARN_ERR:
+            self.fd_err[i] = err
+            print("i=", i, "  err=", err, " fd=", fd_sol)
+            if abs(err) > PERCENT_WARN_ERR*fd_sol:
                 print("*******************************************")
                 print("Warning! Flow depth solution is inaccurate. Error is", err)
+                print(" Setting depth to critical.")
                 print("*******************************************")
+                fd_sol = fd_crit
 
-            if fd_sol < fd_crit:
+            if fd_sol <= fd_crit:
                 # Force critical flow
                 fd_sol = fd_crit
                 self.flow_type[i + 1] = "crit"
+                err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, dx)
+                self.fd_err[i] = err
             else:
                 self.flow_type[i + 1] = "subcrit"
 
@@ -1184,6 +1197,7 @@ class multiXCGVF(multiXC):
         # Note: This is quite duplicative of above code. Could
         # probably streamline with some functions.
         if self.mixed_regime:
+            self.fd_sub = np.copy(self.fd)
             solve_super = True
             for i, xc_up in reversed(list(enumerate(self.xcs))):
                 if i > 0:
@@ -1207,19 +1221,21 @@ class multiXCGVF(multiXC):
                             raise ValueError
                         # If upstream flow is supercritical, then begin
                         # supercritical solution
-                        if self.fd_super[i] < crit_fd:
+                        if self.fd_super[i] <= crit_fd:
                             solve_super = True
                         else:
                             solve_super = False
 
-                    if self.flow_type[i] == "crit":
+                    if self.flow_type[i] == "crit" or self.flow_type[i] == 'supercrit':
                         # If this is a node previously set to critical, start
                         # or continue supercritical solution from here.
                         if solve_super == False:
                             # We have just encountered a new section flagged
                             # as critical. Set depth to critical and begin
                             # downstream solution for supercritical flow.
-                            self.fd_super[i] = self.fd[i]
+                            self.fd_super[i] = self.fd_crit[i]
+                        else:
+                            self.flow_type[i] = "supercrit"
                         solve_super = True
 
                     if solve_super:
@@ -1236,20 +1252,23 @@ class multiXCGVF(multiXC):
                         SF_sub = (
                             xc_up.Q**2 / (xc_up.g * A_up_sub) + A_up_sub * Y_up_sub
                         )
+                        self.SF_sub[i] = SF_sub
+                        self.SF_super[i] = SF_super
 
                         ### Think next about logic for specific force comparison
 
-                        if SF_super < SF_sub and self.flow_type[i] != "crit":
+                        if SF_super < SF_sub and (self.flow_type[i] != "crit" and self.flow_type[i] != "supercrit"):
                             solve_super = False
                             self.flow_type[i] = "subcrit"
                         else:
-                            # Supercritical solution has greater specific force.
+                            # Supercritical solution has greater specific force,
+                            # or this node was marked as critical.
                             # Solve for supercritical flow.
 
                             # Set current upstream section to supercritical
                             # and flow depth to that from supercritical
                             # solution.
-                            self.flow_type[i] = "supercrit"
+                            # self.flow_type[i] = "supercrit" # This is now done above, so that crit nodes remain labeled.
                             self.fd[i] = self.fd_super[i]
                             xc_up.setFD(self.fd[i])
                             P_up_super = xc_up.calcP(depth=self.fd_super[i])
@@ -1349,7 +1368,7 @@ class multiXCGVF(multiXC):
                                     ],
                                     n=32,
                                     sampling_method="sobol",
-                                    args=(i - 1, H_up, S_f_up, dx),
+                                    args=(i - 1, H_up, S_f_up, dx, False),
                                 )
                                 # converged = res.success
                                 # print("converged =", converged, "  fun=", res.fun)
@@ -1357,9 +1376,10 @@ class multiXCGVF(multiXC):
                                 # flag = "used minimization solver"
                                 fd_sol = res.x[0]
                             # Calculate actual flow depth residual
-                            err = self.fd_residual(fd_sol, i - 1, H_up, S_f_up, dx)
+                            err = self.fd_residual(fd_sol, i - 1, H_up, S_f_up, dx, False)
                             # print("i=", i, "  err=", err, " fd=", fd_sol)
-                            if abs(err) > WARN_ERR:
+                            self.fd_err[i] = err
+                            if abs(err) > PERCENT_WARN_ERR*fd_sol:
                                 print("*******************************************")
                                 print(
                                     "Warning! Flow depth solution is inaccurate. Error is",
@@ -1752,7 +1772,7 @@ class multiXCGVF_midXCs(multiXC):
             # Calculate actual flow depth residual
             err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, dx)
             # print("i=", i, "  err=", err, " fd=", fd_sol)
-            if abs(err) > WARN_ERR:
+            if abs(err) > PERCENT_WARN_ERR*fd_sol:
                 print("*******************************************")
                 print("Warning! Flow depth solution is inaccurate. Error is", err)
                 print("*******************************************")
