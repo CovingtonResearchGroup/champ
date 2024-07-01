@@ -1,13 +1,13 @@
 """Functions to generate cross-section x-y pairs for different shapes."""
 
-from numpy import sin, cos, pi, linspace, zeros
+from numpy import sin, cos, pi, linspace, zeros, round, ones, concatenate
 
 shape_name_map = {"trapezoid": "genTrap",
                   "ellipse": "genEll",
                   "semi-ellipse":"genSemiEll",
                   "circle": "genCirc",
                   "semi-circle": "genSemiCirc",
-                  "rectangular":"genRectOpen",}
+                  "rectangular":"genRect",}
 
 
 def name_to_function(name):
@@ -97,7 +97,7 @@ def genSemiEll(r1, r2, n=1000):
         x intercept of ellipse.
     r2 : float
         y intercept of ellipse.
-    theta : float
+    theta : floatw_h_ratio = width/height
         rotation angle of ellipse.
     n : int
         Number of points in cross-section.
@@ -146,14 +146,19 @@ def genTrap(bottom_width=1, side_slope=1, height=1, n=1000):
 
 
 
-def genRectOpen(width=1, height=1, n=500):
-    x = linspace(-height, width+height,n)
-    x[x<0] = 0
-    x[x>width] = width
-    left_size = len(x[x==0])
-    right_size = len(x[x==width])
-    y = zeros(n)
-    y[x==0] = linspace(0,height, left_size)
-    y[x==width] = linspace(0,height, right_size)
+def genRect(width=1, height=1, n=500):
+    w_h_ratio = width/height
+    n_height = int(round( (n/(w_h_ratio + 1))/2))
+    n_width = int((n - 2*n_height)/2)
+    x1 = zeros(n_height)
+    x2 = linspace(0,width,n_width+1)
+    x3 = width*ones(n_height+1)
+    x4 = linspace(width,0,n_width+1)
+    y1 = linspace(height,0,n_height)
+    y2 = zeros(n_width+1)
+    y3 = linspace(0,height,n_height+1)
+    y4 = height*ones(n_width+1)
+    x = concatenate([x1,x2[1:],x3[1:],x4[1:]])
+    y = concatenate([y1,y2[1:],y3[1:],y4[1:]])
     x = x - width/2
     return x, y
