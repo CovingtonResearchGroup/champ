@@ -1226,174 +1226,176 @@ class multiXCGVF(multiXC):
                         else:
                             solve_super = False
 
-                    if self.flow_type[i] == "crit" or self.flow_type[i] == 'supercrit':
-                        # If this is a node previously set to critical, start
-                        # or continue supercritical solution from here.
-                        if solve_super == False:
-                            # We have just encountered a new section flagged
-                            # as critical. Set depth to critical and begin
-                            # downstream solution for supercritical flow.
-                            self.fd_super[i] = self.fd_crit[i]
-                        else:
-                            self.flow_type[i] = "supercrit"
-                        solve_super = True
+                if self.flow_type[i] == "crit" or self.flow_type[i] == 'supercrit':
+                    # If this is a node previously set to critical, start
+                    # or continue supercritical solution from here.
+                    if solve_super == False:
+                        # We have just encountered a new section flagged
+                        # as critical. Set depth to critical and begin
+                        # downstream solution for supercritical flow.
+                        self.fd_super[i] = self.fd_crit[i]
+                    else:
+                        self.flow_type[i] = "supercrit"
+                    solve_super = True
 
-                    if solve_super:
-                        cx, cy = xc_up.findCentroid(depth=self.fd_super[i])
-                        Y_up_super = self.fd_super[i] - (cy - xc_up.ymin)
-                        A_up_super = xc_up.calcA(depth=self.fd_super[i])
-                        SF_super = (
-                            xc_up.Q**2 / (xc_up.g * A_up_super)
-                            + A_up_super * Y_up_super
+                if solve_super:
+                    xc_up.create_centroid_interp()
+                    cy = xc_up.centroid_interp_y(self.fd_super[i])
+                    Y_up_super = self.fd_super[i] - (cy - xc_up.ymin)
+                    A_up_super = xc_up.A_interp(self.fd_super[i])
+                    SF_super = (
+                        xc_up.Q**2 / (xc_up.g * A_up_super)
+                        + A_up_super * Y_up_super
+                    )
+                    cy = xc_up.centroid_interp_y(self.fd[i])
+                    Y_up_sub = self.fd[i] - (cy - xc_up.ymin)
+                    A_up_sub = xc_up.A_interp(self.fd[i])
+                    SF_sub = (
+                        xc_up.Q**2 / (xc_up.g * A_up_sub) + A_up_sub * Y_up_sub
+                    )
+                    self.SF_sub[i] = SF_sub
+                    self.SF_super[i] = SF_super
+
+                    ### Think next about logic for specific force comparison
+
+                    if SF_super < SF_sub and (self.flow_type[i] != "crit" and self.flow_type[i] != "supercrit"):
+                        solve_super = False
+                        self.flow_type[i] = "subcrit"
+                    else:
+                        # Supercritical solution has greater specific force,
+                        # or this node was marked as critical.
+                        # Solve for supercritical flow.
+
+                        # Set current upstream section to supercritical
+                        # and flow depth to that from supercritical
+                        # solution.
+                        # self.flow_type[i] = "supercrit" # This is now done above, so that crit nodes remain labeled.
+                        self.fd[i] = self.fd_super[i]
+                        self.h[i] = self.h_super[i]
+                        xc_up.setFD(self.fd[i])
+                        P_up_super = xc_up.calcP(depth=self.fd_super[i])
+                        D_H_up_super = 4 * A_up_super / P_up_super
+                        V_up_super = xc_up.Q / A_up_super
+                        V_head_up = alpha * V_up_super**2 / (2 * xc_up.g)
+                        H_up = self.h_super[i] + V_head_up
+                        S_f_up = (
+                            xc_up.f * V_up_super**2 / (2 * xc_up.g * D_H_up_super)
                         )
-                        cx, cy = xc_up.findCentroid(depth=self.fd[i])
-                        Y_up_sub = self.fd[i] - (cy - xc_up.ymin)
-                        A_up_sub = xc_up.calcA(depth=self.fd[i])
-                        SF_sub = (
-                            xc_up.Q**2 / (xc_up.g * A_up_sub) + A_up_sub * Y_up_sub
-                        )
-                        self.SF_sub[i] = SF_sub
-                        self.SF_super[i] = SF_super
-
-                        ### Think next about logic for specific force comparison
-
-                        if SF_super < SF_sub and (self.flow_type[i] != "crit" and self.flow_type[i] != "supercrit"):
-                            solve_super = False
-                            self.flow_type[i] = "subcrit"
+                        dx = self.x_arr[i] - self.x_arr[i - 1]
+                        if self.fd_super[i - 1] > 0:
+                            fd_guess = self.fd_super[i - 1]
                         else:
-                            # Supercritical solution has greater specific force,
-                            # or this node was marked as critical.
-                            # Solve for supercritical flow.
+                            # Use depth from previous XC if available
+                            fd_guess = self.fd_super[i]
+                        xc_down = self.xcs[i - 1]
+                        if i > 1:
+                            this_slope = self.slopes[i - 2]
+                        else:
+                            this_slope = self.slopes[i - 1]
+                        norm_fd = xc_down.calcNormalFlowDepth(xc_down.Q, this_slope)
+                        fd_crit = xc_down.calcCritFlowDepth(xc_down.Q)
 
-                            # Set current upstream section to supercritical
-                            # and flow depth to that from supercritical
-                            # solution.
-                            # self.flow_type[i] = "supercrit" # This is now done above, so that crit nodes remain labeled.
-                            self.fd[i] = self.fd_super[i]
-                            xc_up.setFD(self.fd[i])
-                            P_up_super = xc_up.calcP(depth=self.fd_super[i])
-                            D_H_up_super = 4 * A_up_super / P_up_super
-                            V_up_super = xc_up.Q / A_up_super
-                            V_head_up = alpha * V_up_super**2 / (2 * xc_up.g)
-                            H_up = self.h_super[i] + V_head_up
-                            S_f_up = (
-                                xc_up.f * V_up_super**2 / (2 * xc_up.g * D_H_up_super)
+                        try:
+                            # Search for best bracket
+                            n_search = 10
+                            fd_search = np.linspace(
+                                fd_guess * 1.5,
+                                0.05 * min([fd_crit, norm_fd]),
+                                n_search,
                             )
-                            dx = self.x_arr[i] - self.x_arr[i - 1]
-                            if self.fd_super[i - 1] > 0:
-                                fd_guess = self.fd_super[i - 1]
-                            else:
-                                # Use depth from previous XC if available
-                                fd_guess = self.fd_super[i]
-                            xc_down = self.xcs[i - 1]
-                            if i > 1:
-                                this_slope = self.slopes[i - 2]
-                            else:
-                                this_slope = self.slopes[i - 1]
-                            norm_fd = xc_down.calcNormalFlowDepth(xc_down.Q, this_slope)
-                            fd_crit = xc_down.calcCritFlowDepth(xc_down.Q)
-
-                            try:
-                                # Search for best bracket
-                                n_search = 10
-                                fd_search = np.linspace(
-                                    fd_guess * 1.5,
-                                    0.05 * min([fd_crit, norm_fd]),
-                                    n_search,
+                            bracket_found = False
+                            sign_this_res = None
+                            sign_old_res = None
+                            j = 0
+                            while not bracket_found and j + 1 < len(fd_search):
+                                this_res = self.fd_residual(
+                                    fd_search[j],
+                                    i - 1,
+                                    H_up,
+                                    S_f_up,
+                                    dx,
+                                    solve_upstream=False,
                                 )
-                                bracket_found = False
-                                sign_this_res = None
-                                sign_old_res = None
-                                j = 0
-                                while not bracket_found and j + 1 < len(fd_search):
-                                    this_res = self.fd_residual(
-                                        fd_search[j],
-                                        i - 1,
-                                        H_up,
-                                        S_f_up,
-                                        dx,
-                                        solve_upstream=False,
-                                    )
-                                    # print("this_res =", this_res)
-                                    sign_this_res = np.sign(this_res)
-                                    if sign_old_res is not None:
-                                        if sign_this_res * sign_old_res == -1:
-                                            # We have a sign change in residual
-                                            low_bracket = fd_search[j]
-                                            high_bracket = fd_search[j - 1]
-                                            bracket_found = True
-                                    sign_old_res = sign_this_res
-                                    j += 1
-                                # print("bracket found =", bracket_found)
-                                if not bracket_found:
-                                    low_bracket = 0.1 * fd_crit
-                                    high_bracket = fd_guess * 1.2
+                                # print("this_res =", this_res)
+                                sign_this_res = np.sign(this_res)
+                                if sign_old_res is not None:
+                                    if sign_this_res * sign_old_res == -1:
+                                        # We have a sign change in residual
+                                        low_bracket = fd_search[j]
+                                        high_bracket = fd_search[j - 1]
+                                        bracket_found = True
+                                sign_old_res = sign_this_res
+                                j += 1
+                            # print("bracket found =", bracket_found)
+                            if not bracket_found:
+                                low_bracket = 0.1 * fd_crit
+                                high_bracket = fd_guess * 1.2
 
-                                sol = root_scalar(
-                                    self.fd_residual,
-                                    args=(i - 1, H_up, S_f_up, dx, False),
-                                    method="brenth",
-                                    x0=fd_guess,
-                                    bracket=(low_bracket, high_bracket),
-                                    xtol=0.00001,
-                                    rtol=0.00005,
-                                )
-                                is_converged = sol.converged
-                            except ValueError:
-                                print("Falling back on minimization solver.")
-                                is_converged = False
-                            #            sol = root_scalar(
-                            #                self.fd_residual,
-                            #                args=(i + 1, H_down, S_f_down, dx),
-                            #                x0=fd_guess,
-                            #                x1=0.9 * fd_guess,
-                            #            )
+                            sol = root_scalar(
+                                self.fd_residual,
+                                args=(i - 1, H_up, S_f_up, dx, False),
+                                method="brenth",
+                                x0=fd_guess,
+                                bracket=(low_bracket, high_bracket),
+                                xtol=0.00001,
+                                rtol=0.00005,
+                            )
+                            is_converged = sol.converged
+                        except ValueError:
+                            print("Falling back on minimization solver.")
+                            is_converged = False
+                        #            sol = root_scalar(
+                        #                self.fd_residual,
+                        #                args=(i + 1, H_down, S_f_down, dx),
+                        #                x0=fd_guess,
+                        #                x1=0.9 * fd_guess,
+                        #            )
 
-                            if is_converged:
-                                fd_sol = sol.root
-                                flag = sol.flag
-                                converged = sol.converged
-                            else:
-                                # Try minimization of abs error
-                                # res = minimize_scalar(
-                                #    self.fd_residual_abs,
-                                #    bracket=(fd_crit, 1.1 * fd_guess),
-                                #    args=(i + 1, H_down, S_f_down, dx),
-                                # )
-                                # fd_max = xc.ymax - xc.ymin
-                                res = shgo(
-                                    self.fd_residual_abs,
-                                    [
-                                        (0.05 * fd_crit, fd_crit),
-                                    ],
-                                    n=32,
-                                    sampling_method="sobol",
-                                    args=(i - 1, H_up, S_f_up, dx, False),
-                                )
-                                # converged = res.success
-                                # print("converged =", converged, "  fun=", res.fun)
-                                # print(res)
-                                # flag = "used minimization solver"
-                                fd_sol = res.x[0]
-                            # Calculate actual flow depth residual
-                            err = self.fd_residual(fd_sol, i - 1, H_up, S_f_up, dx, False)
-                            # print("i=", i, "  err=", err, " fd=", fd_sol)
-                            self.fd_err[i] = err
-                            if abs(err) > PERCENT_WARN_ERR*fd_sol:
-                                print("*******************************************")
-                                print(
-                                    "Warning! Flow depth solution is inaccurate. Error is",
-                                    err,
-                                )
-                                print("*******************************************")
+                        if is_converged:
+                            fd_sol = sol.root
+                            flag = sol.flag
+                            converged = sol.converged
+                        else:
+                            # Try minimization of abs error
+                            # res = minimize_scalar(
+                            #    self.fd_residual_abs,
+                            #    bracket=(fd_crit, 1.1 * fd_guess),
+                            #    args=(i + 1, H_down, S_f_down, dx),
+                            # )
+                            # fd_max = xc.ymax - xc.ymin
+                            res = shgo(
+                                self.fd_residual_abs,
+                                [
+                                    (0.05 * fd_crit, fd_crit),
+                                ],
+                                n=32,
+                                sampling_method="sobol",
+                                args=(i - 1, H_up, S_f_up, dx, False),
+                            )
+                            # converged = res.success
+                            # print("converged =", converged, "  fun=", res.fun)
+                            # print(res)
+                            # flag = "used minimization solver"
+                            fd_sol = res.x[0]
+                        # Calculate actual flow depth residual
+                        err = self.fd_residual(fd_sol, i - 1, H_up, S_f_up, dx, False)
+                        # print("i=", i, "  err=", err, " fd=", fd_sol)
+                        self.fd_err[i] = err
+                        if abs(err) > PERCENT_WARN_ERR*fd_sol:
+                            print("*******************************************")
+                            print(
+                                "Warning! Flow depth solution is inaccurate. Error is",
+                                err,
+                            )
+                            print("*******************************************")
 
-                            self.h_super[i - 1] = self.z_arr[i - 1] + fd_sol
-                            self.fd_super[i - 1] = fd_sol
-                            if i == 1:
-                                # Last iteration. Need to set downstream flowdepth
-                                # to supercritical solution.
-                                xc_down.setFD(fd_sol)
-                                self.flow_type[i - 1] = "supercrit"
+                        self.h_super[i - 1] = self.z_arr[i - 1] + fd_sol
+                        self.fd_super[i - 1] = fd_sol
+                        if i == 1:
+                            # Last iteration. Need to set downstream flowdepth
+                            # to supercritical solution.
+                            xc_down.setFD(fd_sol)
+                            self.flow_type[i - 1] = "supercrit"
 
         # Calculate flow areas, wetted perimeters, hydraulic diameters,
         # free surface widths, and velocities

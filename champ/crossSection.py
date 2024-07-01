@@ -13,6 +13,7 @@ from numpy import (
 import numpy as np
 from scipy import interpolate
 from scipy.optimize import root_scalar, brentq, minimize_scalar
+from scipy.signal import savgol_filter
 from champ.utils.fastroutines import (
     calcA,
     calcP,
@@ -228,6 +229,44 @@ class CrossSection:
 
         self.P_interp = P_interp
 
+    def create_centroid_interp(self, n_points=30, min_interp_factor=0.01, pre_filter=True):
+        """Create an interpolation function for flow centroid as a function of depth.
+
+        Parameters
+        ----------
+        n_points : int, optional
+            Number of points along which to interpolate. Default value is 30.
+        """
+        maxdepth = self.ymax - self.ymin
+        max_interp = self.fd * 1.5
+        if max_interp > maxdepth:
+            max_interp = maxdepth
+        if max_interp == 0:
+            max_interp = maxdepth
+
+        num_xc_points = len(self.y[self.y - self.ymin < max_interp])
+        if num_xc_points < n_points / 3.0:
+            n_points = int(np.round(num_xc_points / 3.0))
+
+        depth_arr = np.linspace(min_interp_factor*max_interp, max_interp, n_points)
+        coords = np.array([self.findCentroid(depth=i) for i in depth_arr])
+        Xs = coords[:,0]
+        Ys = coords[:,1]
+        if pre_filter:
+            n_window = int(np.round(n_points/3))
+            Xs = savgol_filter(Xs, n_window, 3)
+            Ys = savgol_filter(Ys, n_window, 3)
+
+        centroid_interp_x = finterp1d(
+            depth_arr, Xs, bounds_error=False, fill_value=(Ys[0], Ys[-1])
+        )
+        centroid_interp_y = finterp1d(
+            depth_arr, Ys, bounds_error=False, fill_value=(Ys[0], Ys[-1])
+        )
+
+        self.centroid_interp_x = centroid_interp_x
+        self.centroid_interp_y = centroid_interp_y
+
     def findLR(self, h):
         """Find the indicies of the left and right points defining the wall
         at a certain height above the bottom of the cross-section.
@@ -271,7 +310,7 @@ class CrossSection:
         self.setFD(fd)
         if fd > (self.ymax - self.ymin) * use_centroid_fraction:
             # Treat as full pipe
-            mx, my = self.findCentroid()
+            mx, my = self.findCentroid(use_interp=False)
         else:
             # open channel
             L, R = self.findLR(fd)
@@ -281,7 +320,7 @@ class CrossSection:
         self.xmaxVel = mx
         self.ymaxVel = my
 
-    def findCentroid(self, depth=-1):
+    def findCentroid(self, depth=-1, use_interp=True):
         """Find the centroid of the cross-section.
 
         Returns
@@ -291,7 +330,10 @@ class CrossSection:
         """
         if depth == -1:
             m = self.xm * self.y - self.x * self.ym
-            A = self.calcA()
+            if use_interp:
+                A = self.A_interp(depth=self.fd)
+            else:
+                A = self.calcA()
             cx = (1 / (6 * A)) * (
                 (self.x + self.xm) * m
             ).sum()  # A was self.sA. not sure if this matters
@@ -302,7 +344,10 @@ class CrossSection:
             xwetm = rollm(xwet)
             ywetm = rollm(ywet)
             m = xwetm * ywet - xwet * ywetm
-            A = self.calcA(depth=depth)
+            if use_interp:
+                A = self.A_interp(depth)
+            else:
+                A = self.calcA(depth=depth)
             cx = (1 / (6 * A)) * (
                 (xwet + xwetm) * m
             ).sum()  # A was self.sA. not sure if this matters
