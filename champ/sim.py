@@ -1213,6 +1213,7 @@ class multiXCGVF(multiXC):
                         elif self.upstream_bnd_type == "Critical":
                             self.h_super[i] = crit_fd + self.z_arr[i]
                             self.fd_super[i] = crit_fd
+                            self.flow_type[i] = 'crit'
                         else:
                             print(
                                 "Invalid option for upstream boundary type:",
@@ -1267,9 +1268,11 @@ class multiXCGVF(multiXC):
                         # Set current upstream section to supercritical
                         # and flow depth to that from supercritical
                         # solution.
-                        if self.flow_type[i] != 'crit':
-                            self.flow_type[i] = "supercrit"
                         self.fd[i] = self.fd_super[i]
+                        if self.fd[i]/self.fd_crit[i] < 1:
+                            self.flow_type[i] = "supercrit"
+                        else:
+                            self.h_super[i] = self.fd_super[i] + self.z_arr[i]
                         self.h[i] = self.h_super[i]
                         xc_up.setFD(self.fd[i])
                         P_up_super = xc_up.calcP(depth=self.fd_super[i])
