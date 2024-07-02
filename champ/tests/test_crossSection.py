@@ -110,7 +110,7 @@ def test_setMaxVelPoint():
 
 
 def test_findCentroid():
-    cx, cy = xc_Circ.findCentroid()
+    cx, cy = xc_Circ.findCentroid(use_interp=False)
     assert_almost_equal(cx, 0, decimal=4)
     assert_almost_equal(cy, 0, decimal=4)
 

@@ -1095,10 +1095,8 @@ class multiXCGVF(multiXC):
             self.fd_crit[i] = fd_crit
 
             try:
-                if i==29:
-                    print('problem node', i)
                 # Search for best bracket
-                n_search = 150
+                n_search = 20
                 fd_search = np.linspace(
                     fd_guess * 2.0, 0.25 * min([fd_crit, norm_fd]), n_search
                 )
@@ -1174,7 +1172,7 @@ class multiXCGVF(multiXC):
             # Calculate actual flow depth residual
             err = self.fd_residual(fd_sol, i + 1, H_down, S_f_down, V_head_down, dx)
             self.fd_err[i] = err
-            print("i=", i, "  err=", err, " fd=", fd_sol)
+            #print("i=", i, "  err=", err, " fd=", fd_sol)
             if abs(err) > PERCENT_WARN_ERR*fd_sol:
                 print("*******************************************")
                 print("Warning! Flow depth solution is inaccurate. Error is", err)
@@ -1236,8 +1234,6 @@ class multiXCGVF(multiXC):
                         # as critical. Set depth to critical and begin
                         # downstream solution for supercritical flow.
                         self.fd_super[i] = self.fd_crit[i]
-                    else:
-                        self.flow_type[i] = "supercrit"
                     solve_super = True
 
                 if solve_super:
@@ -1271,7 +1267,8 @@ class multiXCGVF(multiXC):
                         # Set current upstream section to supercritical
                         # and flow depth to that from supercritical
                         # solution.
-                        # self.flow_type[i] = "supercrit" # This is now done above, so that crit nodes remain labeled.
+                        if self.flow_type[i] != 'crit':
+                            self.flow_type[i] = "supercrit"
                         self.fd[i] = self.fd_super[i]
                         self.h[i] = self.h_super[i]
                         xc_up.setFD(self.fd[i])
@@ -1299,7 +1296,7 @@ class multiXCGVF(multiXC):
 
                         try:
                             # Search for best bracket
-                            n_search = 10
+                            n_search = 20
                             fd_search = np.linspace(
                                 fd_guess * 1.5,
                                 0.05 * min([fd_crit, norm_fd]),

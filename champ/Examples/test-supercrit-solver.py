@@ -15,7 +15,7 @@ shape_dict = {
     "width": width,    
     "height": height,
 }
-n=150
+n=200
 x = np.linspace(0, L, n)
 z = np.zeros(n)
 for i, this_z in enumerate(z):
@@ -35,7 +35,7 @@ sim = multiXCGVF(x, z,
                  Q_w=Q, 
                  mixed_regime=True, 
                  upstream_bnd_type='Normal',
-                 xc_n=1500)
+                 xc_n=500)
 
 sim.calc_flow(h0=66/ft_per_m, )
 

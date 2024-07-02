@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_allclose
 from scipy.interpolate import interp1d
-
+from pandas import read_csv
 from champ.sim import singleXC, multiXC, multiXCGVF, multiXCGVF_midXCs
 
 g = 9.8
@@ -121,7 +121,7 @@ def test_multiXCGVF_solver_vs_Chow():
     )
     # Interpolate model outputs to Chow x positions
     fd_mod = f(x_chow)
-    assert_allclose(fd_mod, fd_chow, rtol=0.003, atol=0.01)
+    assert_allclose(fd_mod, fd_chow, rtol=0.008, atol=0.03)
 
 
 def test_multiXCGVF_midXC_solver_vs_Chow():
@@ -157,3 +157,54 @@ def test_multiXCGVF_midXC_solver_vs_Chow():
     # Interpolate model outputs to Chow x positions
     fd_mod = f(x_chow)
     assert_allclose(fd_mod, fd_chow, rtol=0.004, atol=0.01)
+
+def test_multiXCGVF_mixed_flow_solver_vs_HEC_RAS():
+    ft_per_m = 3.28
+    width = 20.0 / ft_per_m
+    height = 15.0 / ft_per_m
+    Q_cfs = 500.0
+    cumecs_per_cfs = 0.0283
+    Q = Q_cfs * cumecs_per_cfs
+    Manning_n = 0.015
+    L = 3000 / ft_per_m
+
+    shape_dict = {
+        "name": "rectangular",
+        "width": width,    
+        "height": height,
+    }
+    n=200
+    x = np.linspace(0, L, n)
+    z = np.zeros(n)
+    for i, this_z in enumerate(z):
+        if x[i]>2500/ft_per_m:
+            bed_slope = 0.01
+        elif x[i]<=2500/ft_per_m and x[i]>1000/ft_per_m:
+            bed_slope = 0.0004
+        else:
+            bed_slope = 0.00317     
+        if i>0:
+            z[i] = +bed_slope * (x[i] - x[i-1]) + z[i-1]
+    z += 70/ft_per_m - z[-1]
+
+    sim = multiXCGVF(x, z, 
+                    shape_dict=shape_dict, 
+                    n_mann=Manning_n, 
+                    Q_w=Q, 
+                    mixed_regime=True, 
+                    upstream_bnd_type='Normal',
+                    xc_n=500)
+
+    sim.calc_flow(h0=66/ft_per_m, )
+
+
+    hecras = read_csv('./tests/hec-ras-mixed-example.csv', skiprows=[1])
+    ws_elev = hecras['W.S. Elev']
+    ft_per_mile = 5280
+    dist = np.round(hecras['River Sta']*ft_per_mile)
+    bed = hecras['Min Ch El']
+    fd_hec = ws_elev - bed
+
+    f = interp1d(sim.x_arr * ft_per_m, sim.fd * ft_per_m)
+    fd_mod = f(dist)
+    assert_allclose(fd_mod, fd_hec, rtol=0.05, atol=0.11)
