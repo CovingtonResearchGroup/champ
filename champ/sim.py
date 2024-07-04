@@ -1067,6 +1067,7 @@ class multiXCGVF(multiXC):
                 xc.create_A_interp()
                 xc.create_P_interp()
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
+                self.fd_crit[0] = xc.calcCritFlowDepth(self.Q_w)
                 if h0 is None:
                     self.h[i] = norm_fd + self.z_arr[i]
                     self.fd[i] = norm_fd
@@ -1092,7 +1093,7 @@ class multiXCGVF(multiXC):
                 fd_guess = self.fd[i]
             norm_fd = xc_up.calcNormalFlowDepth(self.Q_w, self.slopes[i])
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
-            self.fd_crit[i] = fd_crit
+            self.fd_crit[i+1] = fd_crit
 
             try:
                 # Search for best bracket
@@ -1120,8 +1121,8 @@ class multiXCGVF(multiXC):
                     j += 1
                 # print("bracket found =", bracket_found)
                 if not bracket_found:
-                    low_bracket = fd_crit * 0.95
-                    high_bracket = fd_guess * 1.2
+                    low_bracket = fd_crit * 0.1
+                    high_bracket = fd_guess * 2
 
                 sol = root_scalar(
                     self.fd_residual,
@@ -1134,15 +1135,9 @@ class multiXCGVF(multiXC):
                 )
                 is_converged = sol.converged
             except ValueError:
-                print("Falling back on minimization solver.")
+                print("Falling back on minimization solver. Node=", i)
                 is_converged = False
-            #            sol = root_scalar(
-            #                self.fd_residual,
-            #                args=(i + 1, H_down, S_f_down, dx),
-            #                x0=fd_guess,
-            #                x1=0.9 * fd_guess,
-            #            )
-
+            
             if is_converged:
                 fd_sol = sol.root
                 flag = sol.flag
@@ -1158,7 +1153,7 @@ class multiXCGVF(multiXC):
                 res = shgo(
                     self.fd_residual_abs,
                     [
-                        (0.05*fd_crit, fd_max),
+                        (0.01*fd_crit, fd_max),
                     ],
                     n=32,
                     sampling_method="sobol",
