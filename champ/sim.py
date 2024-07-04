@@ -1066,7 +1066,7 @@ class multiXCGVF(multiXC):
             if i == 0:
                 xc.create_A_interp()
                 xc.create_P_interp()
-                norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
+                norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], cap_at_max=True)
                 self.fd_crit[0] = xc.calcCritFlowDepth(self.Q_w)
                 if h0 is None:
                     self.h[i] = norm_fd + self.z_arr[i]
@@ -1091,7 +1091,7 @@ class multiXCGVF(multiXC):
             else:
                 # Use depth from previous XC if available
                 fd_guess = self.fd[i]
-            norm_fd = xc_up.calcNormalFlowDepth(self.Q_w, self.slopes[i])
+            norm_fd = xc_up.calcNormalFlowDepth(self.Q_w, self.slopes[i], cap_at_max=True)
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
             self.fd_crit[i+1] = fd_crit
 
@@ -1201,7 +1201,7 @@ class multiXCGVF(multiXC):
                         crit_fd = xc_up.calcCritFlowDepth(xc_up.Q)
                         if self.upstream_bnd_type == "Normal":
                             norm_fd = xc_up.calcNormalFlowDepth(
-                                xc_up.Q, self.slopes[i - 1]
+                                xc_up.Q, self.slopes[i - 1], cap_at_max=True
                             )
                             self.h_super[i] = norm_fd + self.z_arr[i]
                             self.fd_super[i] = norm_fd
@@ -1289,7 +1289,7 @@ class multiXCGVF(multiXC):
                             this_slope = self.slopes[i - 2]
                         else:
                             this_slope = self.slopes[i - 1]
-                        norm_fd = xc_down.calcNormalFlowDepth(xc_down.Q, this_slope)
+                        norm_fd = xc_down.calcNormalFlowDepth(xc_down.Q, this_slope, cap_at_max=True)
                         fd_crit = xc_down.calcCritFlowDepth(xc_down.Q)
 
                         try:

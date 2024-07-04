@@ -729,7 +729,7 @@ class CrossSection:
             W = SMALL
         return abs(A**3 / W - Q**2 / g)
 
-    def calcNormalFlowDepth(self, Q, slope, old_fd=None):
+    def calcNormalFlowDepth(self, Q, slope, old_fd=None, cap_at_max=False):
         """Calculate flow depth for a prescribed discharge.
 
         Parameters
@@ -742,6 +742,10 @@ class CrossSection:
             Previous flow depth. This will be used to restrict upper bound
             on calculated flow depth. Default is None, for which the max depth
             will be used as upper range.
+        cap_at_max : boolean
+            If set to True, then the max possible flow depth will be returned
+            for cases that would exceed max depth. This is appropriate for
+            open channels with flood plains. Default = False.
 
         Returns
         -------
@@ -764,7 +768,10 @@ class CrossSection:
             upper_bound = old_fd * 1.1  # 25
         calcFullFlow = self.calcNormalFlow(maxdepth, slope, use_interp=False)
         if Q >= calcFullFlow and not self.ymax > self.y.max():
-            return -1
+            if cap_at_max:
+                return maxdepth
+            else:
+                return -1
         else:
             SMALL_Q = self.normal_discharge_residual(SMALL, slope, Q)
             upper_bound_Q = self.normal_discharge_residual(upper_bound, slope, Q)
