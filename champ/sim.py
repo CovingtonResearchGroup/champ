@@ -1069,8 +1069,12 @@ class multiXCGVF(multiXC):
                 norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], cap_at_max=True)
                 self.fd_crit[0] = xc.calcCritFlowDepth(self.Q_w)
                 if h0 is None:
-                    self.h[i] = norm_fd + self.z_arr[i]
-                    self.fd[i] = norm_fd
+                    if norm_fd > self.fd_crit[0]:
+                        self.h[i] = norm_fd + self.z_arr[i]
+                        self.fd[i] = norm_fd
+                    else:
+                        self.h[i] = self.fd_crit[0] + self.z_arr[i]
+                        self.fd[i] = self.fd_crit[0]
                 else:
                     self.h[i] = h0
                     self.fd[i] = h0 - self.z_arr[i]
