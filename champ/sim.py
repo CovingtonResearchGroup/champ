@@ -1072,9 +1072,12 @@ class multiXCGVF(multiXC):
                     if norm_fd > self.fd_crit[0]:
                         self.h[i] = norm_fd + self.z_arr[i]
                         self.fd[i] = norm_fd
+                        self.flow_type[i] = 'subcrit'
                     else:
                         self.h[i] = self.fd_crit[0] + self.z_arr[i]
                         self.fd[i] = self.fd_crit[0]
+                        self.flow_type[i] = 'crit'
+
                 else:
                     self.h[i] = h0
                     self.fd[i] = h0 - self.z_arr[i]
