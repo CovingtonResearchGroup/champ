@@ -305,6 +305,8 @@ class multiXC(sim):
         whereas the default value is stable. If instabilities occur, and adaptive
         time-stepping is enabled, decreasing this fraction may help.
         Default = 0.005.
+    min_erode_step : float
+        Minimum allowed timestep for erosion (in years). Default is 0.1 year.
     trim : boolean, optional
         Whether or not cross-sections should be trimmed as much of the
         cross-section becomes dry. This enables maintenance of a high
@@ -365,6 +367,7 @@ class multiXC(sim):
         uplift_times=None,
         adaptive_step=False,
         max_frac_erode=0.005,
+        min_erode_step=0.1,
         trim=True,
         a=1.0,
         K=1e-5,
@@ -394,6 +397,7 @@ class multiXC(sim):
         self.uplift_idx = 0
         self.adaptive_step = adaptive_step
         self.max_frac_erode = max_frac_erode
+        self.min_erode_step = min_erode_step
         self.xc_n = xc_n
         self.trim = trim
         self.a = a
@@ -695,7 +699,7 @@ class multiXC(sim):
                 if xc_max_frac_erode > sim_max_frac_erode:
                     sim_max_frac_erode = xc_max_frac_erode
 
-            if sim_max_frac_erode > self.max_frac_erode:
+            if sim_max_frac_erode > self.max_frac_erode and self.dt_erode > self.min_erode_step:
                 # Timestep is too big, reduce it
                 self.dt_erode = self.dt_erode / 1.5
                 print("Reducing timestep to " + str(self.dt_erode))
@@ -970,6 +974,7 @@ class multiXCGVF(multiXC):
         uplift_times=None,
         adaptive_step=False,
         max_frac_erode=0.005,
+        min_erode_step=0.1,
         trim=True,
         a=1.0,
         K=1e-5,
@@ -1004,6 +1009,7 @@ class multiXCGVF(multiXC):
         self.uplift_idx = 0
         self.adaptive_step = adaptive_step
         self.max_frac_erode = max_frac_erode
+        self.min_erode_step = min_erode_step
         self.xc_n = xc_n
         self.trim = trim
         self.a = a
@@ -1240,15 +1246,15 @@ class multiXCGVF(multiXC):
                     solve_super = True
 
                 if solve_super:
-                    xc_up.create_centroid_interp()
-                    cy = xc_up.centroid_interp_y(self.fd_super[i])
+                    #xc_up.create_centroid_interp()
+                    cx, cy = xc_up.findCentroid(self.fd_super[i])#xc_up.centroid_interp_y(self.fd_super[i])
                     Y_up_super = self.fd_super[i] - (cy - xc_up.ymin)
                     A_up_super = xc_up.A_interp(self.fd_super[i])
                     SF_super = (
                         xc_up.Q**2 / (xc_up.g * A_up_super)
                         + A_up_super * Y_up_super
                     )
-                    cy = xc_up.centroid_interp_y(self.fd[i])
+                    cx, cy = xc_up.findCentroid(self.fd[i])# xc_up.centroid_interp_y(self.fd[i])
                     Y_up_sub = self.fd[i] - (cy - xc_up.ymin)
                     A_up_sub = xc_up.A_interp(self.fd[i])
                     SF_sub = (
@@ -1342,7 +1348,7 @@ class multiXCGVF(multiXC):
                                 self.fd_residual,
                                 args=(i - 1, H_up, S_f_up, V_head_up, dx, False, True, 0, 0),
                                 method="brenth",
-                                x0=fd_guess,
+                                x0=(low_bracket + high_bracket)/2,#fd_guess,
                                 bracket=(low_bracket, high_bracket),
                                 xtol=0.000001,
                                 rtol=0.000005,
