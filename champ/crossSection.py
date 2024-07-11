@@ -329,21 +329,25 @@ class CrossSection:
             The x and y coordinates of the centroid.
         """
         if depth == -1:
-            m = self.xm * self.y - self.x * self.ym
+            # shift so that origin is inside polygon to improve stability
+            yshift = (self.ymax + self.ymin)/2
+            m = self.xm * (self.y - yshift) - self.x * (self.ym - yshift)
             if use_interp:
-                A = self.A_interp(depth=self.fd)
+                A = self.A_interp(self.fd)
             else:
                 A = self.calcA()
             cx = (1 / (6 * A)) * (
                 (self.x + self.xm) * m
             ).sum()  # A was self.sA. not sure if this matters
-            cy = (1 / (6 * A)) * ((self.y + self.ym) * m).sum()
+            cy = (1 / (6 * A)) * ((self.y + self.ym - 2*yshift) * m).sum() + yshift
         else:
             xwet = self.x[self.y - self.ymin <= depth]
             ywet = self.y[self.y - self.ymin <= depth]
+            # shift so that origin is inside polygon to improve stability
+            yshift = (ywet.max() + ywet.min())/2
             xwetm = rollm(xwet)
             ywetm = rollm(ywet)
-            m = xwetm * ywet - xwet * ywetm
+            m = xwetm * (ywet - yshift) - xwet * (ywetm - yshift)
             if use_interp:
                 A = self.A_interp(depth)
             else:
@@ -351,7 +355,7 @@ class CrossSection:
             cx = (1 / (6 * A)) * (
                 (xwet + xwetm) * m
             ).sum()  # A was self.sA. not sure if this matters
-            cy = (1 / (6 * A)) * ((ywet + ywetm) * m).sum()
+            cy = (1 / (6 * A)) * ((ywet + ywetm - 2*yshift) * m).sum() + yshift
         return cx, cy
 
     def calcR_l(self, wantidx=None):
