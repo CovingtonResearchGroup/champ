@@ -248,100 +248,106 @@ class singleXC(sim):
 
 
 class multiXC(sim):
-    """
-    Simulation with multiple channel cross-sections.
-
+    """Simulation with multiple channel cross-sections.
+   
     Parameters
-        ----------
-        x_arr : ndarray
-            Array of distances in meters along the channel for the node locations.
-        z_arr: ndarray
-            Array of elevations in meters for nodes along the channel. Minimum y
-            values for each cross-section will be added to these elevations
-            during initialization, so that z_arr will represent the channel bottom.
-        Q_w : float, optional
-            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
-        f : float or ndarray, optional
-            Darcy-Weisbach friction factor (unitless). If an array is provided with
-            a length equal to the number of cross-sections, then independent values
-            will be asigned to each cross-section. Default is 0.1.
-        n_mann: float or ndarray, optional
-            Manning's n. If specified, then f will be calculated from n_mann
-            and R_h during flow calculations (which will still use the Darcy-
-            Weisbach equation). Default is None.
-        init_radii : float or ndarray, optional
-            Initial cross-section radii (meters). If a float then all cross-sections
-            will be assigned the same radius. If an array then each element
-            represents the radius of a single cross-section (length should be n-1
-            where n is the number of nodes). Default is 0.5 m.
-        shape_dict : dict, optional
-            A dictionary of cross-sectional shape parameters, including name and
-            keyword parameters for function in ShapeGen. If this is provided,
-            then init_radii is ignored.
-        init_offsets : float or ndarray, optional
-            These offsets will be added to y-values within initial cross-sections.
-            By default, y will be zero at the centroid of the initial cross-section.
-            Default value is zero. Should have length of n-1, where n is number of
-            nodes.
-        xc_n : int, optional
-            Number of points that will define the cave passage shape within a
-            cross-section. Default is 1000.
-        dt_erode : float, optional
-            Erosional time step in years. Default value is 1 year.
-        uplift : float or list of floats
-            Rate of change of baselevel. This distance is subtracted
-            from the elevation of the downstream boundary node during
-            each timestep.
-        uplift_times : list
-            Times in years at which uplift rates change. This argument is included if
-            uplift is a list of different uplift rates.
-        adaptive_step : boolean, optional
-            Whether or not to adjust timestep dynamically. Default is False.
-        max_frac_erode : float, optional
-            Maximum fraction of radial distance to erode within a single timestep
-            under adaptive time-stepping. If erosion exceeds this fraction, then
-            the timestep will be reduced. If erosion is much less than this fraction,
-            then the timestep will be increased. We have not conducted a detailed
-            stability analysis. However, initial tests show 0.01 leads to instability,
-            whereas the default value is stable. If instabilities occur, and adaptive
-            time-stepping is enabled, decreasing this fraction may help.
-            Default = 0.005.
-        trim : boolean, optional
-            Whether or not cross-sections should be trimmed as much of the
-            cross-section becomes dry. This enables maintenance of a high
-            resolution of the wet portion of the cross-section for simulations
-            with substantial incision. If this is set to False, long-term
-            simulations are likely to become unstable. Default is True.
-        a : float, optional
-            Exponent in power law erosion rule (default=1).
-        K : float or list, optional
-            Erodibility in power law erosion rule (default = 1e-5).
-            If multiple layers are specified, then this is a list of
-            erodibilities listed from lowest to highest elevation.
-        layer_elevs : list of floats, optional
-            Specifies a list of elevations (from low to high), where rock
-            erodibility changes. If specified, K should be a list with
-            one more item than this list.
+    ----------
+    x_arr : ndarray
+        Array of distances in meters along the channel for the node locations.
+    z_arr: ndarray
+        Array of elevations in meters for nodes along the channel. Minimum y
+        values for each cross-section will be added to these elevations
+        during initialization, so that z_arr will represent the channel bottom.
+    Q_w : float, optional
+        Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+    f : float or ndarray, optional
+        Darcy-Weisbach friction factor (unitless). If an array is provided with
+        a length equal to the number of cross-sections, then independent values
+        will be asigned to each cross-section. Default is 0.1.
+    n_mann: float or ndarray, optional
+        Manning's n. If specified, then f will be calculated from n_mann
+        and R_h during flow calculations (which will still use the Darcy-
+        Weisbach equation). Default is None.
+    init_radii : float or ndarray, optional
+        Initial cross-section radii (meters). If a float then all cross-sections
+        will be assigned the same radius. If an array then each element
+        represents the radius of a single cross-section (length should be n-1
+        where n is the number of nodes). Default is 0.5 m.
+    shape_dict : dict, optional
+        A dictionary of cross-sectional shape parameters, including name and
+        keyword parameters for function in ShapeGen. If this is provided,
+        then init_radii is ignored.
+    init_offsets : float or ndarray, optional
+        These offsets will be added to y-values within initial cross-sections.
+        By default, y will be zero at the centroid of the initial cross-section.
+        Default value is zero. Should have length of n-1, where n is number of
+        nodes.
+    xc_n : int, optional
+        Number of points that will define the cave passage shape within a
+        cross-section. Default is 1000.
+    dt_erode : float, optional
+        Erosional time step in years. Default value is 1 year.
+    uplift : float or list of floats
+        Rate of change of baselevel. This distance is subtracted
+        from the elevation of the downstream boundary node during
+        each timestep.
+    uplift_times : list
+        Times in years at which uplift rates change. This argument is included if
+        uplift is a list of different uplift rates.
+    adaptive_step : boolean, optional
+        Whether or not to adjust timestep dynamically. Default is False.
+    max_frac_erode : float, optional
+        Maximum fraction of radial distance to erode within a single timestep
+        under adaptive time-stepping. If erosion exceeds this fraction, then
+        the timestep will be reduced. If erosion is much less than this fraction,
+        then the timestep will be increased. We have not conducted a detailed
+        stability analysis. However, initial tests show 0.01 leads to instability,
+        whereas the default value is stable. If instabilities occur, and adaptive
+        time-stepping is enabled, decreasing this fraction may help.
+        Default = 0.005.
+    trim : boolean, optional
+        Whether or not cross-sections should be trimmed as much of the
+        cross-section becomes dry. This enables maintenance of a high
+        resolution of the wet portion of the cross-section for simulations
+        with substantial incision. If this is set to False, long-term
+        simulations are likely to become unstable. Default is True.
+    a : float, optional
+        Exponent in power law erosion rule (default=1).
+    K : float or list, optional
+        Erodibility in power law erosion rule (default = 1e-5).
+        If multiple layers are specified, then this is a list of
+        erodibilities listed from lowest to highest elevation.
+    layer_elevs : list of floats, optional
+        Specifies a list of elevations (from low to high), where rock
+        erodibility changes. If specified, K should be a list with
+        one more item than this list.
+    layer_solubility : list of booleans, optional
+        Specifies which layers, if any, are soluble. Set soluble layers to
+        True.
+    K_sol : float, optional
+        Erodibility in dissolution power law erosion rule (default = 1e-5).
+    a_sol : float, optional
+        Exponent in power law erosion rule for dissolution. (Default=0.5)
 
-        Notes
-        -----
-        To maximize efficiency, use adapative time-stepping. Our tests of stability
-        suggest that increasing the number of points in the cross-section (xc_n)
-        decreases numerical stability, though it also increases accuracy with which
-        the cross-sectional shape is represented. Our default values of xc_n=500 and
-        max_frac_erode=0.005 are near the stability threshold for single cross-section
-        simulations we have run. Surprisingly, multiXC simulations seem somewhat more
-        stable. That is, a larger value of max_frac_erode will still be numerically
-        stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
-        of cross-sections can enhance instability, though normally large numbers of
-        cross-sections are needed to see this effect.
-        Increasing xc_n requires a decrease in max_frac_erode.
-        Similarly, if the precise shape of the cross-section is not of much concern,
-        one could decrease xc_n and increase max_frac_erode, while still maintaining
-        numerical stability. Note that this will speed up the simulations for two
-        reasons: 1) It decreases the number of points for which erosion must be
-        calculated, and 2) The timestep will adjust to a larger value, enabling
-        faster simulation of a certain duration of time.
+    Notes
+    -----
+    To maximize efficiency, use adapative time-stepping. Our tests of stability
+    suggest that increasing the number of points in the cross-section (xc_n)
+    decreases numerical stability, though it also increases accuracy with which
+    the cross-sectional shape is represented. Our default values of xc_n=500 and
+    max_frac_erode=0.005 are near the stability threshold for single cross-section
+    simulations we have run. Surprisingly, multiXC simulations seem somewhat more
+    stable. That is, a larger value of max_frac_erode will still be numerically
+    stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
+    of cross-sections can enhance instability, though normally large numbers of
+    cross-sections are needed to see this effect.
+    Increasing xc_n requires a decrease in max_frac_erode.
+    Similarly, if the precise shape of the cross-section is not of much concern,
+    one could decrease xc_n and increase max_frac_erode, while still maintaining
+    numerical stability. Note that this will speed up the simulations for two
+    reasons: 1) It decreases the number of points for which erosion must be
+    calculated, and 2) The timestep will adjust to a larger value, enabling
+    faster simulation of a certain duration of time.
     """
     def __init__(
         self,
@@ -363,7 +369,10 @@ class multiXC(sim):
         a=1.0,
         K=1e-5,
         layer_elevs=None,
-    ):
+        layer_solubility=None,
+        K_sol=1e-5,
+        a_sol=0.5,
+        ):
         super(multiXC, self).__init__()
         self.singleXC = False
         self.n_nodes = x_arr.size
@@ -389,6 +398,9 @@ class multiXC(sim):
         self.trim = trim
         self.a = a
         self.K = K
+        self.K_sol = K_sol
+        self.a_sol = a_sol
+        self.layer_solubility = layer_solubility
         self.set_layers(layer_elevs)
 
         self.V_w = np.zeros(self.n_nodes - 1)
@@ -599,7 +611,7 @@ class multiXC(sim):
             else:
                 # print('layer_elevs=',self.layer_elevs)
                 # print('init_z=',self.init_z[i+1])
-                if len(self.init_z == len(self.xcs)):
+                if len(self.init_z) == len(self.xcs):
                     absolute_layer_elevs = self.layer_elevs - self.init_z[i]
                 else:
                     absolute_layer_elevs = self.layer_elevs - self.init_z[i + 1]
@@ -610,6 +622,22 @@ class multiXC(sim):
                     layer_elevs=absolute_layer_elevs,
                     dt=self.dt_erode,
                 )
+                if self.layer_solubility is not None:
+                    if len(self.layer_solubility) == len(self.K):
+                        K_sol_list = np.zeros(len(self.K))
+                        K_sol_list[self.layer_solubility] = self.K_sol
+                        xc.erode_power_law_layered(
+                            a=self.a_sol,
+                            K=K_sol_list,
+                            layer_elevs=absolute_layer_elevs,
+                            dt=self.dt_erode,
+                        )
+                    else:
+                        print(
+                            "Number of layer solubility entries must equal number of layers."
+                        )
+                        raise IndexError
+
             self.ymins[i] = xc.ymin
 
         # Adjust slopes
@@ -813,101 +841,109 @@ class multiXCGVF(multiXC):
     """Simulation with multiple cross-sections that assumes gradually varied flow.
     
     Parameters
-        ----------
-        x_arr : ndarray
-            Array of distances in meters along the channel for the node locations.
-        z_arr: ndarray
-            Array of elevations in meters for nodes along the channel. Minimum y
-            values for each cross-section will be added to these elevations
-            during initialization, so that z_arr will represent the channel bottom.
-        Q_w : float, optional
-            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
-        f : float or ndarray, optional
-            Darcy-Weisbach friction factor (unitless). If an array is provided with
-            a length equal to the number of cross-sections, then independent values
-            will be asigned to each cross-section. Default is 0.1.
-        n_mann: float or ndarray, optional
-            Manning's n. If specified, then f will be calculated from n_mann
-            and R_h during flow calculations (which will still use the Darcy-
-            Weisbach equation). Default is None.
-        init_radii : float or ndarray, optional
-            Initial cross-section radii (meters). If a float then all cross-sections
-            will be assigned the same radius. If an array then each element
-            represents the radius of a single cross-section (length should be n-1
-            where n is the number of nodes). Default is 0.5 m.
-        shape_dict: dict, optional
-            A dictionary of cross-sectional shape parameters, including name and
-            keyword parameters for function in ShapeGen. If this is provided,
-            then init_radii is ignored.
-        init_offsets : float or ndarray, optional
-            These offsets will be added to y-values within initial cross-sections.
-            By default, y will be zero at the centroid of the initial cross-section.
-            Default value is zero. Should have length of n-1, where n is number of
-            nodes.
-        xc_n : int, optional
-            Number of points that will define the cave passage shape within a
-            cross-section. Default is 1000.
-        dt_erode : float, optional
-            Erosional time step in years. Default value is 1 year.
-        uplift : float or list of floats
-            Rate of change of baselevel. This distance is subtracted
-            from the elevation of the downstream boundary node during
-            each timestep.
-        uplift_times : list
-            Times in years at which uplift rates change. This argument is included if
-            uplift is a list of different uplift rates.
-        adaptive_step : boolean, optional
-            Whether or not to adjust timestep dynamically. Default is False.
-        max_frac_erode : float, optional
-            Maximum fraction of radial distance to erode within a single timestep
-            under adaptive time-stepping. If erosion exceeds this fraction, then
-            the timestep will be reduced. If erosion is much less than this fraction,
-            then the timestep will be increased. We have not conducted a detailed
-            stability analysis. However, initial tests show 0.01 leads to instability,
-            whereas the default value is stable. If instabilities occur, and adaptive
-            time-stepping is enabled, decreasing this fraction may help.
-            Default = 0.005.
-        trim : boolean, optional
-            Whether or not cross-sections should be trimmed as much of the
-            cross-section becomes dry. This enables maintenance of a high
-            resolution of the wet portion of the cross-section for simulations
-            with substantial incision. If this is set to False, long-term
-            simulations are likely to become unstable. Default is True.
-        a : float, optional
-            Exponent in power law erosion rule (default=1).
-        K : float or list, optional
-            Erodibility in power law erosion rule (default = 1e-5).
-            If multiple layers are specified, then this is a list of
-            erodibilities listed from lowest to highest elevation.
-        layer_elevs : list of floats, optional
-            Specifies a list of elevations (from low to high), where rock
-            erodibility changes. If specified, K should be a list with
-            one more item than this list.
-        abs_tol : float
-            Maximum allowed error for flow solver.
-        max_iterations: int
-            Maximum number of allowed iterations for flow solver.
+    ----------
+    x_arr : ndarray
+        Array of distances in meters along the channel for the node locations.
+    z_arr: ndarray
+        Array of elevations in meters for nodes along the channel. Minimum y
+        values for each cross-section will be added to these elevations
+        during initialization, so that z_arr will represent the channel bottom.
+    Q_w : float, optional
+        Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+    f : float or ndarray, optional
+        Darcy-Weisbach friction factor (unitless). If an array is provided with
+        a length equal to the number of cross-sections, then independent values
+        will be asigned to each cross-section. Default is 0.1.
+    n_mann: float or ndarray, optional
+        Manning's n. If specified, then f will be calculated from n_mann
+        and R_h during flow calculations (which will still use the Darcy-
+        Weisbach equation). Default is None.
+    init_radii : float or ndarray, optional
+        Initial cross-section radii (meters). If a float then all cross-sections
+        will be assigned the same radius. If an array then each element
+        represents the radius of a single cross-section (length should be n-1
+        where n is the number of nodes). Default is 0.5 m.
+    shape_dict: dict, optional
+        A dictionary of cross-sectional shape parameters, including name and
+        keyword parameters for function in ShapeGen. If this is provided,
+        then init_radii is ignored.
+    init_offsets : float or ndarray, optional
+        These offsets will be added to y-values within initial cross-sections.
+        By default, y will be zero at the centroid of the initial cross-section.
+        Default value is zero. Should have length of n-1, where n is number of
+        nodes.
+    xc_n : int, optional
+        Number of points that will define the cave passage shape within a
+        cross-section. Default is 1000.
+    dt_erode : float, optional
+        Erosional time step in years. Default value is 1 year.
+    uplift : float or list of floats
+        Rate of change of baselevel. This distance is subtracted
+        from the elevation of the downstream boundary node during
+        each timestep.
+    uplift_times : list
+        Times in years at which uplift rates change. This argument is included if
+        uplift is a list of different uplift rates.
+    adaptive_step : boolean, optional
+        Whether or not to adjust timestep dynamically. Default is False.
+    max_frac_erode : float, optional
+        Maximum fraction of radial distance to erode within a single timestep
+        under adaptive time-stepping. If erosion exceeds this fraction, then
+        the timestep will be reduced. If erosion is much less than this fraction,
+        then the timestep will be increased. We have not conducted a detailed
+        stability analysis. However, initial tests show 0.01 leads to instability,
+        whereas the default value is stable. If instabilities occur, and adaptive
+        time-stepping is enabled, decreasing this fraction may help.
+        Default = 0.005.
+    trim : boolean, optional
+        Whether or not cross-sections should be trimmed as much of the
+        cross-section becomes dry. This enables maintenance of a high
+        resolution of the wet portion of the cross-section for simulations
+        with substantial incision. If this is set to False, long-term
+        simulations are likely to become unstable. Default is True.
+    a : float, optional
+        Exponent in power law erosion rule (default=1).
+    K : float or list, optional
+        Erodibility in power law erosion rule (default = 1e-5).
+        If multiple layers are specified, then this is a list of
+        erodibilities listed from lowest to highest elevation.
+    layer_elevs : list of floats, optional
+        Specifies a list of elevations (from low to high), where rock
+        erodibility changes. If specified, K should be a list with
+        one more item than this list.
+    abs_tol : float
+        Maximum allowed error for flow solver.
+    max_iterations: int
+        Maximum number of allowed iterations for flow solver.
+    layer_solubility : list of booleans, optional
+        Specifies which layers, if any, are soluble. Set soluble layers to
+        True.
+    K_sol : float, optional
+        Erodibility in dissolution power law erosion rule (default = 1e-5).
+    a_sol : float, optional
+        Exponent in power law erosion rule for dissolution. (Default=0.5)
 
-        Notes
-        -----
-        To maximize efficiency, use adapative time-stepping. Our tests of stability
-        suggest that increasing the number of points in the cross-section (xc_n)
-        decreases numerical stability, though it also increases accuracy with which
-        the cross-sectional shape is represented. Our default values of xc_n=500 and
-        max_frac_erode=0.005 are near the stability threshold for single cross-section
-        simulations we have run. Surprisingly, multiXC simulations seem somewhat more
-        stable. That is, a larger value of max_frac_erode will still be numerically
-        stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
-        of cross-sections can enhance instability, though normally large numbers of
-        cross-sections are needed to see this effect.
-        Increasing xc_n requires a decrease in max_frac_erode.
-        Similarly, if the precise shape of the cross-section is not of much concern,
-        one could decrease xc_n and increase max_frac_erode, while still maintaining
-        numerical stability. Note that this will speed up the simulations for two
-        reasons: 1) It decreases the number of points for which erosion must be
-        calculated, and 2) The timestep will adjust to a larger value, enabling
-        faster simulation of a certain duration of time.
-        """
+
+    Notes
+    -----
+    To maximize efficiency, use adapative time-stepping. Our tests of stability
+    suggest that increasing the number of points in the cross-section (xc_n)
+    decreases numerical stability, though it also increases accuracy with which
+    the cross-sectional shape is represented. Our default values of xc_n=500 and
+    max_frac_erode=0.005 are near the stability threshold for single cross-section
+    simulations we have run. Surprisingly, multiXC simulations seem somewhat more
+    stable. That is, a larger value of max_frac_erode will still be numerically
+    stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
+    of cross-sections can enhance instability, though normally large numbers of
+    cross-sections are needed to see this effect.
+    Increasing xc_n requires a decrease in max_frac_erode.
+    Similarly, if the precise shape of the cross-section is not of much concern,
+    one could decrease xc_n and increase max_frac_erode, while still maintaining
+    numerical stability. Note that this will speed up the simulations for two
+    reasons: 1) It decreases the number of points for which erosion must be
+    calculated, and 2) The timestep will adjust to a larger value, enabling
+    faster simulation of a certain duration of time.
+    """
 
     def __init__(
         self,
@@ -931,6 +967,9 @@ class multiXCGVF(multiXC):
         layer_elevs=None,
         abs_tol=0.001,
         max_iterations=50,
+        layer_solubility=None,
+        K_sol=1e-5,
+        a_sol=0.5,
     ):
         super(multiXC, self).__init__()
         self.singleXC = False
@@ -957,6 +996,10 @@ class multiXCGVF(multiXC):
         self.trim = trim
         self.a = a
         self.K = K
+        self.K_sol = K_sol
+        self.a_sol = a_sol
+        self.layer_solubility = layer_solubility
+
         self.set_layers(layer_elevs)
 
         self.V_w = np.zeros(self.n_nodes)
@@ -1308,10 +1351,7 @@ class multiXCGVF_midXCs(multiXC):
         layer_elevs=None,
         abs_tol=0.001,
         max_iterations=50,
-    ):
-
-        """
-        """
+    ):        
         super(multiXC, self).__init__()
         self.singleXC = False
         self.n_nodes = x_arr.size
@@ -1596,35 +1636,35 @@ class spim(sim):
     """Simulation for channel profile evolution using the stream power incision model.
     
     Parameters
-        ----------
-        x_arr : ndarray
-            Array of distances in meters along the channel for the node locations.
-        z_arr : ndarray
-            Array of elevations in meters for nodes along the channel. Minimum y
-            values for each cross-section will be added to these elevations
-            during initialization, so that z_arr will represent the channel bottom.
-        uplift : float or list of floats
-            Rate of change of baselevel. This distance is subtracted
-            from the elevation of the downstream boundary node during
-            each timestep.
-        uplift_times : list
-            Times in years at which uplift rates change. This argument is included if
-            dz0_dt is a list of different uplift rates.
-        Q_w : float, optional
-            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
-        dt_erode : float, optional
-            Erosional time step in years. Default value is 1 year.
-        a : float, optional
-            Exponent in power law erosion rule (default=1).
-        K : float or list, optional
-            Erodibility in power law erosion rule (default = 1e-5).
-            If multiple layers are specified, then this is a list of
-            erodibilities listed from lowest to highest elevation.
-        layer_elevs : list of floats, optional
-            Specifies a list of elevations (from low to high), where rock
-            erodibility changes. If specified, K should be a list with
-            one more item than this list.
-        """
+    ----------
+    x_arr : ndarray
+        Array of distances in meters along the channel for the node locations.
+    z_arr : ndarray
+        Array of elevations in meters for nodes along the channel. Minimum y
+        values for each cross-section will be added to these elevations
+        during initialization, so that z_arr will represent the channel bottom.
+    uplift : float or list of floats
+        Rate of change of baselevel. This distance is subtracted
+        from the elevation of the downstream boundary node during
+        each timestep.
+    uplift_times : list
+        Times in years at which uplift rates change. This argument is included if
+        dz0_dt is a list of different uplift rates.
+    Q_w : float, optional
+        Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+    dt_erode : float, optional
+        Erosional time step in years. Default value is 1 year.
+    a : float, optional
+        Exponent in power law erosion rule (default=1).
+    K : float or list, optional
+        Erodibility in power law erosion rule (default = 1e-5).
+        If multiple layers are specified, then this is a list of
+        erodibilities listed from lowest to highest elevation.
+    layer_elevs : list of floats, optional
+        Specifies a list of elevations (from low to high), where rock
+        erodibility changes. If specified, K should be a list with
+        one more item than this list.
+    """
 
     def __init__(
         self,
