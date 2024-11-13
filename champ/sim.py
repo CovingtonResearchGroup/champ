@@ -1,10 +1,12 @@
+from click import option
 import numpy as np
 from scipy.optimize import root_scalar, minimize_scalar, shgo
+from scipy.special import gamma
 
 from champ.crossSection import CrossSection
 from champ.utils.ShapeGen import name_to_function, genCirc
 from champ.utils import ShapeGen
-# import debugpy
+import debugpy
 
 SMALL = 1e-5
 WARN_ERR = (
@@ -15,7 +17,6 @@ alpha = 1.1  # Coriolis coefficient, assumed constant but could vary with veloci
 
 
 class sim:
-    """Base simulation class, for inheritance by more specific simulation types"""
     def __init__(self):
         self.elapsed_time = 0.0
         self.timestep = 0
@@ -43,6 +44,10 @@ class sim:
 
         Calculates flow depth and erosion for
         a single time step and updates geometry.
+
+        Parameters
+        ----------
+
         """
 
         self.elapsed_time += self.dt_erode
@@ -60,7 +65,6 @@ class sim:
         pass
 
     def apply_uplift(self):
-        """Apply one timestep of uplift"""
         if isinstance(self.uplift, list):
             if self.uplift_idx < len(self.uplift) - 1:
                 if self.elapsed_time >= self.uplift_times[self.uplift_idx]:
@@ -75,7 +79,6 @@ class sim:
         )
 
     def set_layers(self, layer_elevs):
-        """Set elevations of rock layers"""
         if layer_elevs is not None:
             # Check that number of contacts and K's match
             n_layers = len(self.K)
@@ -104,9 +107,24 @@ class sim:
 
 
 class singleXC(sim):
-    """Simulation with a single channel cross-section
-    
-    Parameters
+    def __init__(
+        self,
+        init_radius=1.0,
+        Q_w=1.0,
+        slope=0.001,
+        dt_erode=1.0,
+        adaptive_step=False,
+        max_frac_erode=0.005,
+        f=0.1,
+        n_mann=None,
+        xc_n=500,
+        trim=True,
+        a=1.0,
+        K=1e-5,
+        layer_elevs=None,
+    ):
+        """
+        Parameters
         ----------
         Q_w : float, optional
             Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
@@ -170,24 +188,8 @@ class singleXC(sim):
         reasons: 1) It decreases the number of points for which erosion must be
         calculated, and 2) The timestep will adjust to a larger value, enabling
         faster simulation of a certain duration of time.
-    """
 
-    def __init__(
-        self,
-        init_radius=1.0,
-        Q_w=1.0,
-        slope=0.001,
-        dt_erode=1.0,
-        adaptive_step=False,
-        max_frac_erode=0.005,
-        f=0.1,
-        n_mann=None,
-        xc_n=500,
-        trim=True,
-        a=1.0,
-        K=1e-5,
-        layer_elevs=None,
-    ):
+        """
         super(singleXC, self).__init__()
         self.singleXC = True
         self.init_radius = init_radius
@@ -209,11 +211,7 @@ class singleXC(sim):
         self.set_layers(layer_elevs)
 
     def calc_flow(self):
-        """Calculate flow depth.
-        
-        Parameters
-        ----------
-        """
+        """Calculate flow depth."""
         old_fd = self.xc.fd
         self.xc.create_A_interp()
         self.xc.create_P_interp()
@@ -227,6 +225,9 @@ class singleXC(sim):
 
     def erode(self):
         """Erode the cross-section.
+
+        Parameters
+        ----------
         """
         if not self.layered_sim:
             self.xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode)
@@ -247,108 +248,209 @@ class singleXC(sim):
                 print("Increasing timestep to " + str(self.dt_erode))
 
 
-class multiXC(sim):
-    """Simulation with multiple channel cross-sections.
-   
-    Parameters
-    ----------
-    x_arr : ndarray
-        Array of distances in meters along the channel for the node locations.
-    z_arr: ndarray
-        Array of elevations in meters for nodes along the channel. Minimum y
-        values for each cross-section will be added to these elevations
-        during initialization, so that z_arr will represent the channel bottom.
-    Q_w : float, optional
-        Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
-    f : float or ndarray, optional
-        Darcy-Weisbach friction factor (unitless). If an array is provided with
-        a length equal to the number of cross-sections, then independent values
-        will be asigned to each cross-section. Default is 0.1.
-    n_mann: float or ndarray, optional
-        Manning's n. If specified, then f will be calculated from n_mann
-        and R_h during flow calculations (which will still use the Darcy-
-        Weisbach equation). Default is None.
-    init_radii : float or ndarray, optional
-        Initial cross-section radii (meters). If a float then all cross-sections
-        will be assigned the same radius. If an array then each element
-        represents the radius of a single cross-section (length should be n-1
-        where n is the number of nodes). Default is 0.5 m.
-    shape_dict : dict, optional
-        A dictionary of cross-sectional shape parameters, including name and
-        keyword parameters for function in ShapeGen. If this is provided,
-        then init_radii is ignored.
-    init_offsets : float or ndarray, optional
-        These offsets will be added to y-values within initial cross-sections.
-        By default, y will be zero at the centroid of the initial cross-section.
-        Default value is zero. Should have length of n-1, where n is number of
-        nodes.
-    xc_n : int, optional
-        Number of points that will define the cave passage shape within a
-        cross-section. Default is 1000.
-    dt_erode : float, optional
-        Erosional time step in years. Default value is 1 year.
-    uplift : float or list of floats
-        Rate of change of baselevel. This distance is subtracted
-        from the elevation of the downstream boundary node during
-        each timestep.
-    uplift_times : list
-        Times in years at which uplift rates change. This argument is included if
-        uplift is a list of different uplift rates.
-    adaptive_step : boolean, optional
-        Whether or not to adjust timestep dynamically. Default is False.
-    max_frac_erode : float, optional
-        Maximum fraction of radial distance to erode within a single timestep
-        under adaptive time-stepping. If erosion exceeds this fraction, then
-        the timestep will be reduced. If erosion is much less than this fraction,
-        then the timestep will be increased. We have not conducted a detailed
-        stability analysis. However, initial tests show 0.01 leads to instability,
-        whereas the default value is stable. If instabilities occur, and adaptive
-        time-stepping is enabled, decreasing this fraction may help.
-        Default = 0.005.
-    trim : boolean, optional
-        Whether or not cross-sections should be trimmed as much of the
-        cross-section becomes dry. This enables maintenance of a high
-        resolution of the wet portion of the cross-section for simulations
-        with substantial incision. If this is set to False, long-term
-        simulations are likely to become unstable. Default is True.
-    a : float, optional
-        Exponent in power law erosion rule (default=1).
-    K : float or list, optional
-        Erodibility in power law erosion rule (default = 1e-5).
-        If multiple layers are specified, then this is a list of
-        erodibilities listed from lowest to highest elevation.
-    layer_elevs : list of floats, optional
-        Specifies a list of elevations (from low to high), where rock
-        erodibility changes. If specified, K should be a list with
-        one more item than this list.
-    layer_solubility : list of booleans, optional
-        Specifies which layers, if any, are soluble. Set soluble layers to
-        True.
-    K_sol : float, optional
-        Erodibility in dissolution power law erosion rule (default = 1e-5).
-    a_sol : float, optional
-        Exponent in power law erosion rule for dissolution. (Default=0.5)
+def pdf_Q(Q, Q_mean=1.0, kQ=1.0):
+    return (
+        (Q_mean * kQ) ** (kQ + 1)
+        / gamma(kQ + 1)
+        * np.exp(-kQ * Q_mean / Q)
+        * Q ** (-2 - kQ)
+    )
 
-    Notes
-    -----
-    To maximize efficiency, use adapative time-stepping. Our tests of stability
-    suggest that increasing the number of points in the cross-section (xc_n)
-    decreases numerical stability, though it also increases accuracy with which
-    the cross-sectional shape is represented. Our default values of xc_n=500 and
-    max_frac_erode=0.005 are near the stability threshold for single cross-section
-    simulations we have run. Surprisingly, multiXC simulations seem somewhat more
-    stable. That is, a larger value of max_frac_erode will still be numerically
-    stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
-    of cross-sections can enhance instability, though normally large numbers of
-    cross-sections are needed to see this effect.
-    Increasing xc_n requires a decrease in max_frac_erode.
-    Similarly, if the precise shape of the cross-section is not of much concern,
-    one could decrease xc_n and increase max_frac_erode, while still maintaining
-    numerical stability. Note that this will speed up the simulations for two
-    reasons: 1) It decreases the number of points for which erosion must be
-    calculated, and 2) The timestep will adjust to a larger value, enabling
-    faster simulation of a certain duration of time.
-    """
+
+class singleXC_multiQ(singleXC):
+    """Simulation object for single cross-sections and multiple discharges."""
+
+    def __init__(
+        self,
+        init_radius=1.0,
+        Q_mean=1.0,
+        slope=0.001,
+        dt_erode=1.0,
+        adaptive_step=False,
+        max_frac_erode=0.005,
+        f=0.1,
+        n_mann=None,
+        xc_n=500,
+        trim=True,
+        a=1.0,
+        K=1e-5,
+        layer_elevs=None,
+        kQ=1.0,
+        nQ=20,
+        Q_min_mult=0.1,
+        Q_max_mult=20,
+    ):
+        """
+        Parameters
+        ----------
+        Q_mean : float, optional
+            Mean discharge in the channel (m^3/s). Default is 1 m^3/s.
+        f : float, optional
+            Darcy-Weisbach friction factor (unitless), used in both water flow and air
+            flow calculations. Default is 0.1.
+        n_mann: float or ndarray, optional
+            Manning's n. If specified, then f will be calculated from n_mann
+            and R_h during flow calculations (which will still use the Darcy-
+            Weisbach equation). Default is None.
+        init_radius : float, optional
+            Initial cross-section radius (meters). Default is 1 m.
+        xc_n : int, optional
+            Number of points that will define the channel cross-section shape.
+            Higher numbers of points can produce numerical instability, requiring
+            smaller values of dt_erode or max_frac_erode. Default number is 500.
+        slope : float
+            Prescribed channel slope. Default is 0.001.
+        dt_erode : float, optional
+            Erosional time step in years. Default value is 1 year.
+        adaptive_step : boolean, optional
+            Whether or not to adjust timestep dynamically. Default is False.
+        max_frac_erode : float, optional
+            Maximum fraction of radial distance to erode within a single timestep
+            under adaptive time-stepping. If erosion exceeds this fraction, then
+            the timestep will be reduced. If erosion is much less than this fraction,
+            then the timestep will be increased. We have not conducted a detailed
+            stability analysis. However, initial tests show 0.01 leads to instability,
+            whereas the default value is stable. If instabilities occur, and adaptive
+            time-stepping is enabled, decreasing this fraction may help.
+            Default = 0.005.
+        trim : boolean, optional
+            Whether or not cross-sections should be trimmed as much of the
+            cross-section becomes dry. This enables maintenance of a high
+            resolution of the wet portion of the cross-section for simulations
+            with substantial incision. If this is set to False, long-term
+            simulations are likely to become unstable. Default is True.
+        a : float, optional
+            Exponent in power law erosion rule (default=1).
+        K : float or list, optional
+            Erodibility in power law erosion rule (default = 1e-5).
+            If multiple layers are specified, then this is a list of
+            erodibilities listed from lowest to highest elevation.
+        layer_elevs : list of floats, optional
+            Specifies a list of elevations (from low to high), where rock
+            erodibility changes. If specified, K should be a list with
+            one more item than this list.
+        kQ : float, optional
+            The k value in the discharge pdf. Ranges between about 0.1 and 3 (Lague et al., 2005).
+            Value is lower for more arid environments. Default value is 1.
+        nQ : int, optional,
+            The number of discharge values to use in the multi-discharge simulation (Default=20).
+        Q_min_mult : float, optional
+            The minimum multiple of mean discharge to simulate (Default=0.1).
+        Q_max_mult : float, optional
+            The maximum multiple of mean discharge to simulate (Default=20).
+
+
+        Notes
+        -----
+        To maximize efficiency, use adapative time-stepping. Our tests of stability
+        suggest that increasing the number of points in the cross-section (xc_n)
+        decreases numerical stability, though it also increases accuracy with which
+        the cross-sectional shape is represented. Our default values of xc_n=500 and
+        max_frac_erode=0.005 are near the stability threshold for the example cases
+        we have run. In our judgment, these values are near optimum for balancing
+        fidelity and stability. Increasing xc_n requires a decrease in max_frac_erode.
+        Similarly, if the precise shape of the cross-section is not of much concern,
+        one could decrease xc_n and increase max_frac_erode, while still maintaining
+        numerical stability. Note that this will speed up the simulations for two
+        reasons: 1) It decreases the number of points for which erosion must be
+        calculated, and 2) The timestep will adjust to a larger value, enabling
+        faster simulation of a certain duration of time.
+
+        """
+        super(singleXC, self).__init__()
+        self.singleXC = True
+        self.init_radius = init_radius
+        self.Q_mean = Q_mean
+        self.Q_w = 0.0
+        self.slope = slope
+        self.dt_erode = dt_erode
+        self.old_dt = dt_erode
+        self.adaptive_step = adaptive_step
+        self.max_frac_erode = max_frac_erode
+        self.f = f
+        self.xc_n = xc_n
+        self.kQ = kQ
+        self.nQ = nQ
+        self.Q_min_mult = Q_min_mult
+        self.Q_max_mult = Q_max_mult
+        # Calculate Q values evenly in log space
+        logQmin = np.log10(Q_min_mult * Q_mean)
+        logQmax = np.log10(Q_max_mult * Q_mean)
+        logQarr = np.linspace(logQmin, logQmax, nQ)
+        self.Q_arr = 10**logQarr
+        self.pdf_Q = pdf_Q(self.Q_arr, Q_mean=self.Q_mean, kQ=self.kQ)
+        self.pdf_Q_frac = self.pdf_Q / self.pdf_Q.sum()
+
+        x, y = genCirc(init_radius, n=xc_n)
+        self.xc = CrossSection(x, y, f=f, n_mann=n_mann)
+
+        self.trim = trim
+        self.a = a
+        self.K = K
+        self.set_layers(layer_elevs)
+
+    def erode(self, dt_frac=1.0):
+        """Erode the cross-section.
+
+        Parameters
+        ----------
+        dt_frac : float
+            The fraction of the timestep during which this erosion rate occurs.
+        """
+        if not self.layered_sim:
+            self.xc.erode_power_law(
+                a=self.a, K=self.K, dt=self.dt_erode * dt_frac, no_erode=True
+            )
+        else:
+            self.xc.erode_power_law_layered(
+                a=self.a,
+                K=self.K,
+                layer_elevs=self.layer_elevs,
+                dt=self.dt_erode * dt_frac,
+                no_erode=True,
+            )
+
+    def run_one_step(self):
+        """Run one time step of simulation.
+
+        Calculates flow depths and erosion rates
+        a single time step for all discharges.
+
+        Parameters
+        ----------
+
+        """
+
+        self.elapsed_time += self.dt_erode
+        self.timestep += 1
+        dr_tot = np.zeros(self.xc.n)
+        for i, Q_w in enumerate(self.Q_arr):
+            self.Q_w = Q_w
+            self.calc_flow()
+            self.erode(dt_frac=self.pdf_Q_frac[i], no_erode=True)
+            dr_tot[self.xc.wetidx] += self.xc.dr
+
+        # For multiQ sims this assumes largest discharge is last
+        self.xc.erode(dr_tot[self.xc.wetidx])
+
+        if self.adaptive_step:
+            # Check for percent change in radial distance
+            # For multiQ sims this assumes largest discharge is last
+            frac_erode = dr_tot[self.xc.wetidx] / self.xc.r_l
+            if frac_erode.max() > self.max_frac_erode:
+                # Timestep is too big, reduce it
+                self.dt_erode = self.dt_erode / 1.5
+                print("Reducing timestep to " + str(self.dt_erode))
+            elif frac_erode.max() < 0.5 * self.max_frac_erode:
+                # Timestep is too small, increase it
+                self.dt_erode = self.dt_erode * 1.5
+                print("Increasing timestep to " + str(self.dt_erode))
+
+
+class multiXC(sim):
+    """Simulation object for a channel profile with multiple cross-sections eroded by a
+    shear stress power law rule."""
+
     def __init__(
         self,
         x_arr,
@@ -372,7 +474,107 @@ class multiXC(sim):
         layer_solubility=None,
         K_sol=1e-5,
         a_sol=0.5,
-        ):
+    ):
+        """
+        Parameters
+        ----------
+        x_arr : ndarray
+            Array of distances in meters along the channel for the node locations.
+        z_arr: ndarray
+            Array of elevations in meters for nodes along the channel. Minimum y
+            values for each cross-section will be added to these elevations
+            during initialization, so that z_arr will represent the channel bottom.
+        Q_w : float, optional
+            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+        f : float or ndarray, optional
+            Darcy-Weisbach friction factor (unitless). If an array is provided with
+            a length equal to the number of cross-sections, then independent values
+            will be asigned to each cross-section. Default is 0.1.
+        n_mann: float or ndarray, optional
+            Manning's n. If specified, then f will be calculated from n_mann
+            and R_h during flow calculations (which will still use the Darcy-
+            Weisbach equation). Default is None.
+        init_radii : float or ndarray, optional
+            Initial cross-section radii (meters). If a float then all cross-sections
+            will be assigned the same radius. If an array then each element
+            represents the radius of a single cross-section (length should be n-1
+            where n is the number of nodes). Default is 0.5 m.
+        shape_dict : dict, optional
+            A dictionary of cross-sectional shape parameters, including name and
+            keyword parameters for function in ShapeGen. If this is provided,
+            then init_radii is ignored.
+        init_offsets : float or ndarray, optional
+            These offsets will be added to y-values within initial cross-sections.
+            By default, y will be zero at the centroid of the initial cross-section.
+            Default value is zero. Should have length of n-1, where n is number of
+            nodes.
+        xc_n : int, optional
+            Number of points that will define the cave passage shape within a
+            cross-section. Default is 1000.
+        dt_erode : float, optional
+            Erosional time step in years. Default value is 1 year.
+        uplift : float or list of floats
+            Rate of change of baselevel. This distance is subtracted
+            from the elevation of the downstream boundary node during
+            each timestep.
+        uplift_times : list
+            Times in years at which uplift rates change. This argument is included if
+            uplift is a list of different uplift rates.
+        adaptive_step : boolean, optional
+            Whether or not to adjust timestep dynamically. Default is False.
+        max_frac_erode : float, optional
+            Maximum fraction of radial distance to erode within a single timestep
+            under adaptive time-stepping. If erosion exceeds this fraction, then
+            the timestep will be reduced. If erosion is much less than this fraction,
+            then the timestep will be increased. We have not conducted a detailed
+            stability analysis. However, initial tests show 0.01 leads to instability,
+            whereas the default value is stable. If instabilities occur, and adaptive
+            time-stepping is enabled, decreasing this fraction may help.
+            Default = 0.005.
+        trim : boolean, optional
+            Whether or not cross-sections should be trimmed as much of the
+            cross-section becomes dry. This enables maintenance of a high
+            resolution of the wet portion of the cross-section for simulations
+            with substantial incision. If this is set to False, long-term
+            simulations are likely to become unstable. Default is True.
+        a : float, optional
+            Exponent in power law erosion rule (default=1).
+        K : float or list, optional
+            Erodibility in power law erosion rule (default = 1e-5).
+            If multiple layers are specified, then this is a list of
+            erodibilities listed from lowest to highest elevation.
+        layer_elevs : list of floats, optional
+            Specifies a list of elevations (from low to high), where rock
+            erodibility changes. If specified, K should be a list with
+            one more item than this list.
+        layer_solubility : list of booleans, optional
+            Specifies which layers, if any, are soluble. Set soluble layers to
+            True.
+        K_sol : float, optional
+            Erodibility in dissolution power law erosion rule (default = 1e-5).
+        a_sol : float, optional
+            Exponent in power law erosion rule for dissolution. (Default=0.5)
+
+        Notes
+        -----
+        To maximize efficiency, use adapative time-stepping. Our tests of stability
+        suggest that increasing the number of points in the cross-section (xc_n)
+        decreases numerical stability, though it also increases accuracy with which
+        the cross-sectional shape is represented. Our default values of xc_n=500 and
+        max_frac_erode=0.005 are near the stability threshold for single cross-section
+        simulations we have run. Surprisingly, multiXC simulations seem somewhat more
+        stable. That is, a larger value of max_frac_erode will still be numerically
+        stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
+        of cross-sections can enhance instability, though normally large numbers of
+        cross-sections are needed to see this effect.
+        Increasing xc_n requires a decrease in max_frac_erode.
+        Similarly, if the precise shape of the cross-section is not of much concern,
+        one could decrease xc_n and increase max_frac_erode, while still maintaining
+        numerical stability. Note that this will speed up the simulations for two
+        reasons: 1) It decreases the number of points for which erosion must be
+        calculated, and 2) The timestep will adjust to a larger value, enabling
+        faster simulation of a certain duration of time.
+        """
         super(multiXC, self).__init__()
         self.singleXC = False
         self.n_nodes = x_arr.size
@@ -420,15 +622,6 @@ class multiXC(sim):
         self.initialize_XCs(self.n_nodes - 1)
 
     def initialize_XCs(self, n_xcs):
-        """Initial channel cross-sections.
-        
-        Parameters
-        ----------
-        n_xcs : int
-            Number of channel cross-sections.
-        """
-
-        
         # Initialize cross-sections
         self.xcs = []
         self.radii = self.init_radii * np.ones(n_xcs)
@@ -474,11 +667,6 @@ class multiXC(sim):
 
     def calc_flow(self, h0=None):
         """Calculates flow depths and hydraulic head values along channel.
-
-        Parameters
-        ----------
-        h0 : float, optional
-            Head value ad downstream node. By default, it is set to existing head at downstream node.
 
         Notes
         -----
@@ -603,6 +791,9 @@ class multiXC(sim):
 
     def erode(self):
         """Erode the cross-sections.
+
+        Parameters
+        ----------
         """
         old_ymins = self.ymins.copy()
         for i, xc in enumerate(self.xcs):
@@ -704,10 +895,82 @@ class multiXC(sim):
 
 
 class multiXCNormalFlow(multiXC):
-    """Simulation with multiple cross-sections that assumes normal flow conditions.
-    
-    Parameters
-    ----------
+    """Simulation object for a channel profile with multiple cross-sections eroded by a
+    shear stress power law rule. That assumes normal flow conditions."""
+
+    def calc_flow(self):
+        """Calculates flow depths assuming normal flow.
+
+        Notes
+        -----
+        Starts at downstream end and propagates solution upstream. Flow is assumed
+        to be normal.
+
+        """
+        # Loop through cross-sections and solve for flow depths,
+        # starting at downstream end
+        for i, xc in enumerate(self.xcs):
+            old_fd = self.fd_mids[i]
+            if old_fd <= 0:
+                old_fd = xc.ymax - xc.ymin
+            xc.create_A_interp()
+            xc.create_P_interp()
+            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], old_fd=old_fd)
+            self.flow_type[i] = "norm"
+            if i == 0:
+                self.h[i] = norm_fd + self.z_arr[i]
+            self.h[i + 1] = self.z_arr[i + 1] + norm_fd
+            self.fd_mids[i] = norm_fd
+            # Calculate flow areas, wetted perimeters, hydraulic diameters,
+            # free surface widths, and velocities
+            self.A_w[i] = xc.calcA(depth=self.fd_mids[i])
+            self.P_w[i] = xc.calcP(depth=self.fd_mids[i])
+            self.V_w[i] = -self.Q_w / self.A_w[i]
+            self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
+            L, R = xc.findLR(self.fd_mids[i])
+            self.W[i] = xc.x[R] - xc.x[L]
+            # Set water line in cross-section object
+            xc.setFD(self.fd_mids[i])
+            # use bed slope for energy slope in this case
+            eSlope = self.slopes[i]
+            xc.setEnergySlope(eSlope)
+
+
+class multiXCGVF(multiXC):
+    """Simulation object for a channel profile with multiple cross-sections eroded by a
+    shear stress power law rule. That assumes normal flow conditions."""
+
+    def __init__(
+        self,
+        x_arr,
+        z_arr,
+        Q_w=0.1,
+        f=0.1,
+        n_mann=None,
+        init_radii=0.5,
+        shape_dict=None,
+        init_offsets=0.0,
+        xc_n=500,
+        dt_erode=1.0,
+        uplift=0.0,
+        uplift_times=None,
+        adaptive_step=False,
+        max_frac_erode=0.005,
+        trim=True,
+        a=1.0,
+        K=1e-5,
+        layer_elevs=None,
+        abs_tol=0.001,
+        max_iterations=50,
+        layer_solubility=None,
+        K_sol=1e-5,
+        a_sol=0.5,
+        mixed_regime=False,
+        upstream_bnd_type="Normal",
+    ):
+        """
+        Parameters
+        ----------
         x_arr : ndarray
             Array of distances in meters along the channel for the node locations.
         z_arr: ndarray
@@ -729,7 +992,7 @@ class multiXCNormalFlow(multiXC):
             will be assigned the same radius. If an array then each element
             represents the radius of a single cross-section (length should be n-1
             where n is the number of nodes). Default is 0.5 m.
-        shape_dict : dict, optional
+        shape_dict: dict, optional
             A dictionary of cross-sectional shape parameters, including name and
             keyword parameters for function in ShapeGen. If this is provided,
             then init_radii is ignored.
@@ -777,6 +1040,26 @@ class multiXCNormalFlow(multiXC):
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with
             one more item than this list.
+        abs_tol : float
+            Maximum allowed error for flow solver.
+        max_iterations: int
+            Maximum number of allowed iterations for flow solver.
+        layer_solubility : list of booleans, optional
+            Specifies which layers, if any, are soluble. Set soluble layers to
+            True.
+        K_sol : float, optional
+            Erodibility in dissolution power law erosion rule (default = 1e-5).
+        a_sol : float, optional
+            Exponent in power law erosion rule for dissolution. (Default=0.5)
+        mixed_regime : boolean
+            If set to true, then used a mixed-regime flow solver than allows
+            transitions between supercritical and subcritical flow. If set
+            to False, then shallowest allowed flows are critical flow. Default
+            is False. The mixed-regime solver uses the approach described
+            in the HEC-RAS Technical Reference Manual.
+        upstream_bnd_type : string
+            What type of boundary condition to apply at the upstream boundary
+            if solving for mixed-regime flow. 'Normal' or 'Critical'.
 
         Notes
         -----
@@ -797,180 +1080,7 @@ class multiXCNormalFlow(multiXC):
         reasons: 1) It decreases the number of points for which erosion must be
         calculated, and 2) The timestep will adjust to a larger value, enabling
         faster simulation of a certain duration of time.
-"""
-
-    def calc_flow(self):
-        """Calculates flow depths assuming normal flow.
-
-        Notes
-        -----
-        Starts at downstream end and propagates solution upstream. Flow is assumed
-        to be normal.
-
         """
-        # Loop through cross-sections and solve for flow depths,
-        # starting at downstream end
-        for i, xc in enumerate(self.xcs):
-            old_fd = self.fd_mids[i]
-            if old_fd <= 0:
-                old_fd = xc.ymax - xc.ymin
-            xc.create_A_interp()
-            xc.create_P_interp()
-            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i], old_fd=old_fd)
-            self.flow_type[i] = "norm"
-            if i == 0:
-                self.h[i] = norm_fd + self.z_arr[i]
-            self.h[i + 1] = self.z_arr[i + 1] + norm_fd
-            self.fd_mids[i] = norm_fd
-            # Calculate flow areas, wetted perimeters, hydraulic diameters,
-            # free surface widths, and velocities
-            self.A_w[i] = xc.calcA(depth=self.fd_mids[i])
-            self.P_w[i] = xc.calcP(depth=self.fd_mids[i])
-            self.V_w[i] = -self.Q_w / self.A_w[i]
-            self.D_H_w[i] = 4 * self.A_w[i] / self.P_w[i]
-            L, R = xc.findLR(self.fd_mids[i])
-            self.W[i] = xc.x[R] - xc.x[L]
-            # Set water line in cross-section object
-            xc.setFD(self.fd_mids[i])
-            # use bed slope for energy slope in this case
-            eSlope = self.slopes[i]
-            xc.setEnergySlope(eSlope)
-
-
-class multiXCGVF(multiXC):
-    """Simulation with multiple cross-sections that assumes gradually varied flow.
-    
-    Parameters
-    ----------
-    x_arr : ndarray
-        Array of distances in meters along the channel for the node locations.
-    z_arr: ndarray
-        Array of elevations in meters for nodes along the channel. Minimum y
-        values for each cross-section will be added to these elevations
-        during initialization, so that z_arr will represent the channel bottom.
-    Q_w : float, optional
-        Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
-    f : float or ndarray, optional
-        Darcy-Weisbach friction factor (unitless). If an array is provided with
-        a length equal to the number of cross-sections, then independent values
-        will be asigned to each cross-section. Default is 0.1.
-    n_mann: float or ndarray, optional
-        Manning's n. If specified, then f will be calculated from n_mann
-        and R_h during flow calculations (which will still use the Darcy-
-        Weisbach equation). Default is None.
-    init_radii : float or ndarray, optional
-        Initial cross-section radii (meters). If a float then all cross-sections
-        will be assigned the same radius. If an array then each element
-        represents the radius of a single cross-section (length should be n-1
-        where n is the number of nodes). Default is 0.5 m.
-    shape_dict: dict, optional
-        A dictionary of cross-sectional shape parameters, including name and
-        keyword parameters for function in ShapeGen. If this is provided,
-        then init_radii is ignored.
-    init_offsets : float or ndarray, optional
-        These offsets will be added to y-values within initial cross-sections.
-        By default, y will be zero at the centroid of the initial cross-section.
-        Default value is zero. Should have length of n-1, where n is number of
-        nodes.
-    xc_n : int, optional
-        Number of points that will define the cave passage shape within a
-        cross-section. Default is 1000.
-    dt_erode : float, optional
-        Erosional time step in years. Default value is 1 year.
-    uplift : float or list of floats
-        Rate of change of baselevel. This distance is subtracted
-        from the elevation of the downstream boundary node during
-        each timestep.
-    uplift_times : list
-        Times in years at which uplift rates change. This argument is included if
-        uplift is a list of different uplift rates.
-    adaptive_step : boolean, optional
-        Whether or not to adjust timestep dynamically. Default is False.
-    max_frac_erode : float, optional
-        Maximum fraction of radial distance to erode within a single timestep
-        under adaptive time-stepping. If erosion exceeds this fraction, then
-        the timestep will be reduced. If erosion is much less than this fraction,
-        then the timestep will be increased. We have not conducted a detailed
-        stability analysis. However, initial tests show 0.01 leads to instability,
-        whereas the default value is stable. If instabilities occur, and adaptive
-        time-stepping is enabled, decreasing this fraction may help.
-        Default = 0.005.
-    trim : boolean, optional
-        Whether or not cross-sections should be trimmed as much of the
-        cross-section becomes dry. This enables maintenance of a high
-        resolution of the wet portion of the cross-section for simulations
-        with substantial incision. If this is set to False, long-term
-        simulations are likely to become unstable. Default is True.
-    a : float, optional
-        Exponent in power law erosion rule (default=1).
-    K : float or list, optional
-        Erodibility in power law erosion rule (default = 1e-5).
-        If multiple layers are specified, then this is a list of
-        erodibilities listed from lowest to highest elevation.
-    layer_elevs : list of floats, optional
-        Specifies a list of elevations (from low to high), where rock
-        erodibility changes. If specified, K should be a list with
-        one more item than this list.
-    abs_tol : float
-        Maximum allowed error for flow solver.
-    max_iterations: int
-        Maximum number of allowed iterations for flow solver.
-    layer_solubility : list of booleans, optional
-        Specifies which layers, if any, are soluble. Set soluble layers to
-        True.
-    K_sol : float, optional
-        Erodibility in dissolution power law erosion rule (default = 1e-5).
-    a_sol : float, optional
-        Exponent in power law erosion rule for dissolution. (Default=0.5)
-
-
-    Notes
-    -----
-    To maximize efficiency, use adapative time-stepping. Our tests of stability
-    suggest that increasing the number of points in the cross-section (xc_n)
-    decreases numerical stability, though it also increases accuracy with which
-    the cross-sectional shape is represented. Our default values of xc_n=500 and
-    max_frac_erode=0.005 are near the stability threshold for single cross-section
-    simulations we have run. Surprisingly, multiXC simulations seem somewhat more
-    stable. That is, a larger value of max_frac_erode will still be numerically
-    stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
-    of cross-sections can enhance instability, though normally large numbers of
-    cross-sections are needed to see this effect.
-    Increasing xc_n requires a decrease in max_frac_erode.
-    Similarly, if the precise shape of the cross-section is not of much concern,
-    one could decrease xc_n and increase max_frac_erode, while still maintaining
-    numerical stability. Note that this will speed up the simulations for two
-    reasons: 1) It decreases the number of points for which erosion must be
-    calculated, and 2) The timestep will adjust to a larger value, enabling
-    faster simulation of a certain duration of time.
-    """
-
-    def __init__(
-        self,
-        x_arr,
-        z_arr,
-        Q_w=0.1,
-        f=0.1,
-        n_mann=None,
-        init_radii=0.5,
-        shape_dict=None,
-        init_offsets=0.0,
-        xc_n=500,
-        dt_erode=1.0,
-        uplift=0.0,
-        uplift_times=None,
-        adaptive_step=False,
-        max_frac_erode=0.005,
-        trim=True,
-        a=1.0,
-        K=1e-5,
-        layer_elevs=None,
-        abs_tol=0.001,
-        max_iterations=50,
-        layer_solubility=None,
-        K_sol=1e-5,
-        a_sol=0.5,
-    ):
         super(multiXC, self).__init__()
         self.singleXC = False
         self.n_nodes = x_arr.size
@@ -1008,10 +1118,14 @@ class multiXCGVF(multiXC):
         self.D_H_w = np.zeros(self.n_nodes)
         self.W = np.zeros(self.n_nodes)
         self.fd = np.zeros(self.n_nodes)
+        self.fd_super = np.zeros(self.n_nodes)
         self.init_offsets = np.ones(self.n_nodes) * init_offsets
 
         self.h = np.zeros(self.n_nodes)
+        self.h_super = np.zeros(self.n_nodes)
         self.flow_type = np.zeros(self.n_nodes, dtype=object)
+        self.mixed_regime = mixed_regime
+        self.upstream_bnd_type = upstream_bnd_type
 
         self.abs_tol = abs_tol
         self.max_iterations = max_iterations
@@ -1026,9 +1140,12 @@ class multiXCGVF(multiXC):
 
         Notes
         -----
-        Starts at downstream end and propagates solution upstream. Flow is assumed
+        Starts at downstream end and propagates solution upstream. Unless
+        the mixed-regime option is enabled, then flow is assumed
         to be subcritical and gradually varied. If flow depths go below critical
-        depth, then depth is assumed to be critical.
+        depth, then depth is assumed to be critical. For the mixed-regime
+        option, flow is allowed to transition between subcritical and
+        supercritical.
 
         """
         for i, xc in enumerate(self.xcs[:-1]):
@@ -1066,9 +1183,9 @@ class multiXCGVF(multiXC):
             else:
                 # Use depth from previous XC if available
                 fd_guess = self.fd[i]
-            norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
+            norm_fd = xc_up.calcNormalFlowDepth(self.Q_w, self.slopes[i])
             fd_crit = xc_up.calcCritFlowDepth(self.Q_w)
-            # print(fd_guess)
+
             try:
                 # Search for best bracket
                 n_search = 10
@@ -1152,24 +1269,207 @@ class multiXCGVF(multiXC):
                 print("Warning! Flow depth solution is inaccurate. Error is", err)
                 print("*******************************************")
 
-            xc_up.setFD(fd_sol)
-            """print(
-                "fd_sol =",
-                fd_sol,
-                "  fd_crit =",
-                fd_crit,
-                " converged =",
-                converged,
-                "  flag =",normal flow conditions
-                flag,
-            )"""
             if fd_sol < fd_crit:
                 # Force critical flow
                 fd_sol = fd_crit
+                self.flow_type[i + 1] = "crit"
+            else:
+                self.flow_type[i + 1] = "subcrit"
 
             self.h[i + 1] = self.z_arr[i + 1] + fd_sol
             self.fd[i + 1] = fd_sol
             xc_up.setFD(fd_sol)
+
+        # Solve assuming supercritical flow from upstream
+        # Note: This is quite duplicative of above code. Could
+        # probably streamline with some functions.
+        if self.mixed_regime:
+            solve_super = True
+            for i, xc_up in reversed(list(enumerate(self.xcs))):
+                if i > 0:
+                    if i == len(self.xcs) - 1:
+                        # Upstream node
+                        crit_fd = xc_up.calcCritFlowDepth(xc_up.Q)
+                        if self.upstream_bnd_type == "Normal":
+                            norm_fd = xc_up.calcNormalFlowDepth(
+                                xc_up.Q, self.slopes[i - 1]
+                            )
+                            self.h_super[i] = norm_fd + self.z_arr[i]
+                            self.fd_super[i] = norm_fd
+                        elif self.upstream_bnd_type == "Critical":
+                            self.h_super[i] = crit_fd + self.z_arr[i]
+                            self.fd_super[i] = crit_fd
+                        else:
+                            print(
+                                "Invalid option for upstream boundary type:",
+                                self.upstream_bnd_type,
+                            )
+                            raise ValueError
+                        # If upstream flow is supercritical, then begin
+                        # supercritical solution
+                        if self.fd_super[i] < crit_fd:
+                            solve_super = True
+                        else:
+                            solve_super = False
+
+                    if self.flow_type[i] == "crit":
+                        # If this is a node previously set to critical, start
+                        # or continue supercritical solution from here.
+                        if solve_super == False:
+                            # We have just encountered a new section flagged
+                            # as critical. Set depth to critical and begin
+                            # downstream solution for supercritical flow.
+                            self.fd_super[i] = self.fd[i]
+                        solve_super = True
+
+                    if solve_super:
+                        cx, cy = xc_up.findCentroid(depth=self.fd_super[i])
+                        Y_up_super = self.fd_super[i] - (cy - xc_up.ymin)
+                        A_up_super = xc_up.calcA(depth=self.fd_super[i])
+                        SF_super = (
+                            xc_up.Q**2 / (xc_up.g * A_up_super)
+                            + A_up_super * Y_up_super
+                        )
+                        cx, cy = xc_up.findCentroid(depth=self.fd[i])
+                        Y_up_sub = self.fd[i] - (cy - xc_up.ymin)
+                        A_up_sub = xc_up.calcA(depth=self.fd[i])
+                        SF_sub = xc_up.Q**2 / (xc_up.g * A_up_sub) + A_up_sub * Y_up_sub
+
+                        if SF_super < SF_sub and self.flow_type[i] != "crit":
+                            solve_super = False
+                            self.flow_type[i] = "subcrit"
+                        else:
+                            # Supercritical solution has greater specific force.
+                            # Solve for supercritical flow.
+
+                            # Set current upstream section to supercritical
+                            # and flow depth to that from supercritical
+                            # solution.
+                            self.flow_type[i] = "supercrit"
+                            self.fd[i] = self.fd_super[i]
+                            xc_up.setFD(self.fd[i])
+                            P_up_super = xc_up.calcP(depth=self.fd_super[i])
+                            D_H_up_super = 4 * A_up_super / P_up_super
+                            V_up_super = xc_up.Q / A_up_super
+                            V_head_up = alpha * V_up_super**2 / (2 * xc_up.g)
+                            H_up = self.h_super[i] + V_head_up
+                            S_f_up = (
+                                xc_up.f * V_up_super**2 / (2 * xc_up.g * D_H_up_super)
+                            )
+                            dx = self.x_arr[i] - self.x_arr[i - 1]
+                            if self.fd_super[i - 1] > 0:
+                                fd_guess = self.fd_super[i - 1]
+                            else:
+                                # Use depth from previous XC if available
+                                fd_guess = self.fd_super[i]
+                            xc_down = self.xcs[i - 1]
+                            if i > 1:
+                                this_slope = self.slopes[i - 2]
+                            else:
+                                this_slope = self.slopes[i - 1]
+                            norm_fd = xc_down.calcNormalFlowDepth(xc_down.Q, this_slope)
+                            fd_crit = xc_down.calcCritFlowDepth(xc_down.Q)
+
+                            try:
+                                # Search for best bracket
+                                n_search = 10
+                                fd_search = np.linspace(
+                                    fd_guess * 1.5,
+                                    0.05 * min([fd_crit, norm_fd]),
+                                    n_search,
+                                )
+                                bracket_found = False
+                                sign_this_res = None
+                                sign_old_res = None
+                                j = 0
+                                while not bracket_found and j + 1 < len(fd_search):
+                                    this_res = self.fd_residual(
+                                        fd_search[j],
+                                        i - 1,
+                                        H_up,
+                                        S_f_up,
+                                        dx,
+                                        solve_upstream=False,
+                                    )
+                                    # print("this_res =", this_res)
+                                    sign_this_res = np.sign(this_res)
+                                    if sign_old_res is not None:
+                                        if sign_this_res * sign_old_res == -1:
+                                            # We have a sign change in residual
+                                            low_bracket = fd_search[j]
+                                            high_bracket = fd_search[j - 1]
+                                            bracket_found = True
+                                    sign_old_res = sign_this_res
+                                    j += 1
+                                # print("bracket found =", bracket_found)
+                                if not bracket_found:
+                                    low_bracket = 0.1 * fd_crit
+                                    high_bracket = fd_guess * 1.2
+
+                                sol = root_scalar(
+                                    self.fd_residual,
+                                    args=(i - 1, H_up, S_f_up, dx, False),
+                                    method="brenth",
+                                    x0=fd_guess,
+                                    bracket=(low_bracket, high_bracket),
+                                    xtol=0.00001,
+                                    rtol=0.00005,
+                                )
+                                is_converged = sol.converged
+                            except ValueError:
+                                print("Falling back on minimization solver.")
+                                is_converged = False
+                            #            sol = root_scalar(
+                            #                self.fd_residual,
+                            #                args=(i + 1, H_down, S_f_down, dx),
+                            #                x0=fd_guess,
+                            #                x1=0.9 * fd_guess,
+                            #            )
+
+                            if is_converged:
+                                fd_sol = sol.root
+                                flag = sol.flag
+                                converged = sol.converged
+                            else:
+                                # Try minimization of abs error
+                                # res = minimize_scalar(
+                                #    self.fd_residual_abs,
+                                #    bracket=(fd_crit, 1.1 * fd_guess),
+                                #    args=(i + 1, H_down, S_f_down, dx),
+                                # )
+                                # fd_max = xc.ymax - xc.ymin
+                                res = shgo(
+                                    self.fd_residual_abs,
+                                    [
+                                        (0.05 * fd_crit, fd_crit),
+                                    ],
+                                    n=32,
+                                    sampling_method="sobol",
+                                    args=(i - 1, H_up, S_f_up, dx),
+                                )
+                                # converged = res.success
+                                # print("converged =", converged, "  fun=", res.fun)
+                                # print(res)
+                                # flag = "used minimization solver"
+                                fd_sol = res.x[0]
+                            # Calculate actual flow depth residual
+                            err = self.fd_residual(fd_sol, i - 1, H_up, S_f_up, dx)
+                            # print("i=", i, "  err=", err, " fd=", fd_sol)
+                            if abs(err) > WARN_ERR:
+                                print("*******************************************")
+                                print(
+                                    "Warning! Flow depth solution is inaccurate. Error is",
+                                    err,
+                                )
+                                print("*******************************************")
+
+                            self.h_super[i - 1] = self.z_arr[i - 1] + fd_sol
+                            self.fd_super[i - 1] = fd_sol
+                            if i == 1:
+                                # Last iteration. Need to set downstream flowdepth
+                                # to supercritical solution.
+                                xc_down.setFD(fd_sol)
+                                self.flow_type[i - 1] = "supercrit"
 
         # Calculate flow areas, wetted perimeters, hydraulic diameters,
         # free surface widths, and velocities
@@ -1189,7 +1489,9 @@ class multiXCGVF(multiXC):
             S_f = xc.f * self.V_w[i] ** 2 / (2 * xc.g * self.D_H_w[i])
             xc.setEnergySlope(S_f)
 
-    def fd_residual(self, fd_guess, xc_up_idx, H_down, S_f_down, dx):
+    def fd_residual(
+        self, fd_guess, xc_guess_idx, H_known, S_f_known, dx, solve_upstream=True
+    ):
         """Calculate residual between guessed upstream flow depth and energy
            equation flow depth.
 
@@ -1197,42 +1499,79 @@ class multiXCGVF(multiXC):
         ----------
         fd_guess : float
             Guessed upstream flow depth.
-        xc_idx : int
-            Index of current downstream cross-section.
-        H_down : float
-            Head at downstream cross-section.
-        S_f_down : float
-            Friction slope at downstream cross-section
+        xc_guess_idx : int
+            Index of cross-section with unknown flow depth.
+        H_known : float
+            Head at cross-section with known flow depth.
+        S_f_known : float
+            Friction slope at cross-section with known flow depth.
         dx : float
             Distance between cross-sections.
+        solve_upstream : boolean
+            Whether to solve in the upstream (True) or downstream (False)
+            direction. True for subcritical and False for supercritical
+            flow. Default True.
         """
-        xc_up = self.xcs[xc_up_idx]
-        A_up = xc_up.calcA(depth=fd_guess)
-        P_up = xc_up.calcP(depth=fd_guess)
-        if A_up < SMALL:
-            A_up = SMALL
-        if P_up < SMALL:
-            P_up = SMALL
-        V_up = self.Q_w / A_up
-        V_head_up = alpha * V_up**2 / (2 * xc_up.g)
-        D_H_up = 4 * A_up / P_up
-        if xc_up.n_mann is not None:
-            xc_up.set_f_from_n_mann(D_H_up)
-        S_f_up = xc_up.f * V_up**2 / (2 * xc_up.g * D_H_up)
-        H_up_energy = H_down + 0.5 * (S_f_down + S_f_up) * dx
-        fd_up_energy = H_up_energy - V_head_up - self.z_arr[xc_up_idx]
-        err = fd_up_energy - fd_guess
+        xc_guess = self.xcs[xc_guess_idx]
+        A_guess = xc_guess.calcA(depth=fd_guess)
+        P_guess = xc_guess.calcP(depth=fd_guess)
+        if A_guess < SMALL:
+            A_guess = SMALL
+        if P_guess < SMALL:
+            P_guess = SMALL
+        V_guess = self.Q_w / A_guess
+        V_head_guess = alpha * V_guess**2 / (2 * xc_guess.g)
+        D_H_guess = 4 * A_guess / P_guess
+        if xc_guess.n_mann is not None:
+            xc_guess.set_f_from_n_mann(D_H_guess)
+        S_f_guess = xc_guess.f * V_guess**2 / (2 * xc_guess.g * D_H_guess)
+        if solve_upstream:
+            dH_sign = 1
+        else:
+            dH_sign = -1
+        H_guess_energy = H_known + dH_sign * 0.5 * (S_f_known + S_f_guess) * dx
+        fd_guess_energy = H_guess_energy - V_head_guess - self.z_arr[xc_guess_idx]
+        err = fd_guess_energy - fd_guess
         return err
 
-    def fd_residual_abs(self, fd_guess, xc_up_idx, H_down, S_f_down, dx):
-        fd_res = self.fd_residual(fd_guess, xc_up_idx, H_down, S_f_down, dx)
+    def fd_residual_abs(
+        self, fd_guess, xc_up_idx, H_down, S_f_down, dx, solve_upstream=True
+    ):
+        fd_res = self.fd_residual(
+            fd_guess, xc_up_idx, H_down, S_f_down, dx, solve_upstream=solve_upstream
+        )
         return abs(fd_res)
 
 
 class multiXCGVF_midXCs(multiXC):
-    """Simulation with multiple cross-sections that assumes gradually varied flow and has cross-sections at conduit midpoints.
-    
-    Parameters
+    """Simulation object for a channel profile with multiple cross-sections eroded by a
+    shear stress power law rule. That assumes normal flow conditions."""
+
+    def __init__(
+        self,
+        x_arr,
+        z_arr,
+        Q_w=0.1,
+        f=0.1,
+        n_mann=None,
+        init_radii=0.5,
+        shape_dict=None,
+        init_offsets=0.0,
+        xc_n=500,
+        dt_erode=1.0,
+        uplift=0.0,
+        uplift_times=None,
+        adaptive_step=False,
+        max_frac_erode=0.005,
+        trim=True,
+        a=1.0,
+        K=1e-5,
+        layer_elevs=None,
+        abs_tol=0.001,
+        max_iterations=50,
+    ):
+        """
+        Parameters
         ----------
         x_arr : ndarray
             Array of distances in meters along the channel for the node locations.
@@ -1328,30 +1667,6 @@ class multiXCGVF_midXCs(multiXC):
         calculated, and 2) The timestep will adjust to a larger value, enabling
         faster simulation of a certain duration of time.
         """
-
-    def __init__(
-        self,
-        x_arr,
-        z_arr,
-        Q_w=0.1,
-        f=0.1,
-        n_mann=None,
-        init_radii=0.5,
-        shape_dict=None,
-        init_offsets=0.0,
-        xc_n=500,
-        dt_erode=1.0,
-        uplift=0.0,
-        uplift_times=None,
-        adaptive_step=False,
-        max_frac_erode=0.005,
-        trim=True,
-        a=1.0,
-        K=1e-5,
-        layer_elevs=None,
-        abs_tol=0.001,
-        max_iterations=50,
-    ):        
         super(multiXC, self).__init__()
         self.singleXC = False
         self.n_nodes = x_arr.size
@@ -1560,7 +1875,7 @@ class multiXCGVF_midXCs(multiXC):
             self.h[i + 1] = self.z_arr[i + 1] + (fd_sol + self.fd_mids[i]) / 2
             if self.h[i + 1] < self.h[i]:
                 print("Reversed head gradient!")
-                # debugpy.breakpoint()
+                debugpy.breakpoint()
             self.fd_mids[i + 1] = fd_sol
             xc_up.setFD(fd_sol)
             # Extrapolate head at final upstream node
@@ -1633,38 +1948,7 @@ class multiXCGVF_midXCs(multiXC):
 
 
 class spim(sim):
-    """Simulation for channel profile evolution using the stream power incision model.
-    
-    Parameters
-    ----------
-    x_arr : ndarray
-        Array of distances in meters along the channel for the node locations.
-    z_arr : ndarray
-        Array of elevations in meters for nodes along the channel. Minimum y
-        values for each cross-section will be added to these elevations
-        during initialization, so that z_arr will represent the channel bottom.
-    uplift : float or list of floats
-        Rate of change of baselevel. This distance is subtracted
-        from the elevation of the downstream boundary node during
-        each timestep.
-    uplift_times : list
-        Times in years at which uplift rates change. This argument is included if
-        dz0_dt is a list of different uplift rates.
-    Q_w : float, optional
-        Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
-    dt_erode : float, optional
-        Erosional time step in years. Default value is 1 year.
-    a : float, optional
-        Exponent in power law erosion rule (default=1).
-    K : float or list, optional
-        Erodibility in power law erosion rule (default = 1e-5).
-        If multiple layers are specified, then this is a list of
-        erodibilities listed from lowest to highest elevation.
-    layer_elevs : list of floats, optional
-        Specifies a list of elevations (from low to high), where rock
-        erodibility changes. If specified, K should be a list with
-        one more item than this list.
-    """
+    """Simulation object for channel profile evolution using the stream power incision model."""
 
     def __init__(
         self,
@@ -1679,7 +1963,37 @@ class spim(sim):
         layer_elevs=None,
         MIN_SLOPE=1e-8,
     ):
-
+        """
+        Parameters
+        ----------
+        x_arr : ndarray
+            Array of distances in meters along the channel for the node locations.
+        z_arr : ndarray
+            Array of elevations in meters for nodes along the channel. Minimum y
+            values for each cross-section will be added to these elevations
+            during initialization, so that z_arr will represent the channel bottom.
+        uplift : float or list of floats
+            Rate of change of baselevel. This distance is subtracted
+            from the elevation of the downstream boundary node during
+            each timestep.
+        uplift_times : list
+            Times in years at which uplift rates change. This argument is included if
+            dz0_dt is a list of different uplift rates.
+        Q_w : float, optional
+            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+        dt_erode : float, optional
+            Erosional time step in years. Default value is 1 year.
+        a : float, optional
+            Exponent in power law erosion rule (default=1).
+        K : float or list, optional
+            Erodibility in power law erosion rule (default = 1e-5).
+            If multiple layers are specified, then this is a list of
+            erodibilities listed from lowest to highest elevation.
+        layer_elevs : list of floats, optional
+            Specifies a list of elevations (from low to high), where rock
+            erodibility changes. If specified, K should be a list with
+            one more item than this list.
+        """
         super(spim, self).__init__()
         self.n_nodes = x_arr.size
         self.L = x_arr.max() - x_arr.min()
@@ -1710,7 +2024,11 @@ class spim(sim):
     def run_one_step(self):
         """Run one time step of simulation.
 
-        Calculates erosion for a single time step and updates geometry.
+        Calculates erosion for
+        a single time step and updates geometry.
+
+        Parameters
+        ----------
 
         """
 
@@ -1725,14 +2043,11 @@ class spim(sim):
         self.old_dt = self.dt_erode
 
     def erode(self):
-        """Erode the cross-section.
-        """
         self.dz = -self.K_arr[1:] * self.slopes**self.n * self.dt_erode
         # erosion = self.dt_erode * self.dz
         self.z_arr[1:] += self.dz  # erosion
 
     def updateKs(self):
-        """Update bedrock erodibility based on new elevations."""
         old_elev = None
         for i, elev in enumerate(self.layer_elevs):
             if i == 0:
@@ -1745,6 +2060,5 @@ class spim(sim):
         self.K_arr[final_layer_idx] = self.K[-1]
 
     def updateSlopes(self):
-        "Update channel slopes based on new elevations"
         self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / self.dx
         self.slopes[self.slopes < 0] = self.MIN_SLOPE
