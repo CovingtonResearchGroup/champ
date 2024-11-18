@@ -357,18 +357,23 @@ class singleXC_multiQ(singleXC):
         faster simulation of a certain duration of time.
 
         """
-        super(singleXC, self).__init__()
-        self.singleXC = True
-        self.init_radius = init_radius
+        super(singleXC_multiQ, self).__init__(
+            init_radius=init_radius,
+            Q_w=0,
+            slope=slope,
+            dt_erode=dt_erode,
+            adaptive_step=adaptive_step,
+            max_frac_erode=max_frac_erode,
+            f=f,
+            n_mann=n_mann,
+            xc_n=xc_n,
+            trim=trim,
+            a=a,
+            K=K,
+            layer_elevs=layer_elevs,
+        )
         self.Q_mean = Q_mean
         self.Q_w = 0.0
-        self.slope = slope
-        self.dt_erode = dt_erode
-        self.old_dt = dt_erode
-        self.adaptive_step = adaptive_step
-        self.max_frac_erode = max_frac_erode
-        self.f = f
-        self.xc_n = xc_n
         self.kQ = kQ
         self.nQ = nQ
         self.Q_min_mult = Q_min_mult
@@ -380,14 +385,6 @@ class singleXC_multiQ(singleXC):
         self.Q_arr = 10**logQarr
         self.pdf_Q = pdf_Q(self.Q_arr, Q_mean=self.Q_mean, kQ=self.kQ)
         self.pdf_Q_frac = self.pdf_Q / self.pdf_Q.sum()
-
-        x, y = genCirc(init_radius, n=xc_n)
-        self.xc = CrossSection(x, y, f=f, n_mann=n_mann)
-
-        self.trim = trim
-        self.a = a
-        self.K = K
-        self.set_layers(layer_elevs)
 
     def erode(self, dt_frac=1.0):
         """Erode the cross-section.
@@ -893,6 +890,9 @@ class multiXC(sim):
                 # Timestep is too small, increase it
                 self.dt_erode = self.dt_erode * 1.5
                 print("Increasing timestep to " + str(self.dt_erode))
+
+
+# class multiXCmultiQ(multiXC):
 
 
 class multiXCNormalFlow(multiXC):
