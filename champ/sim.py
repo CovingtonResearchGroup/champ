@@ -1085,7 +1085,7 @@ class multiXCmultiQ(multiXC):
         Parameters
         ----------
         """
-
+        print("Erosional timestep is ", self.dt_erode)
         if finalQ:
             old_ymins = self.ymins.copy()
             resample = True
@@ -1119,6 +1119,9 @@ class multiXCmultiQ(multiXC):
                     trim=trim,
                 )
                 if self.layer_solubility is not None:
+                    xc.dr_mech = xc.dr
+                    dr_tmp = np.zeros(xc.n)
+                    dr_tmp[xc.wetidx] += xc.dr_mech
                     if len(self.layer_solubility) == len(self.K):
                         K_sol_list = np.zeros(len(self.K))
                         K_sol_list[self.layer_solubility] = self.K_sol
@@ -1130,13 +1133,16 @@ class multiXCmultiQ(multiXC):
                             trim=trim,
                             resample=resample,
                         )
+                        xc.dr_diss = xc.dr
+                        dr_tmp[xc.wetidx] += xc.dr_diss
+                        xc.dr = dr_tmp[xc.wetidx]
                     else:
                         print(
                             "Number of layer solubility entries must equal number of layers."
                         )
                         raise IndexError
-            xc.dr_tot[xc.wetidx] += xc.dr
             xc_mean_erosion[i] = xc.dr.mean()
+            xc.dr_tot[xc.wetidx] += xc.dr
             if finalQ:
                 self.ymins[i] = xc.ymin
         self.mean_erosion = xc_mean_erosion.mean()
@@ -1163,7 +1169,7 @@ class multiXCmultiQ(multiXC):
                     xc_max_frac_erode = frac_erode.max()
                     if xc_max_frac_erode > sim_max_frac_erode:
                         sim_max_frac_erode = xc_max_frac_erode
-
+                print("Sim max frac erode =", sim_max_frac_erode)
                 if sim_max_frac_erode > self.max_frac_erode:
                     # Timestep is too big, reduce it
                     self.dt_erode = self.dt_erode / 1.5
@@ -1172,6 +1178,7 @@ class multiXCmultiQ(multiXC):
                     # Timestep is too small, increase it
                     self.dt_erode = self.dt_erode * 1.5
                     print("Increasing timestep to " + str(self.dt_erode))
+                print("Checking dt erode.. ", self.dt_erode)
 
     def run_one_step(self):
         """Run one time step of simulation.
@@ -1183,7 +1190,7 @@ class multiXCmultiQ(multiXC):
         ----------
 
         """
-
+        print("dt erode at start of run step =", self.dt_erode)
         self.elapsed_time += self.dt_erode
         self.timestep += 1
         # Zero out total erosion arrays
