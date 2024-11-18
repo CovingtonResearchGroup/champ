@@ -247,8 +247,15 @@ class CrossSection:
         a_h = self.ymin + h
         condL = logical_and(self.y > a_h, a_h >= self.yp)
         condR = logical_and(self.y < a_h, a_h <= self.yp)
-        L = where(condL)[0][0] + 1
-        R = where(condR)[0][0]
+        whereL = where(condL)
+        whereR = where(condR)
+        if len(whereL[0]) > 0 and len(whereR[0]) > 0:
+            L = whereL[0][0] + 1
+            R = whereR[0][0]
+        else:
+            # If conduit is full, then set L and R to first and last idx
+            L = 0
+            R = self.n - 1
         return L, R
 
     def setFD(self, fd):
@@ -402,7 +409,7 @@ class CrossSection:
         self.eSlope = slope
 
     def erode_power_law(
-        self, a=1.0, K=1e-5, dt=1.0, no_erode=False, trim=True, resample=True
+        self, a=1.0, K=1e-5, dt=1.0, T_c=0, no_erode=False, trim=True, resample=True
     ):
         """Erode wall according to a power law function of shear stress.
 
@@ -422,7 +429,10 @@ class CrossSection:
         self.setMaxVelPoint(self.fd)
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
-        self.dr = dt * K * T_b**a
+        self.dr = np.zeros(len(T_b))
+        erosion_idx = T_b > T_c
+        if len(T_b[erosion_idx]) > 0:
+            self.dr[erosion_idx] = dt * K * (T_b[erosion_idx] - T_c) ** a
         if not no_erode:
             self.erode(self.dr, trim=trim, resample=resample)
 
@@ -430,6 +440,7 @@ class CrossSection:
         self,
         a=1.0,
         dt=1.0,
+        T_c=0,
         K=[1e-5, 2e-5],
         layer_elevs=[-2],
         no_erode=False,
@@ -457,6 +468,7 @@ class CrossSection:
         self.setMaxVelPoint(self.fd)
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
+        self.dr = np.zeros(len(T_b))
         ywet = self.y[self.wetidx]
         self.dr = np.zeros(len(ywet))
         old_elev = None
@@ -466,12 +478,19 @@ class CrossSection:
             else:
                 layer_idx = logical_and(ywet < elev, ywet >= old_elev)
             # print('i=',i, '  len(layer_idx)=',len(layer_idx[layer_idx==True]))
-            self.dr[layer_idx] = dt * K[i] * T_b[layer_idx] ** a
+            erosion_idx = T_b[layer_idx] > T_c
+            if len(T_b[layer_idx][erosion_idx]) > 0:
+                self.dr[layer_idx][erosion_idx] = (
+                    dt * K[i] * (T_b[layer_idx][erosion_idx] - T_c) ** a
+                )
             old_elev = elev
         final_layer_idx = ywet > elev
         # print('len(final_layer_idx)=',len(final_layer_idx[final_layer_idx==True]))
-
-        self.dr[final_layer_idx] = dt * K[-1] * T_b[final_layer_idx] ** a
+        erosion_idx = T_b[layer_idx] > T_c
+        if len(T_b[final_layer_idx][erosion_idx]) > 0:
+            self.dr[final_layer_idx][erosion_idx] = (
+                dt * K[-1] * (T_b[final_layer_idx][erosion_idx] - T_c) ** a
+            )
         # self.dr = K*T_b**a
         if not no_erode:
             self.erode(self.dr, trim=trim, resample=resample)

@@ -468,6 +468,7 @@ class multiXC(sim):
         trim=True,
         a=1.0,
         K=1e-5,
+        T_c=0,
         layer_elevs=None,
         layer_solubility=None,
         K_sol=1e-5,
@@ -541,6 +542,8 @@ class multiXC(sim):
             Erodibility in power law erosion rule (default = 1e-5).
             If multiple layers are specified, then this is a list of
             erodibilities listed from lowest to highest elevation.
+        T_c : float, optional
+            Critical shear stress for onset of erosion.
         layer_elevs : list of floats, optional
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with
@@ -598,6 +601,7 @@ class multiXC(sim):
         self.trim = trim
         self.a = a
         self.K = K
+        self.T_c = T_c
         self.K_sol = K_sol
         self.a_sol = a_sol
         self.layer_solubility = layer_solubility
@@ -796,7 +800,7 @@ class multiXC(sim):
         old_ymins = self.ymins.copy()
         for i, xc in enumerate(self.xcs):
             if not self.layered_sim:
-                xc.erode_power_law(a=self.a, K=self.K, dt=self.dt_erode)
+                xc.erode_power_law(a=self.a, K=self.K, T_c=self.T_c, dt=self.dt_erode)
             else:
                 # print('layer_elevs=',self.layer_elevs)
                 # print('init_z=',self.init_z[i+1])
@@ -808,6 +812,7 @@ class multiXC(sim):
                 xc.erode_power_law_layered(
                     a=self.a,
                     K=self.K,
+                    T_c=self.T_c,
                     layer_elevs=absolute_layer_elevs,
                     dt=self.dt_erode,
                 )
@@ -915,6 +920,7 @@ class multiXCmultiQ(multiXC):
         trim=True,
         a=1.0,
         K=1e-5,
+        T_c=0,
         layer_elevs=None,
         layer_solubility=None,
         K_sol=1e-5,
@@ -992,6 +998,8 @@ class multiXCmultiQ(multiXC):
             Erodibility in power law erosion rule (default = 1e-5).
             If multiple layers are specified, then this is a list of
             erodibilities listed from lowest to highest elevation.
+        T_c : float, optional
+            Critical shear stress for onset of erosion.
         layer_elevs : list of floats, optional
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with
@@ -1051,6 +1059,7 @@ class multiXCmultiQ(multiXC):
             trim=trim,
             a=a,
             K=K,
+            T_c=T_c,
             layer_elevs=layer_elevs,
             layer_solubility=layer_solubility,
             K_sol=K_sol,
@@ -1090,6 +1099,7 @@ class multiXCmultiQ(multiXC):
                 xc.erode_power_law(
                     a=self.a,
                     K=self.K,
+                    T_c=self.T_c,
                     dt=self.dt_erode * dt_frac,
                     resample=resample,
                     trim=trim,
@@ -1102,6 +1112,7 @@ class multiXCmultiQ(multiXC):
                 xc.erode_power_law_layered(
                     a=self.a,
                     K=self.K,
+                    T_c=self.T_c,
                     layer_elevs=absolute_layer_elevs,
                     dt=self.dt_erode * dt_frac,
                     resample=resample,
