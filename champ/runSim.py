@@ -28,6 +28,7 @@ from champ.viz.standard_timestep_plots import (
 )
 from champ.sim import (
     singleXC,
+    singleXC_multiQ,
     multiXC,
     multiXCNormalFlow,
     multiXCGVF,
@@ -60,12 +61,12 @@ def runSim(
     n_plot_processes=1,
     run_equiv_spim=False,
     run_width_adjusting_spim=False,
-    width_adjustment_exponent=(3/2)*(3/16)**0.9,
+    width_adjustment_exponent=(3 / 2) * (3 / 16) ** 0.9,
     equiv_sim_max_erode=0.05,
     flow_solver="Original",
+    multiQ=False,
     sim_params={},
 ):
-
     """Run simulation using specified parameters.
 
     Parameters
@@ -116,13 +117,15 @@ def runSim(
         Whether to run a stream power incision model case that accounts for dynamic width,
         assuming width scales with slope, per Attal et al. (2008).
     width_adjustment_exponent : float
-        Value to add to slope exponent, a, in SPIM to account for adjusting width. 
+        Value to add to slope exponent, a, in SPIM to account for adjusting width.
         Default=(3/2)*(3/16)**0.9.
     equiv_sim_max_erode : float
         Maximum erosion setting for equilibration sim used in equivalent SPIM run.
     flow_solver : string
         Solver to use for flow calculations. Options are Original (default), Normal,
         and GVF.
+    multiQ : boolean
+        Set to true to run a multi-discharge simulation. Default=False.
     sim_params : dict
         Dictionary of keyword arguments to be supplied to singleXC or multiXC for
         initialization of simulation object.
@@ -147,7 +150,10 @@ def runSim(
     if start_from_snapshot_num == 0:
         # Create a new simulation
         if single_XC_sim:
-            sim = singleXC(init_radius=r_init, **sim_params)
+            if multiQ:
+                sim = singleXC_multiQ(init_radius=r_init, **sim_params)
+            else:
+                sim = singleXC(init_radius=r_init, **sim_params)
         else:
             x = np.linspace(0, L, n)
             if z_arr is None:
@@ -387,7 +393,6 @@ def runEquilibrationSim(
     adaptive_step=True,
     max_frac_erode=0.05,  # Set higher to speed equilibration
 ):
-
     """Run multiXC simulation to topographic equilibrium.
 
     Parameters
@@ -562,7 +567,6 @@ def runSPIM(
     CFL_crit=0.9,
     sim_params={},
 ):
-
     """Run Stream power incision model (SPIM) simulation using specified parameters.
 
     Parameters

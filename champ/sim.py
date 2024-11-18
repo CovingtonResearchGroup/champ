@@ -428,6 +428,7 @@ class singleXC_multiQ(singleXC):
             self.Q_w = Q_w
             self.calc_flow()
             self.erode(dt_frac=self.pdf_Q_frac[i])
+            # print("Q=", Q_w, "  mean erosion =", self.xc.dr.mean())
             dr_tot[self.xc.wetidx] += self.xc.dr
 
         # For multiQ sims this assumes largest discharge is last
