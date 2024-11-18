@@ -427,12 +427,7 @@ class singleXC_multiQ(singleXC):
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
             self.calc_flow()
-            if i == self.nQ - 1:
-                # For final Q we will resample and trim
-                self.erode(dt_frac=self.pdf_Q_frac[i])
-            else:
-                # No trimming or resampling for lower Q values
-                self.erode(dt_frac=self.pdf_Q_frac[i], resample=False, trim=False)
+            self.erode(dt_frac=self.pdf_Q_frac[i])
             dr_tot[self.xc.wetidx] += self.xc.dr
 
         # For multiQ sims this assumes largest discharge is last
