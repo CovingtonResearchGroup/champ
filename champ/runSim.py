@@ -287,7 +287,9 @@ def runSim(
         #    sim.z_arr[0] -= dz0_dt * sim.dt_erode
 
         if oldtimestep is not None:
-            sim.dt_erode = oldtimestep
+            if sim.dt_erode < oldtimestep / 1.6:
+                # Only go back to old timestep if adaptive step did not reduce it.
+                sim.dt_erode = oldtimestep
             oldtimestep = None
 
         # Output plots/snapshots by even timesteps or years
@@ -359,9 +361,11 @@ def runSim(
         if plot_by_years:
             # Check whether we need to adjust timestep to hit next plot
             time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
+            print("time to next plot = ", time_to_next_plot)
+            print("Sim dt erod = ", sim.dt_erode)
             if AllOWED_FRAC_DT_EXTENSION_FOR_OUTPUT * sim.dt_erode > time_to_next_plot:
                 oldtimestep = sim.dt_erode
-                print("Resetting timestep to ", time_to_next_plot)
+                print("1. Resetting timestep to ", time_to_next_plot)
                 sim.dt_erode = time_to_next_plot
 
         if snapshot_by_years:
@@ -374,11 +378,11 @@ def runSim(
                         pass
                     else:
                         oldtimestep = sim.dt_erode
-                        print("Resetting timestep to ", time_to_next_snap)
+                        print("2. Resetting timestep to ", time_to_next_snap)
                         sim.dt_erode = time_to_next_snap
                 else:
                     oldtimestep = sim.dt_erode
-                    print("Resetting timestep to ", time_to_next_snap)
+                    print("3. Resetting timestep to ", time_to_next_snap)
                     sim.dt_erode = time_to_next_snap
 
     # Make sure all plotting creation finishes up
