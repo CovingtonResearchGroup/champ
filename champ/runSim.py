@@ -28,8 +28,9 @@ from champ.viz.standard_timestep_plots import (
 )
 from champ.sim import (
     singleXC,
-    singleXC_multiQ,
+    singleXCmultiQ,
     multiXC,
+    multiXCmultiQ,
     multiXCNormalFlow,
     multiXCGVF,
     multiXCGVF_midXCs,
@@ -151,7 +152,7 @@ def runSim(
         # Create a new simulation
         if single_XC_sim:
             if multiQ:
-                sim = singleXC_multiQ(init_radius=r_init, **sim_params)
+                sim = singleXCmultiQ(init_radius=r_init, **sim_params)
             else:
                 sim = singleXC(init_radius=r_init, **sim_params)
         else:
@@ -166,7 +167,10 @@ def runSim(
                 return -1
             r = r_init * np.ones(n - 1)
             if flow_solver == "Original":
-                sim = multiXC(x, z, init_radii=r, **sim_params)
+                if multiQ:
+                    sim = multiXCmultiQ(x, z, init_radii=r, **sim_params)
+                else:
+                    sim = multiXC(x, z, init_radii=r, **sim_params)
             elif flow_solver == "Normal":
                 sim = multiXCNormalFlow(x, z, init_radii=r, **sim_params)
             elif flow_solver == "GVF":
@@ -297,12 +301,25 @@ def runSim(
         else:
             t_int = int(np.round(sim.elapsed_time))
             time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
+
+            # Debugging statements
+            # print("t_int=", t_int)
+            # print("t_int % plot_every =", t_int % plot_every)
+            # print("dt_erode = ", sim.dt_erode)
+            # print((sim.elapsed_time - sim.dt_erode) % plot_every > 1)
+            # print(time_to_next_plot < sim.dt_erode)
+            # print(plot_every - time_to_next_plot < sim.dt_erode)
+
             # This logic is pretty convoluted, but it seems to correctly
             # handle cases where the timestep is less than 1 and therefore
-            # simply rounding to the nearest int is ineffective.
+            # simply rounding to the nearest int is ineffective, as well as
+            # cases where dt = plot_every.
             if (
                 (t_int % plot_every == 0)
-                and ((sim.elapsed_time - sim.dt_erode) % plot_every > 1)
+                and (
+                    ((sim.elapsed_time - sim.dt_erode) % plot_every > 1)
+                    or (plot_every == sim.dt_erode)
+                )
                 and (
                     (time_to_next_plot < sim.dt_erode)
                     or (plot_every - time_to_next_plot < sim.dt_erode)
@@ -344,6 +361,7 @@ def runSim(
             time_to_next_plot = plot_every - (sim.elapsed_time % plot_every)
             if AllOWED_FRAC_DT_EXTENSION_FOR_OUTPUT * sim.dt_erode > time_to_next_plot:
                 oldtimestep = sim.dt_erode
+                print("Resetting timestep to ", time_to_next_plot)
                 sim.dt_erode = time_to_next_plot
 
         if snapshot_by_years:
@@ -356,9 +374,11 @@ def runSim(
                         pass
                     else:
                         oldtimestep = sim.dt_erode
+                        print("Resetting timestep to ", time_to_next_snap)
                         sim.dt_erode = time_to_next_snap
                 else:
                     oldtimestep = sim.dt_erode
+                    print("Resetting timestep to ", time_to_next_snap)
                     sim.dt_erode = time_to_next_snap
 
     # Make sure all plotting creation finishes up

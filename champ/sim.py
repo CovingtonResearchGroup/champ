@@ -257,7 +257,7 @@ def pdf_Q(Q, Q_mean=1.0, kQ=1.0):
     )
 
 
-class singleXC_multiQ(singleXC):
+class singleXCmultiQ(singleXC):
     """Simulation object for single cross-sections and multiple discharges."""
 
     def __init__(
@@ -357,7 +357,7 @@ class singleXC_multiQ(singleXC):
         faster simulation of a certain duration of time.
 
         """
-        super(singleXC_multiQ, self).__init__(
+        super(singleXCmultiQ, self).__init__(
             init_radius=init_radius,
             Q_w=0,
             slope=slope,
@@ -892,7 +892,307 @@ class multiXC(sim):
                 print("Increasing timestep to " + str(self.dt_erode))
 
 
-# class multiXCmultiQ(multiXC):
+class multiXCmultiQ(multiXC):
+    """Simulation object for a channel profile with multiple cross-sections eroded by a
+    shear stress power law rule at multiple discharges."""
+
+    def __init__(
+        self,
+        x_arr,
+        z_arr,
+        Q_mean=1,
+        f=0.1,
+        n_mann=None,
+        init_radii=0.5,
+        shape_dict=None,
+        init_offsets=0.0,
+        xc_n=500,
+        dt_erode=1.0,
+        uplift=0.0,
+        uplift_times=None,
+        adaptive_step=False,
+        max_frac_erode=0.005,
+        trim=True,
+        a=1.0,
+        K=1e-5,
+        layer_elevs=None,
+        layer_solubility=None,
+        K_sol=1e-5,
+        a_sol=0.5,
+        kQ=1.0,
+        nQ=20,
+        Q_min_mult=0.1,
+        Q_max_mult=20,
+    ):
+        """
+        Parameters
+        ----------
+        x_arr : ndarray
+            Array of distances in meters along the channel for the node locations.
+        z_arr: ndarray
+            Array of elevations in meters for nodes along the channel. Minimum y
+            values for each cross-section will be added to these elevations
+            during initialization, so that z_arr will represent the channel bottom.
+        Q_w : float, optional
+            Discharge in the channel (m^3/s). Default is 0.1 m^3/s.
+        f : float or ndarray, optional
+            Darcy-Weisbach friction factor (unitless). If an array is provided with
+            a length equal to the number of cross-sections, then independent values
+            will be asigned to each cross-section. Default is 0.1.
+        n_mann: float or ndarray, optional
+            Manning's n. If specified, then f will be calculated from n_mann
+            and R_h during flow calculations (which will still use the Darcy-
+            Weisbach equation). Default is None.
+        init_radii : float or ndarray, optional
+            Initial cross-section radii (meters). If a float then all cross-sections
+            will be assigned the same radius. If an array then each element
+            represents the radius of a single cross-section (length should be n-1
+            where n is the number of nodes). Default is 0.5 m.
+        shape_dict : dict, optional
+            A dictionary of cross-sectional shape parameters, including name and
+            keyword parameters for function in ShapeGen. If this is provided,
+            then init_radii is ignored.
+        init_offsets : float or ndarray, optional
+            These offsets will be added to y-values within initial cross-sections.
+            By default, y will be zero at the centroid of the initial cross-section.
+            Default value is zero. Should have length of n-1, where n is number of
+            nodes.
+        xc_n : int, optional
+            Number of points that will define the cave passage shape within a
+            cross-section. Default is 1000.
+        dt_erode : float, optional
+            Erosional time step in years. Default value is 1 year.
+        uplift : float or list of floats
+            Rate of change of baselevel. This distance is subtracted
+            from the elevation of the downstream boundary node during
+            each timestep.
+        uplift_times : list
+            Times in years at which uplift rates change. This argument is included if
+            uplift is a list of different uplift rates.
+        adaptive_step : boolean, optional
+            Whether or not to adjust timestep dynamically. Default is False.
+        max_frac_erode : float, optional
+            Maximum fraction of radial distance to erode within a single timestep
+            under adaptive time-stepping. If erosion exceeds this fraction, then
+            the timestep will be reduced. If erosion is much less than this fraction,
+            then the timestep will be increased. We have not conducted a detailed
+            stability analysis. However, initial tests show 0.01 leads to instability,
+            whereas the default value is stable. If instabilities occur, and adaptive
+            time-stepping is enabled, decreasing this fraction may help.
+            Default = 0.005.
+        trim : boolean, optional
+            Whether or not cross-sections should be trimmed as much of the
+            cross-section becomes dry. This enables maintenance of a high
+            resolution of the wet portion of the cross-section for simulations
+            with substantial incision. If this is set to False, long-term
+            simulations are likely to become unstable. Default is True.
+        a : float, optional
+            Exponent in power law erosion rule (default=1).
+        K : float or list, optional
+            Erodibility in power law erosion rule (default = 1e-5).
+            If multiple layers are specified, then this is a list of
+            erodibilities listed from lowest to highest elevation.
+        layer_elevs : list of floats, optional
+            Specifies a list of elevations (from low to high), where rock
+            erodibility changes. If specified, K should be a list with
+            one more item than this list.
+        layer_solubility : list of booleans, optional
+            Specifies which layers, if any, are soluble. Set soluble layers to
+            True.
+        K_sol : float, optional
+            Erodibility in dissolution power law erosion rule (default = 1e-5).
+        a_sol : float, optional
+            Exponent in power law erosion rule for dissolution. (Default=0.5)
+        kQ : float, optional
+            The k value in the discharge pdf. Ranges between about 0.1 and 3 (Lague et al., 2005).
+            Value is lower for more arid environments. Default value is 1.
+        nQ : int, optional,
+            The number of discharge values to use in the multi-discharge simulation (Default=20).
+        Q_min_mult : float, optional
+            The minimum multiple of mean discharge to simulate (Default=0.1).
+        Q_max_mult : float, optional
+            The maximum multiple of mean discharge to simulate (Default=20).
+
+        Notes
+        -----
+        To maximize efficiency, use adapative time-stepping. Our tests of stability
+        suggest that increasing the number of points in the cross-section (xc_n)
+        decreases numerical stability, though it also increases accuracy with which
+        the cross-sectional shape is represented. Our default values of xc_n=500 and
+        max_frac_erode=0.005 are near the stability threshold for single cross-section
+        simulations we have run. Surprisingly, multiXC simulations seem somewhat more
+        stable. That is, a larger value of max_frac_erode will still be numerically
+        stable (up to 5x for a n=10, xc_n=500 simulation). Increases in the number
+        of cross-sections can enhance instability, though normally large numbers of
+        cross-sections are needed to see this effect.
+        Increasing xc_n requires a decrease in max_frac_erode.
+        Similarly, if the precise shape of the cross-section is not of much concern,
+        one could decrease xc_n and increase max_frac_erode, while still maintaining
+        numerical stability. Note that this will speed up the simulations for two
+        reasons: 1) It decreases the number of points for which erosion must be
+        calculated, and 2) The timestep will adjust to a larger value, enabling
+        faster simulation of a certain duration of time.
+        """
+        super(multiXCmultiQ, self).__init__(
+            x_arr,
+            z_arr,
+            Q_w=0,
+            f=f,
+            n_mann=n_mann,
+            init_radii=init_radii,
+            shape_dict=shape_dict,
+            init_offsets=init_offsets,
+            xc_n=xc_n,
+            dt_erode=dt_erode,
+            uplift=uplift,
+            uplift_times=uplift_times,
+            adaptive_step=adaptive_step,
+            max_frac_erode=max_frac_erode,
+            trim=trim,
+            a=a,
+            K=K,
+            layer_elevs=layer_elevs,
+            layer_solubility=layer_solubility,
+            K_sol=K_sol,
+            a_sol=a_sol,
+        )
+
+        self.Q_mean = Q_mean
+        self.kQ = kQ
+        self.nQ = nQ
+        self.Q_min_mult = Q_min_mult
+        self.Q_max_mult = Q_max_mult
+        # Calculate Q values evenly in log space
+        logQmin = np.log10(Q_min_mult * Q_mean)
+        logQmax = np.log10(Q_max_mult * Q_mean)
+        logQarr = np.linspace(logQmin, logQmax, nQ)
+        self.Q_arr = 10**logQarr
+        self.pdf_Q = pdf_Q(self.Q_arr, Q_mean=self.Q_mean, kQ=self.kQ)
+        self.pdf_Q_frac = self.pdf_Q / self.pdf_Q.sum()
+
+    def erode(self, dt_frac=1, finalQ=False):
+        """Erode the cross-sections.
+
+        Parameters
+        ----------
+        """
+
+        if finalQ:
+            old_ymins = self.ymins.copy()
+            resample = True
+            trim = True
+        else:
+            resample = False
+            trim = False
+        xc_mean_erosion = np.zeros(len(self.xcs))
+        for i, xc in enumerate(self.xcs):
+            if not self.layered_sim:
+                xc.erode_power_law(
+                    a=self.a,
+                    K=self.K,
+                    dt=self.dt_erode * dt_frac,
+                    resample=resample,
+                    trim=trim,
+                )
+            else:
+                if len(self.init_z) == len(self.xcs):
+                    absolute_layer_elevs = self.layer_elevs - self.init_z[i]
+                else:
+                    absolute_layer_elevs = self.layer_elevs - self.init_z[i + 1]
+                xc.erode_power_law_layered(
+                    a=self.a,
+                    K=self.K,
+                    layer_elevs=absolute_layer_elevs,
+                    dt=self.dt_erode * dt_frac,
+                    resample=resample,
+                    trim=trim,
+                )
+                if self.layer_solubility is not None:
+                    if len(self.layer_solubility) == len(self.K):
+                        K_sol_list = np.zeros(len(self.K))
+                        K_sol_list[self.layer_solubility] = self.K_sol
+                        xc.erode_power_law_layered(
+                            a=self.a_sol,
+                            K=K_sol_list,
+                            layer_elevs=absolute_layer_elevs,
+                            dt=self.dt_erode * dt_frac,
+                            trim=trim,
+                            resample=resample,
+                        )
+                    else:
+                        print(
+                            "Number of layer solubility entries must equal number of layers."
+                        )
+                        raise IndexError
+            xc.dr_tot[xc.wetidx] += xc.dr
+            xc_mean_erosion[i] = xc.dr.mean()
+            if finalQ:
+                self.ymins[i] = xc.ymin
+        self.mean_erosion = xc_mean_erosion.mean()
+        if finalQ:
+            # Adjust slopes
+            dz = self.ymins - old_ymins
+            self.dz = dz
+            if len(dz) == len(self.z_arr) - 1:
+                # Original formulation, but quite unstable for GVF midXCs solver
+                self.z_arr[1:] = self.z_arr[1:] + dz
+            else:
+                self.z_arr[1:] = self.z_arr[1:] + dz[1:]
+            self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / (
+                self.x_arr[1:] - self.x_arr[:-1]
+            )
+
+            # Set old_dt for use in plots that calculate erosion rates
+            self.old_dt = self.dt_erode
+            if self.adaptive_step:
+                # Check for percent change in radial distance
+                sim_max_frac_erode = 0.0
+                for xc in self.xcs:
+                    frac_erode = xc.dr_tot[xc.wetidx] / xc.r_l
+                    xc_max_frac_erode = frac_erode.max()
+                    if xc_max_frac_erode > sim_max_frac_erode:
+                        sim_max_frac_erode = xc_max_frac_erode
+
+                if sim_max_frac_erode > self.max_frac_erode:
+                    # Timestep is too big, reduce it
+                    self.dt_erode = self.dt_erode / 1.5
+                    print("Reducing timestep to " + str(self.dt_erode))
+                elif sim_max_frac_erode < 0.5 * self.max_frac_erode:
+                    # Timestep is too small, increase it
+                    self.dt_erode = self.dt_erode * 1.5
+                    print("Increasing timestep to " + str(self.dt_erode))
+
+    def run_one_step(self):
+        """Run one time step of simulation.
+
+        Calculates flow depths and erosion rates
+        during a single time step for all discharges.
+
+        Parameters
+        ----------
+
+        """
+
+        self.elapsed_time += self.dt_erode
+        self.timestep += 1
+        # Zero out total erosion arrays
+        for xc in self.xcs:
+            xc.dr_tot = np.zeros(xc.n)
+        self.max_mean_erosion = 0
+        for i, Q_w in enumerate(self.Q_arr):
+            self.Q_w = Q_w
+            self.calc_flow()
+            if i == self.nQ - 1:
+                self.erode(dt_frac=self.pdf_Q_frac[i], finalQ=True)
+            else:
+                self.erode(dt_frac=self.pdf_Q_frac[i], finalQ=False)
+            if self.mean_erosion > self.max_mean_erosion:
+                self.max_mean_erosion = self.mean_erosion
+                self.max_erosion_Q = Q_w
+                self.max_erosion_Q_idx = i
+        self.Q_w = self.max_erosion_Q
+        self.calc_flow()
+        self.apply_uplift()
 
 
 class multiXCNormalFlow(multiXC):
