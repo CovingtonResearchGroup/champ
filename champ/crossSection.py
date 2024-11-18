@@ -429,10 +429,11 @@ class CrossSection:
         self.setMaxVelPoint(self.fd)
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
-        self.dr = np.zeros(len(T_b))
-        erosion_idx = T_b > T_c
-        if len(T_b[erosion_idx]) > 0:
-            self.dr[erosion_idx] = dt * K * (T_b[erosion_idx] - T_c) ** a
+        # self.dr = np.zeros(len(T_b))
+        # erosion_idx = T_b > T_c
+        T_diff = T_b - T_c
+        T_diff[T_diff < 0] = 0
+        self.dr = dt * K * T_diff**a
         if not no_erode:
             self.erode(self.dr, trim=trim, resample=resample)
 
@@ -468,7 +469,8 @@ class CrossSection:
         self.setMaxVelPoint(self.fd)
         self.calcUmax(self.Q)
         T_b = self.calcT_b()
-        self.dr = np.zeros(len(T_b))
+        T_diff = T_b - T_c
+        T_diff[T_diff < 0] = 0
         ywet = self.y[self.wetidx]
         self.dr = np.zeros(len(ywet))
         old_elev = None
@@ -478,20 +480,11 @@ class CrossSection:
             else:
                 layer_idx = logical_and(ywet < elev, ywet >= old_elev)
             # print('i=',i, '  len(layer_idx)=',len(layer_idx[layer_idx==True]))
-            erosion_idx = T_b[layer_idx] > T_c
-            if len(T_b[layer_idx][erosion_idx]) > 0:
-                self.dr[layer_idx][erosion_idx] = (
-                    dt * K[i] * (T_b[layer_idx][erosion_idx] - T_c) ** a
-                )
+            self.dr[layer_idx] = dt * K[i] * T_diff[layer_idx] ** a
             old_elev = elev
         final_layer_idx = ywet > elev
         # print('len(final_layer_idx)=',len(final_layer_idx[final_layer_idx==True]))
-        erosion_idx = T_b[layer_idx] > T_c
-        if len(T_b[final_layer_idx][erosion_idx]) > 0:
-            self.dr[final_layer_idx][erosion_idx] = (
-                dt * K[-1] * (T_b[final_layer_idx][erosion_idx] - T_c) ** a
-            )
-        # self.dr = K*T_b**a
+        self.dr[final_layer_idx] = dt * K[-1] * T_diff[final_layer_idx] ** a
         if not no_erode:
             self.erode(self.dr, trim=trim, resample=resample)
 
