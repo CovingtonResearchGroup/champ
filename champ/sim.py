@@ -1189,6 +1189,7 @@ class multiXCmultiQ(multiXC):
         # Zero out total erosion arrays
         for xc in self.xcs:
             xc.dr_tot = np.zeros(xc.n)
+        self.max_erosion_Q = self.Q_arr[0]
         self.max_mean_erosion = 0
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
