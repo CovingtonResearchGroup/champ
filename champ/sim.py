@@ -401,7 +401,6 @@ class singleXCmultiQ(singleXC):
         else:
             self.xc.setEnergySlope(self.slope)
 
-
     def erode(self, dt_frac=1.0, trim=True, resample=True):
         """Erode the cross-section.
 
@@ -412,7 +411,10 @@ class singleXCmultiQ(singleXC):
         """
         if not self.layered_sim:
             self.xc.erode_power_law(
-                a=self.a, K=self.K, dt=self.dt_erode * dt_frac, no_erode=True, 
+                a=self.a,
+                K=self.K,
+                dt=self.dt_erode * dt_frac,
+                no_erode=True,
                 T_c=self.T_c,
                 trim=trim,
                 resample=resample,
@@ -444,19 +446,19 @@ class singleXCmultiQ(singleXC):
         self.timestep += 1
         dr_tot = np.zeros(self.xc.n)
         self.xc.create_A_interp()
-        self.xc.create_P_interp()    
+        self.xc.create_P_interp()
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
             self.calc_flow()
-            if i==self.nQ - 1:
+            if i == self.nQ - 1:
                 self.erode(dt_frac=self.pdf_Q_frac[i])
             else:
                 self.erode(dt_frac=self.pdf_Q_frac[i], trim=False, resample=False)
-            #print("Q=", Q_w, "  mean erosion =", self.xc.dr.mean())
+            # print("Q=", Q_w, "  mean erosion =", self.xc.dr.mean())
             dr_tot[self.xc.wetidx] += self.xc.dr
 
         # For multiQ sims this assumes largest discharge is last
-        self.xc.erode(dr_tot[self.xc.wetidx])#, trim=False)
+        self.xc.erode(dr_tot[self.xc.wetidx])  # , trim=False)
 
         if self.adaptive_step:
             # Check for percent change in radial distance
