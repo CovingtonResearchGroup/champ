@@ -274,6 +274,7 @@ class singleXCmultiQ(singleXC):
         trim=True,
         a=1.0,
         K=1e-5,
+        T_c=0,
         layer_elevs=None,
         kQ=1.0,
         nQ=20,
@@ -325,6 +326,8 @@ class singleXCmultiQ(singleXC):
             Erodibility in power law erosion rule (default = 1e-5).
             If multiple layers are specified, then this is a list of
             erodibilities listed from lowest to highest elevation.
+        T_c : float, optional
+            Critical shear stress for onset of erosion.
         layer_elevs : list of floats, optional
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with
@@ -378,6 +381,7 @@ class singleXCmultiQ(singleXC):
         self.nQ = nQ
         self.Q_min_mult = Q_min_mult
         self.Q_max_mult = Q_max_mult
+        self.T_c = T_c
         # Calculate Q values evenly in log space
         logQmin = np.log10(Q_min_mult * Q_mean)
         logQmax = np.log10(Q_max_mult * Q_mean)
@@ -386,7 +390,19 @@ class singleXCmultiQ(singleXC):
         self.pdf_Q = pdf_Q(self.Q_arr, Q_mean=self.Q_mean, kQ=self.kQ)
         self.pdf_Q_frac = self.pdf_Q / self.pdf_Q.sum()
 
-    def erode(self, dt_frac=1.0):
+    def calc_flow(self):
+        """Calculate flow depth."""
+        norm_fd = self.xc.calcNormalFlowDepth(self.Q_w, self.slope)
+        if norm_fd == -1:
+            # pipefull
+            delh = self.xc.calcPipeFullHeadGrad(self.Q_w)
+            self.xc.setEnergySlope(delh)
+            self.xc.setFD(self.xc.ymax - self.xc.ymin)
+        else:
+            self.xc.setEnergySlope(self.slope)
+
+
+    def erode(self, dt_frac=1.0, trim=True, resample=True):
         """Erode the cross-section.
 
         Parameters
@@ -396,7 +412,10 @@ class singleXCmultiQ(singleXC):
         """
         if not self.layered_sim:
             self.xc.erode_power_law(
-                a=self.a, K=self.K, dt=self.dt_erode * dt_frac, no_erode=True
+                a=self.a, K=self.K, dt=self.dt_erode * dt_frac, no_erode=True, 
+                T_c=self.T_c,
+                trim=trim,
+                resample=resample,
             )
         else:
             self.xc.erode_power_law_layered(
@@ -405,6 +424,9 @@ class singleXCmultiQ(singleXC):
                 layer_elevs=self.layer_elevs,
                 dt=self.dt_erode * dt_frac,
                 no_erode=True,
+                T_c=self.T_c,
+                trim=trim,
+                resample=resample,
             )
 
     def run_one_step(self):
@@ -423,13 +445,18 @@ class singleXCmultiQ(singleXC):
         dr_tot = np.zeros(self.xc.n)
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
+            self.xc.create_A_interp()
+            self.xc.create_P_interp()
             self.calc_flow()
-            self.erode(dt_frac=self.pdf_Q_frac[i])
+            if i==self.nQ - 1:
+                self.erode(dt_frac=self.pdf_Q_frac[i])
+            else:
+                self.erode(dt_frac=self.pdf_Q_frac[i], trim=False, resample=False)
             # print("Q=", Q_w, "  mean erosion =", self.xc.dr.mean())
             dr_tot[self.xc.wetidx] += self.xc.dr
 
         # For multiQ sims this assumes largest discharge is last
-        self.xc.erode(dr_tot[self.xc.wetidx])
+        self.xc.erode(dr_tot[self.xc.wetidx], trim=False)
 
         if self.adaptive_step:
             # Check for percent change in radial distance
