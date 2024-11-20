@@ -443,20 +443,20 @@ class singleXCmultiQ(singleXC):
         self.elapsed_time += self.dt_erode
         self.timestep += 1
         dr_tot = np.zeros(self.xc.n)
+        self.xc.create_A_interp()
+        self.xc.create_P_interp()    
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
-            self.xc.create_A_interp()
-            self.xc.create_P_interp()
             self.calc_flow()
             if i==self.nQ - 1:
                 self.erode(dt_frac=self.pdf_Q_frac[i])
             else:
                 self.erode(dt_frac=self.pdf_Q_frac[i], trim=False, resample=False)
-            # print("Q=", Q_w, "  mean erosion =", self.xc.dr.mean())
+            #print("Q=", Q_w, "  mean erosion =", self.xc.dr.mean())
             dr_tot[self.xc.wetidx] += self.xc.dr
 
         # For multiQ sims this assumes largest discharge is last
-        self.xc.erode(dr_tot[self.xc.wetidx], trim=False)
+        self.xc.erode(dr_tot[self.xc.wetidx])#, trim=False)
 
         if self.adaptive_step:
             # Check for percent change in radial distance
