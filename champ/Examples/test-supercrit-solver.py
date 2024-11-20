@@ -97,6 +97,7 @@ for i in range(191):
 sim.run_one_step()
 """
 
+"""
 from champ.utils.model_parameter_loader import load_params
 from champ.runSim import runSim
 
@@ -104,3 +105,9 @@ params_file = '/home/mcoving/ChampOutputs/pub_runs/gvf-uplift-nhigh.yml'
 run_params = load_params(params_file)
 print("run_params=", run_params)
 runSim(**run_params)
+"""
+
+import pickle
+with open('/home/mcoving/github/champ/champ/Examples/gvf-uplift-nhigh-figs/snapshot-00001000.pkl', 'rb') as f:
+    sim = pickle.load(f)
+sim.calc_flow()

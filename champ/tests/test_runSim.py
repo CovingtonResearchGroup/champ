@@ -9,6 +9,7 @@ import numpy as np
 import pickle
 import glob
 import os
+import time
 
 # import time
 
@@ -77,6 +78,8 @@ def test_spim_equiv():
         sim_params=sim_params,
         plot_every=5000,
     )
+    #print("Pausing for file write...")
+    #time.sleep(15) #doesn't seem to help
     final_spim_snap = glob.glob(os.path.join(plotdir, "spim", "snapshot*"))[-1]
     print("final spim=", final_spim_snap)
     spim_f = open(final_spim_snap, "rb")

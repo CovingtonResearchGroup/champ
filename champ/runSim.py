@@ -349,10 +349,12 @@ def runSim(
                         # We will hit the snapshot later and get plot now
                         pass
                     else:
-                        oldtimestep = sim.dt_erode
+                        if oldtimestep is None:
+                            oldtimestep = sim.dt_erode
                         sim.dt_erode = time_to_next_snap
                 else:
-                    oldtimestep = sim.dt_erode
+                    if oldtimestep is None:
+                        oldtimestep = sim.dt_erode
                     sim.dt_erode = time_to_next_snap
 
     # Make sure all plotting creation finishes up

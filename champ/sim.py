@@ -707,6 +707,10 @@ class multiXC(sim):
                 # Timestep is too small, increase it
                 self.dt_erode = self.dt_erode * 1.5
                 print("Increasing timestep to " + str(self.dt_erode))
+            if self.dt_erode > self.min_erode_step:
+                self.dt_erode = self.min_erode_step
+            ##########################
+            ## Bug! When dt is adjusted to hit snapshot or plot, it gets stuck.
 
 
 class multiXCNormalFlow(multiXC):
@@ -1401,6 +1405,10 @@ class multiXCGVF(multiXC):
                                 err,
                             )
                             print("*******************************************")
+                            print("Setting flow to critical")
+                            fd_sol = fd_crit
+                            self.flow_type[i-1] = 'crit'
+                            
 
                         self.h_super[i - 1] = self.z_arr[i - 1] + fd_sol
                         self.fd_super[i - 1] = fd_sol

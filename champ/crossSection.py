@@ -32,7 +32,8 @@ SMALL = 1e-6
 use_centroid_fraction = (
     0.98  # switch to  max vel at centroid if over this fraction of ymax
 )
-trim_factor = 2.0  # Trim xc points with y above trim_factor*fd
+trim_factor = 3.0  # Trim xc points with y above trim_factor*fd 
+# changed from 2 to 3 7/11/2024, as flow solver instabilities cause many switches
 add_factor = 1.75  # add xc points back in from total if ceiling less than add_factor*fd
 
 
