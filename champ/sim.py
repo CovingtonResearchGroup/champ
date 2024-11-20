@@ -1114,13 +1114,13 @@ class multiXCmultiQ(multiXC):
         Parameters
         ----------
         """
-        print("Erosional timestep is ", self.dt_erode)
+        # print("Erosional timestep is ", self.dt_erode)
         if finalQ:
             old_ymins = self.ymins.copy()
             resample = True
             trim = True
         else:
-            resample = False
+            resample = True
             trim = False
         xc_mean_erosion = np.zeros(len(self.xcs))
         for i, xc in enumerate(self.xcs):
@@ -1207,7 +1207,7 @@ class multiXCmultiQ(multiXC):
                     # Timestep is too small, increase it
                     self.dt_erode = self.dt_erode * 1.5
                     print("Increasing timestep to " + str(self.dt_erode))
-                print("Checking dt erode.. ", self.dt_erode)
+                # print("Checking dt erode.. ", self.dt_erode)
 
     def run_one_step(self):
         """Run one time step of simulation.
@@ -1219,7 +1219,7 @@ class multiXCmultiQ(multiXC):
         ----------
 
         """
-        print("dt erode at start of run step =", self.dt_erode)
+        # print("dt erode at start of run step =", self.dt_erode)
         self.elapsed_time += self.dt_erode
         self.timestep += 1
         # Zero out total erosion arrays

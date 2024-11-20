@@ -272,6 +272,8 @@ def runSim(
     oldtimestep = None
     t_i = time.time()
     while not finished:
+        if sim.elapsed_time > 82647:
+            print("asdf")
         sim.run_one_step()
         print("timestep=", sim.timestep, "   time=", sim.elapsed_time)
         # Reset timestep if we have adjusted for plot or snapshot

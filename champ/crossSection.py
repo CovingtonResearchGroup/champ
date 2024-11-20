@@ -391,7 +391,7 @@ class CrossSection:
         self.vgrad2 = (
             (self.umax / self.z0)
             * (1.0 / np.log(self.r_l / self.z0))
-            * np.fabs(np.sin(phi - alpha))
+            # * np.fabs(np.sin(phi - alpha)) # Removed this because of instability. Wobus (2008) also does not have this term
         ) ** 2.0
         return self.vgrad2
 
