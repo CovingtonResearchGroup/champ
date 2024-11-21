@@ -26,4 +26,5 @@ sim2 = runSim(
     plot_every=500,
     n_plot_processes=4,
     sim_params=sim_params,
+    start_from_snapshot_num=75000,
 )
