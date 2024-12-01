@@ -33,7 +33,7 @@ use_centroid_fraction = (
 )
 trim_factor = 2.0  # Trim xc points with y above trim_factor*fd
 add_factor = 1.75  # add xc points back in from total if ceiling less than add_factor*fd
-
+use_total_threshold = 0.95 # calcA and calcP using total if above this fraction of maxdepth
 
 class CrossSection:
     """Cross-section object that contains functions for calculating geometry
@@ -131,8 +131,8 @@ class CrossSection:
         P : float
             The perimeter of the selected portion of the cross-section.
         """
-        # If we exceed depth of trimmed XC, then use total
-        if (depth > self.ymax - self.ymin) and self.x_total is not None:
+        # If we exceed depth of trimmed XC * use_total_threhold, then use total
+        if (depth > use_total_threshold*(self.ymax - self.ymin)) and self.x_total is not None:
             total = True
 
         if total:
@@ -164,7 +164,7 @@ class CrossSection:
             The area of the selected portion of the cross-section.
         """
         # If we exceed depth of trimmed XC, then use total
-        if (depth > self.ymax - self.ymin) and self.x_total is not None:
+        if (depth > use_total_threshold*(self.ymax - self.ymin)) and self.x_total is not None:
             total = True
 
         if total:
@@ -584,9 +584,10 @@ class CrossSection:
                 if not first_trim:
                     self.update_total_xc(nx, ny)
             elif not trim_y < max(ny) and self.is_trimmed:
+                if self.x_total is not None:
+                    self.update_total_xc(nx, ny)
                 # Water level is increasing
-                self.update_total_xc(nx, ny)
-                if (max(ny) - min(ny)) < add_factor * self.fd:
+                if (max(ny) - min(ny)) < add_factor * self.fd and self.x_total is not None:
                     self.switchToTotalXC()
                     resample = False
                     nx = self.x
@@ -726,6 +727,8 @@ class CrossSection:
             upper_bound = maxdepth
         else:
             upper_bound = old_fd * 1.1  # 25
+        if upper_bound > maxdepth:
+            upper_bound = maxdepth
         calcFullFlow = self.calcNormalFlow(maxdepth, slope, use_interp=False)
         if Q >= calcFullFlow and not self.ymax > self.y.max():
             return -1

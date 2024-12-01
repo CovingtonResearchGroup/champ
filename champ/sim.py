@@ -696,7 +696,7 @@ class multiXC(sim):
             self.x_arr[1:] - self.x_arr[:-1]
         )
 
-    def calc_flow(self, h0=None):
+    def calc_flow(self, h0=None, use_old_fd=True):
         """Calculates flow depths and hydraulic head values along channel.
 
         Notes
@@ -731,8 +731,13 @@ class multiXC(sim):
             backflooded = (self.h[i] - self.z_arr[i + 1] - xc.ymax + xc.ymin) > 0
             over_normal_capacity = False
             if not backflooded:
-                norm_fd = xc.calcNormalFlowDepth(
-                    self.Q_w, self.slopes[i], old_fd=old_fd
+                if use_old_fd:
+                    norm_fd = xc.calcNormalFlowDepth(
+                        self.Q_w, self.slopes[i], old_fd=old_fd
+                        )
+                else:
+                    norm_fd = xc.calcNormalFlowDepth(
+                    self.Q_w, self.slopes[i]
                 )
                 if (norm_fd < xc.ymax - xc.ymin) and i == 0 and h0 is None:
                     # Transition downstream head boundary to normal flow depth
@@ -1124,6 +1129,9 @@ class multiXCmultiQ(multiXC):
             trim = False
         xc_mean_erosion = np.zeros(len(self.xcs))
         for i, xc in enumerate(self.xcs):
+            #print("timestep=", self.timestep, "  Q_w = ", self.Q_w, '  xc# = ', i)
+            #if self.timestep==710 and self.Q_w==10:
+            #    print('bad step')
             if not self.layered_sim:
                 xc.erode_power_law(
                     a=self.a,
@@ -1229,7 +1237,7 @@ class multiXCmultiQ(multiXC):
         self.max_mean_erosion = 0
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
-            self.calc_flow()
+            self.calc_flow(use_old_fd=False)
             if i == self.nQ - 1:
                 self.erode(dt_frac=self.pdf_Q_frac[i], finalQ=True)
             else:
@@ -1239,7 +1247,7 @@ class multiXCmultiQ(multiXC):
                 self.max_erosion_Q = Q_w
                 self.max_erosion_Q_idx = i
         self.Q_w = self.max_erosion_Q
-        self.calc_flow()
+        self.calc_flow(use_old_fd=False)
         self.apply_uplift()
 
 

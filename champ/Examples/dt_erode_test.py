@@ -21,10 +21,11 @@ sim_params = {
 sim2 = runSim(
     n=10,
     endtime=140000,
-    plotdir="./multiXCmultiQ_Ksol/",
+    plotdir="./champ/Examples/multiXCmultiQ_Ksol/",
     multiQ=True,
     plot_every=500,
-    n_plot_processes=4,
+    r_init=2,
+    n_plot_processes=2,
     sim_params=sim_params,
-    start_from_snapshot_num=75000,
+    start_from_snapshot_num=76000,
 )
