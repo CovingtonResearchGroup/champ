@@ -7,9 +7,10 @@ sim_params = {
     "adaptive_step": True,
     "K": [2e-5, 2e-5, 2e-5],
     "a": 1.5,
-    "layer_elevs": [-4, -2],
+    "layer_elevs": [-30, -10],
     "uplift": 0.00005,
     "nQ": 10,
+    'Q_mean':0.1,
     "Q_min_mult": 0.1,
     "Q_max_mult": 10,
     "T_c": 5,
@@ -20,12 +21,12 @@ sim_params = {
 }
 sim2 = runSim(
     n=10,
-    endtime=140000,
+    endtime=500000,
     plotdir="./champ/Examples/multiXCmultiQ_Ksol/",
     multiQ=True,
     plot_every=500,
     r_init=2,
     n_plot_processes=2,
     sim_params=sim_params,
-    start_from_snapshot_num=76000,
+#    start_from_snapshot_num=200000,
 )

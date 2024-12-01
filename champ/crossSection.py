@@ -78,6 +78,8 @@ class CrossSection:
         self.Q = 0.0
         self.back_to_total = False
         self.is_trimmed = False
+        self.create_A_interp()
+        self.create_P_interp()
 
     def rollXC(self):
         """

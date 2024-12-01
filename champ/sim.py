@@ -696,7 +696,7 @@ class multiXC(sim):
             self.x_arr[1:] - self.x_arr[:-1]
         )
 
-    def calc_flow(self, h0=None, use_old_fd=True):
+    def calc_flow(self, h0=None, use_old_fd=True, create_interp=True):
         """Calculates flow depths and hydraulic head values along channel.
 
         Notes
@@ -722,8 +722,9 @@ class multiXC(sim):
             # Initial test showed interpolation takes the longest, flow calc is next,
             # remainder is 10x less.
             # tic = time.perf_counter()
-            xc.create_A_interp()
-            xc.create_P_interp()
+            if create_interp:
+                xc.create_A_interp()
+                xc.create_P_interp()
             # toc = time.perf_counter()
             # print(f"Interpolation took {toc - tic:0.4f} seconds.")
             # tic = toc
@@ -1237,7 +1238,7 @@ class multiXCmultiQ(multiXC):
         self.max_mean_erosion = 0
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
-            self.calc_flow(use_old_fd=False)
+            self.calc_flow(use_old_fd=False, create_interp=False)
             if i == self.nQ - 1:
                 self.erode(dt_frac=self.pdf_Q_frac[i], finalQ=True)
             else:
@@ -1246,8 +1247,12 @@ class multiXCmultiQ(multiXC):
                 self.max_mean_erosion = self.mean_erosion
                 self.max_erosion_Q = Q_w
                 self.max_erosion_Q_idx = i
-        self.Q_w = self.max_erosion_Q
-        self.calc_flow(use_old_fd=False)
+        for xc in self.xcs:
+            #Create interp functions at max flow for use in next step
+            xc.create_P_interp()
+            xc.create_A_interp()
+        #self.Q_w = self.max_erosion_Q
+        #self.calc_flow(use_old_fd=False)
         self.apply_uplift()
 
 
