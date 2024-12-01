@@ -31,9 +31,10 @@ SMALL = 1e-6
 use_centroid_fraction = (
     0.98  # switch to  max vel at centroid if over this fraction of ymax
 )
-trim_factor = 2.0  # Trim xc points with y above trim_factor*fd
+trim_factor = 2.5  # Trim xc points with y above trim_factor*fd
 add_factor = 1.75  # add xc points back in from total if ceiling less than add_factor*fd
 use_total_threshold = 0.95 # calcA and calcP using total if above this fraction of maxdepth
+max_interp_factor = 1.5 # Multiple of flow depth for maximum of interpolation functions
 
 class CrossSection:
     """Cross-section object that contains functions for calculating geometry
@@ -186,6 +187,7 @@ class CrossSection:
         max_interp = self.fd * 1.5
         if max_interp > maxdepth:
             max_interp = maxdepth
+        self.max_interp = max_interp
 
         num_xc_points = len(self.y[self.y - self.ymin < max_interp])
         if num_xc_points < n_points / 3.0:
@@ -213,7 +215,8 @@ class CrossSection:
         max_interp = self.fd * 1.5
         if max_interp > maxdepth:
             max_interp = maxdepth
-
+        self.max_interp = max_interp
+        
         num_xc_points = len(self.y[self.y - self.ymin < max_interp])
         if num_xc_points < n_points / 3.0:
             n_points = int(np.round(num_xc_points / 3.0))
@@ -622,7 +625,7 @@ class CrossSection:
         # Set new XC coordinates
         self.rollXC()
         self.create_pm()
-        self.ymin = min(self.x)
+        self.ymin = min(self.y)
         # Use LHS ymax rather than total. This works because of roll.
         self.ymax = self.y[0]  # max(self.y)
         self.n = len(self.x)
@@ -643,6 +646,8 @@ class CrossSection:
             flow. This helps smooth the root-finding. Default value is True.
 
         """
+        if depth > self.max_interp:
+            use_interp = False
         if use_interp:
             Pw = self.P_interp(depth)
             A = self.A_interp(depth)
@@ -675,7 +680,10 @@ class CrossSection:
         return desiredQ - self.calcNormalFlow(avg_flow_depth, head_slope)
 
     def crit_flow_depth_residual(self, depth, Q):
-        A = self.A_interp(depth)
+        if depth < self.max_interp:
+            A = self.A_interp(depth)
+        else:
+            A = self.calcA(depth)
         if A < SMALL:
             A = SMALL
         L, R = self.findLR(depth)
@@ -685,7 +693,10 @@ class CrossSection:
         return A**3 / W - Q**2 / g
 
     def abs_crit_flow_depth_residual(self, depth, Q):
-        A = self.A_interp(depth)
+        if depth < self.max_interp:
+            A = self.A_interp(depth)
+        else:
+            A = self.calcA(depth)
         if A < SMALL:
             A = SMALL
         L, R = self.findLR(depth)
