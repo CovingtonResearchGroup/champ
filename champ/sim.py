@@ -276,6 +276,9 @@ class singleXCmultiQ(singleXC):
         K=1e-5,
         T_c=0,
         layer_elevs=None,
+        layer_solubility=None,
+        K_sol=1e-5,
+        a_sol=0.5,
         kQ=1.0,
         nQ=20,
         Q_min_mult=0.1,
@@ -332,6 +335,13 @@ class singleXCmultiQ(singleXC):
             Specifies a list of elevations (from low to high), where rock
             erodibility changes. If specified, K should be a list with
             one more item than this list.
+        layer_solubility : list of booleans, optional
+            Specifies which layers, if any, are soluble. Set soluble layers to
+            True.
+        K_sol : float, optional
+            Erodibility in dissolution power law erosion rule (default = 1e-5).
+        a_sol : float, optional
+            Exponent in power law erosion rule for dissolution. (Default=0.5)
         kQ : float, optional
             The k value in the discharge pdf. Ranges between about 0.1 and 3 (Lague et al., 2005).
             Value is lower for more arid environments. Default value is 1.
@@ -382,6 +392,9 @@ class singleXCmultiQ(singleXC):
         self.Q_min_mult = Q_min_mult
         self.Q_max_mult = Q_max_mult
         self.T_c = T_c
+        self.K_sol = K_sol
+        self.a_sol = a_sol
+        self.layer_solubility = layer_solubility
         # Calculate Q values evenly in log space
         logQmin = np.log10(Q_min_mult * Q_mean)
         logQmax = np.log10(Q_max_mult * Q_mean)
@@ -430,6 +443,30 @@ class singleXCmultiQ(singleXC):
                 trim=trim,
                 resample=resample,
             )
+        if self.layer_solubility is not None:
+            self.xc.dr_mech = self.xc.dr
+            dr_tmp = np.zeros(self.xc.n)
+            dr_tmp[self.xc.wetidx] += self.xc.dr_mech
+            if len(self.layer_solubility) == len(self.K):
+                K_sol_list = np.zeros(len(self.K))
+                K_sol_list[self.layer_solubility] = self.K_sol
+                self.xc.erode_power_law_layered(
+                    a=self.a_sol,
+                    K=K_sol_list,
+                    layer_elevs=self.layer_elevs,
+                    dt=self.dt_erode * dt_frac,
+                    trim=False,
+                    resample=False,
+                    no_erode=True,
+                )
+                self.xc.dr_diss = self.xc.dr
+                dr_tmp[self.xc.wetidx] += self.xc.dr_diss
+                self.xc.dr = dr_tmp[self.xc.wetidx]
+            else:
+                print(
+                    "Number of layer solubility entries must equal number of layers."
+                )
+                raise IndexError
 
     def run_one_step(self):
         """Run one time step of simulation.

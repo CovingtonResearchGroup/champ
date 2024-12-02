@@ -346,7 +346,10 @@ def runSim(
             # simply rounding to the nearest int is ineffective.
             if (
                 (t_int % snapshot_every == 0)
-                and ((sim.elapsed_time - sim.dt_erode) % snapshot_every > 1)
+                and (
+                    ((sim.elapsed_time - sim.dt_erode) % snapshot_every > 1)
+                    or (snapshot_every == sim.dt_erode)
+                    )
                 and (
                     (time_to_next_snap < sim.dt_erode)
                     or (snapshot_every - time_to_next_snap < sim.dt_erode)
