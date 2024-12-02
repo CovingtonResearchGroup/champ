@@ -463,9 +463,7 @@ class singleXCmultiQ(singleXC):
                 dr_tmp[self.xc.wetidx] += self.xc.dr_diss
                 self.xc.dr = dr_tmp[self.xc.wetidx]
             else:
-                print(
-                    "Number of layer solubility entries must equal number of layers."
-                )
+                print("Number of layer solubility entries must equal number of layers.")
                 raise IndexError
 
     def run_one_step(self):
@@ -481,7 +479,7 @@ class singleXCmultiQ(singleXC):
 
         self.elapsed_time += self.dt_erode
         self.timestep += 1
-        dr_tot = np.zeros(self.xc.n)
+        self.dr_tot = np.zeros(self.xc.n)
         self.xc.create_A_interp()
         self.xc.create_P_interp()
         for i, Q_w in enumerate(self.Q_arr):
@@ -492,20 +490,24 @@ class singleXCmultiQ(singleXC):
             else:
                 self.erode(dt_frac=self.pdf_Q_frac[i], trim=False, resample=False)
             # print("Q=", Q_w, "  mean erosion =", self.xc.dr.mean())
-            dr_tot[self.xc.wetidx] += self.xc.dr
+            self.dr_tot[self.xc.wetidx] += self.xc.dr
 
         # For multiQ sims this assumes largest discharge is last
-        self.xc.erode(dr_tot[self.xc.wetidx])  # , trim=False)
+        self.xc.erode(self.dr_tot[self.xc.wetidx])  # , trim=False)
 
         if self.adaptive_step:
             # Check for percent change in radial distance
             # For multiQ sims this assumes largest discharge is last
-            frac_erode = dr_tot[self.xc.wetidx] / self.xc.r_l
-            if frac_erode.max() > self.max_frac_erode:
-                # Timestep is too big, reduce it
-                self.dt_erode = self.dt_erode / 1.5
+            self.frac_erode = self.dr_tot[self.xc.wetidx] / self.xc.r_l
+            if self.frac_erode.max() > self.max_frac_erode:
+                if self.frac_erode.max() / self.max_frac_erode > 10:
+                    # Timestep is way too big, dramatically reduce
+                    self.dt_erode = self.dt_erode / 10
+                else:
+                    # Timestep is too big, reduce it
+                    self.dt_erode = self.dt_erode / 1.5
                 print("Reducing timestep to " + str(self.dt_erode))
-            elif frac_erode.max() < 0.5 * self.max_frac_erode:
+            elif self.frac_erode.max() < 0.5 * self.max_frac_erode:
                 # Timestep is too small, increase it
                 self.dt_erode = self.dt_erode * 1.5
                 print("Increasing timestep to " + str(self.dt_erode))
@@ -772,11 +774,9 @@ class multiXC(sim):
                 if use_old_fd:
                     norm_fd = xc.calcNormalFlowDepth(
                         self.Q_w, self.slopes[i], old_fd=old_fd
-                        )
+                    )
                 else:
-                    norm_fd = xc.calcNormalFlowDepth(
-                    self.Q_w, self.slopes[i]
-                )
+                    norm_fd = xc.calcNormalFlowDepth(self.Q_w, self.slopes[i])
                 if (norm_fd < xc.ymax - xc.ymin) and i == 0 and h0 is None:
                     # Transition downstream head boundary to normal flow depth
                     # If we don't do this, we can get stuck in full-pipe conditions
@@ -1167,8 +1167,8 @@ class multiXCmultiQ(multiXC):
             trim = False
         xc_mean_erosion = np.zeros(len(self.xcs))
         for i, xc in enumerate(self.xcs):
-            #print("timestep=", self.timestep, "  Q_w = ", self.Q_w, '  xc# = ', i)
-            #if self.timestep==710 and self.Q_w==10:
+            # print("timestep=", self.timestep, "  Q_w = ", self.Q_w, '  xc# = ', i)
+            # if self.timestep==710 and self.Q_w==10:
             #    print('bad step')
             if not self.layered_sim:
                 xc.erode_power_law(
@@ -1285,11 +1285,11 @@ class multiXCmultiQ(multiXC):
                 self.max_erosion_Q = Q_w
                 self.max_erosion_Q_idx = i
         for xc in self.xcs:
-            #Create interp functions at max flow for use in next step
+            # Create interp functions at max flow for use in next step
             xc.create_P_interp()
             xc.create_A_interp()
-        #self.Q_w = self.max_erosion_Q
-        #self.calc_flow(use_old_fd=False)
+        # self.Q_w = self.max_erosion_Q
+        # self.calc_flow(use_old_fd=False)
         self.apply_uplift()
 
 
