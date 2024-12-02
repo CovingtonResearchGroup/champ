@@ -21,6 +21,7 @@ from champ.utils.fastroutines import (
     fast1DCubicSpline as finterp1d,
 )
 import copy
+from shapely import linestrings, Polygon
 
 
 # import debugpy
@@ -33,8 +34,11 @@ use_centroid_fraction = (
 )
 trim_factor = 2.5  # Trim xc points with y above trim_factor*fd
 add_factor = 1.75  # add xc points back in from total if ceiling less than add_factor*fd
-use_total_threshold = 0.95 # calcA and calcP using total if above this fraction of maxdepth
-max_interp_factor = 1.5 # Multiple of flow depth for maximum of interpolation functions
+use_total_threshold = (
+    0.95  # calcA and calcP using total if above this fraction of maxdepth
+)
+max_interp_factor = 1.5  # Multiple of flow depth for maximum of interpolation functions
+
 
 class CrossSection:
     """Cross-section object that contains functions for calculating geometry
@@ -135,7 +139,9 @@ class CrossSection:
             The perimeter of the selected portion of the cross-section.
         """
         # If we exceed depth of trimmed XC * use_total_threhold, then use total
-        if (depth > use_total_threshold*(self.ymax - self.ymin)) and self.x_total is not None:
+        if (
+            depth > use_total_threshold * (self.ymax - self.ymin)
+        ) and self.x_total is not None:
             total = True
 
         if total:
@@ -167,7 +173,9 @@ class CrossSection:
             The area of the selected portion of the cross-section.
         """
         # If we exceed depth of trimmed XC, then use total
-        if (depth > use_total_threshold*(self.ymax - self.ymin)) and self.x_total is not None:
+        if (
+            depth > use_total_threshold * (self.ymax - self.ymin)
+        ) and self.x_total is not None:
             total = True
 
         if total:
@@ -218,7 +226,7 @@ class CrossSection:
         if max_interp > maxdepth:
             max_interp = maxdepth
         self.max_interp = max_interp
-        
+
         num_xc_points = len(self.y[self.y - self.ymin < max_interp])
         if num_xc_points < n_points / 3.0:
             n_points = int(np.round(num_xc_points / 3.0))
@@ -553,6 +561,21 @@ class CrossSection:
         nx[wetidx] = self.x[wetidx] + dr * cos(theta[wetidx])
         ny[wetidx] = self.y[wetidx] - dr * sin(theta[wetidx])
 
+        # Check for loops
+        xc_ls = linestrings(nx, ny)
+        if not xc_ls.is_simple:
+            # We have a loop
+            simplified_xc = Polygon(xc_ls).buffer(0)
+            clean_x, clean_y = simplified_xc.exterior.xy
+            clean_x = np.array(clean_x)
+            clean_y = np.array(clean_y)
+            # Remove top connection
+            clean_x = clean_x[1:]
+            clean_y = clean_y[1:]
+            # Reverse order
+            nx = clean_x[::-1]
+            ny = clean_y[::-1]
+
         # Once flow drops far enough below ceiling, trim XC
         tmp_ymin = min(ny)
         trim_y = self.fd * trim_factor + tmp_ymin
@@ -592,7 +615,9 @@ class CrossSection:
                 if self.x_total is not None:
                     self.update_total_xc(nx, ny)
                 # Water level is increasing
-                if (max(ny) - min(ny)) < add_factor * self.fd and self.x_total is not None:
+                if (
+                    max(ny) - min(ny)
+                ) < add_factor * self.fd and self.x_total is not None:
                     self.switchToTotalXC()
                     resample = False
                     nx = self.x
