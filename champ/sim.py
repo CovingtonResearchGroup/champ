@@ -502,7 +502,8 @@ class singleXCmultiQ(singleXC):
             if self.frac_erode.max() > self.max_frac_erode:
                 if self.frac_erode.max() / self.max_frac_erode > 10:
                     # Timestep is way too big, dramatically reduce
-                    self.dt_erode = self.dt_erode / 10
+                    reduce_frac = 2 * self.frac_erode.max() / self.max_frac_erode
+                    self.dt_erode = self.dt_erode / reduce_frac
                 else:
                     # Timestep is too big, reduce it
                     self.dt_erode = self.dt_erode / 1.5
