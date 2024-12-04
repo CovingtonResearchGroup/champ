@@ -5,9 +5,9 @@ name: Python package
 
 on:
   push:
-    branches: [ mech-only ]
+    branches: [ mech-only, master, multiQ ]
   pull_request:
-    branches: [ mech-only ]
+    branches: [ mech-only, master, multiQ ]
 
 jobs:
   build:
