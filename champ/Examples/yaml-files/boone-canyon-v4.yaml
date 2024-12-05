@@ -4,8 +4,8 @@ dz: 500.
 r_init: 1.0
 endtime: 10000000
 plotdir: './boone-knickpoint-v4/'
-start_from_snapshot_num: 390000
-snapshot_every: 10000
+start_from_snapshot_num: 2850000
+snapshot_every: 100
 plot_every: 1000
 multiQ: True
 n_plot_processes: 4

@@ -33,7 +33,9 @@ use_centroid_fraction = (
     0.98  # switch to  max vel at centroid if over this fraction of ymax
 )
 trim_factor = 2.5  # Trim xc points with y above trim_factor*fd
-add_factor = 1.75  # add xc points back in from total if ceiling less than add_factor*fd
+add_factor = 1.05  # add xc points back in from total if ceiling less
+# than add_factor*fd. Changed from 1.75 to 1.05 to see if it
+# reduces switches and improves stability (12/5/2024)
 use_total_threshold = (
     0.95  # calcA and calcP using total if above this fraction of maxdepth
 )
@@ -530,7 +532,6 @@ class CrossSection:
         ]
         x_total_tmp = np.concatenate([x1, x2, x4])
         y_total_tmp = np.concatenate([y1, y2, y4])
-        # debugpy.breakpoint()
         tck, u = interpolate.splprep([x_total_tmp, y_total_tmp], u=None, k=1, s=0.0)
         un = linspace(u.min(), u.max(), n)  # if n!=nx.size else nx.size)
         self.x_total, self.y_total = interpolate.splev(un, tck, der=0)
@@ -560,6 +561,8 @@ class CrossSection:
         ny = self.y
         nx[wetidx] = self.x[wetidx] + dr * cos(theta[wetidx])
         ny[wetidx] = self.y[wetidx] - dr * sin(theta[wetidx])
+        if len(nx) <= 3:
+            return
 
         # Check for loops
         xc_ls = linestrings(nx, ny)
@@ -770,7 +773,7 @@ class CrossSection:
         partial_full = False
         calcFullFlow = self.calcNormalFlow(maxdepth, slope, use_interp=False)
         if Q >= calcFullFlow:
-            # Check whether there is greater discharge for partially full 
+            # Check whether there is greater discharge for partially full
             nfd = 20
             for fd in np.linspace(SMALL, maxdepth, nfd):
                 thisQ = self.calcNormalFlow(fd, slope, use_interp=False)
@@ -778,6 +781,58 @@ class CrossSection:
                     upper_bound = fd
                     partial_full = True
                     break
+        if Q >= calcFullFlow:
+            # Try adding some points back into XC from total XC
+            if self.x_total is not None:
+                more_points_available = self.y_total.max() > self.y.max()
+                none_added = True
+                while more_points_available:
+                    # Try doubling XC depth
+                    while none_added and more_points_available:
+                        add_idx = logical_and(
+                            self.y_total > maxdepth + self.ymin,
+                            self.y_total < 2 * maxdepth + self.ymin,
+                        )
+                        if True in add_idx:
+                            none_added = False
+                            add_left = logical_and(add_idx, self.x_total < 0)
+                            add_right = logical_and(add_idx, self.x_total > 0)
+                            x_add_left = self.x_total[add_left]
+                            x_add_right = self.x_total[add_right]
+                            y_add_left = self.y_total[add_left]
+                            y_add_right = self.y_total[add_right]
+                            # Trim top slightly in case of connection across
+                            x_lower = self.x[self.y < self.ymax - 0.02 * maxdepth]
+                            y_lower = self.y[self.y < self.ymax - 0.02 * maxdepth]
+                            x_tmp = np.concatenate([x_add_left, x_lower, x_add_right])
+                            y_tmp = np.concatenate([y_add_left, y_lower, y_add_right])
+                            # Resample XC (move this up below y_tmp?)
+                            tck, u = interpolate.splprep(
+                                [x_tmp, y_tmp], u=None, k=1, s=0.0
+                            )
+
+                            un = linspace(u.min(), u.max(), self.n)
+                            self.x, self.y = interpolate.splev(un, tck, der=0)
+                            self.rollXC()
+                            self.create_pm()
+                            self.ymin = min(self.y)
+                            # Use LHS ymax rather than total. This works because of roll.
+                            self.ymax = self.y[0]  # max(self.y)
+                            self.n = len(self.x)
+                            self.back_to_total = True
+
+                        more_points_available = self.y_total.max() > self.y.max()
+                    # Calculate Q for fds with added points
+                    nfd = 20
+                    maxdepth = self.ymax - self.ymin
+                    for fd in np.linspace(SMALL, maxdepth, nfd):
+                        thisQ = self.calcNormalFlow(fd, slope, use_interp=False)
+                        if thisQ > Q:
+                            upper_bound = fd
+                            partial_full = True
+                            more_points_available = False  # Set to false to stop loop
+                            break
+
         if Q >= calcFullFlow and not self.ymax > self.y.max() and not partial_full:
             return -1
         else:

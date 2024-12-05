@@ -844,6 +844,8 @@ class multiXC(sim):
             # tic = toc
             # Calculate flow areas, wetted perimeters, hydraulic diameters,
             # free surface widths, and velocities
+            if norm_fd == 0:
+                print("asdf")
             self.A_w[i] = xc.calcA(depth=self.fd_mids[i])
             self.P_w[i] = xc.calcP(depth=self.fd_mids[i])
             self.V_w[i] = -self.Q_w / self.A_w[i]
@@ -1171,6 +1173,8 @@ class multiXCmultiQ(multiXC):
             # print("timestep=", self.timestep, "  Q_w = ", self.Q_w, '  xc# = ', i)
             # if self.timestep==710 and self.Q_w==10:
             #    print('bad step')
+            if len(xc.x[xc.wetidx]) < 2:
+                print("asdf")
             if not self.layered_sim:
                 xc.erode_power_law(
                     a=self.a,
