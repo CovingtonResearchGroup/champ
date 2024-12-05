@@ -767,8 +767,18 @@ class CrossSection:
             upper_bound = old_fd * 1.1  # 25
         if upper_bound > maxdepth:
             upper_bound = maxdepth
+        partial_full = False
         calcFullFlow = self.calcNormalFlow(maxdepth, slope, use_interp=False)
-        if Q >= calcFullFlow and not self.ymax > self.y.max():
+        if Q >= calcFullFlow:
+            # Check whether there is greater discharge for partially full 
+            nfd = 20
+            for fd in np.linspace(SMALL, maxdepth, nfd):
+                thisQ = self.calcNormalFlow(fd, slope, use_interp=False)
+                if thisQ > Q:
+                    upper_bound = fd
+                    partial_full = True
+                    break
+        if Q >= calcFullFlow and not self.ymax > self.y.max() and not partial_full:
             return -1
         else:
             SMALL_Q = self.normal_discharge_residual(SMALL, slope, Q)
