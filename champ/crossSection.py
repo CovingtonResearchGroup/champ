@@ -633,16 +633,41 @@ class CrossSection:
 
         # Resample points by fitting spline
         if resample:
-            tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0.0)
-            un = linspace(u.min(), u.max(), n)
+            # Changed spline to cubic. Don't know if it causes problems (12/6/24)
+            tck, u = interpolate.splprep([nx, ny], u=None, k=3, s=0.0)
+            # un = linspace(u.min(), u.max(), n)
             # Change spacing so that XC points are more closely spaced
-            # near channel center and more sparse on edges
+            # near channel center and more sparse on edges.
+            # Force dense zone of points to be centered on x=0.
+            rt = interpolate.sproot(tck)
+            rtx = rt[0][0] # Find x root (channel center)
+            # Set left and right points in u, centered on channel (if even xc_n)
+            # Scale so that lhs goes from 0 to rtx and rhs goes from rtx to 1
+            unl = np.linspace(u.min(), rtx, int(np.floor(self.n/2)) + 1)
+            unx_l = np.linspace(0,np.pi, len(unl))
+            delta_l = np.cumsum(np.cos(unx_l) + 1)
+            unl += delta_l
+            unl -= unl.min()
+            unl = unl*rtx/unl.max()
+            unr = np.linspace(rtx, u.max(), int(np.ceil(self.n/2)) + 1)
+            unx_r = np.linspace(np.pi, 2*np.pi, len(unr))
+            delta_r = np.cumsum(np.cos(unx_r) + 1)
+            unr += delta_r
+            range_unr = u.max() - rtx
+            unr -= unr.min()
+            unr = unr * range_unr / unr.max()
+            unr += rtx
+            un = np.concatenate([unl[:-1],unr[1:]]) # remove points at channel center
+            nx, ny = interpolate.splev(un, tck, der=0)
+
+            """
             unx = np.linspace(0, 2*np.pi, len(un))
             delta = np.cumsum(np.cos(unx) + 1)
             un += delta #add shifts to spline coord            
             un -= un.min() # Shift back to min of zero
             un = un / un.max() # Renormalize to 1
             nx, ny = interpolate.splev(un, tck, der=0)
+            """
 
         # Set new XC coordinates
         self.x = nx
