@@ -1222,6 +1222,9 @@ class multiXCmultiQ(multiXC):
                         )
                         raise IndexError
             xc_mean_erosion[i] = xc.dr.mean()
+            max_frac_erode = max(xc.dr_tot[xc.wetidx] / xc.r_l)
+            if max_frac_erode > self.sim_max_frac_erode:
+                self.sim_max_frac_erode = max_frac_erode
             xc.dr_tot[xc.wetidx] += xc.dr
             if finalQ:
                 self.ymins[i] = xc.ymin
@@ -1238,27 +1241,6 @@ class multiXCmultiQ(multiXC):
             self.slopes = (self.z_arr[1:] - self.z_arr[:-1]) / (
                 self.x_arr[1:] - self.x_arr[:-1]
             )
-
-            # Set old_dt for use in plots that calculate erosion rates
-            self.old_dt = self.dt_erode
-            if self.adaptive_step:
-                # Check for percent change in radial distance
-                sim_max_frac_erode = 0.0
-                for xc in self.xcs:
-                    frac_erode = xc.dr_tot[xc.wetidx] / xc.r_l
-                    xc_max_frac_erode = frac_erode.max()
-                    if xc_max_frac_erode > sim_max_frac_erode:
-                        sim_max_frac_erode = xc_max_frac_erode
-                print("Sim max frac erode =", sim_max_frac_erode)
-                if sim_max_frac_erode > self.max_frac_erode:
-                    # Timestep is too big, reduce it
-                    self.dt_erode = self.dt_erode / 1.5
-                    print("Reducing timestep to " + str(self.dt_erode))
-                elif sim_max_frac_erode < 0.5 * self.max_frac_erode:
-                    # Timestep is too small, increase it
-                    self.dt_erode = self.dt_erode * 1.5
-                    print("Increasing timestep to " + str(self.dt_erode))
-                # print("Checking dt erode.. ", self.dt_erode)
 
     def run_one_step(self):
         """Run one time step of simulation.
@@ -1278,6 +1260,7 @@ class multiXCmultiQ(multiXC):
             xc.dr_tot = np.zeros(xc.n)
         self.max_erosion_Q = self.Q_arr[0]
         self.max_mean_erosion = 0
+        self.sim_max_frac_erode = 0
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
             self.calc_flow(use_old_fd=False, create_interp=False)
@@ -1293,8 +1276,32 @@ class multiXCmultiQ(multiXC):
             # Create interp functions at max flow for use in next step
             xc.create_P_interp()
             xc.create_A_interp()
-        # self.Q_w = self.max_erosion_Q
-        # self.calc_flow(use_old_fd=False)
+
+        # Set old_dt for use in plots that calculate erosion rates
+        self.old_dt = self.dt_erode
+        if self.adaptive_step:
+            """
+            # Check for percent change in radial distance
+            for xc in self.xcs:
+                frac_erode = xc.dr_tot[xc.wetidx] / xc.r_l
+                xc_max_frac_erode = frac_erode.max()
+                if xc_max_frac_erode > sim_max_frac_erode:
+                    sim_max_frac_erode = xc_max_frac_erode
+            """
+            print("Sim max frac erode =", self.sim_max_frac_erode)
+            if self.sim_max_frac_erode > self.max_frac_erode:
+                if self.sim_max_frac_erode / self.max_frac_erode > 10:
+                    # Timestep is way too big, dramatically reduce
+                    reduce_frac = 2 * self.sim_max_frac_erode / self.max_frac_erode
+                    self.dt_erode = self.dt_erode / reduce_frac
+                else:
+                    # Timestep is too big, reduce it
+                    self.dt_erode = self.dt_erode / 1.5
+                print("Reducing timestep to " + str(self.dt_erode))# Timestep is too big, reduce it
+            elif self.sim_max_frac_erode < 0.5 * self.max_frac_erode:
+                # Timestep is too small, increase it
+                self.dt_erode = self.dt_erode * 1.5
+                print("Increasing timestep to " + str(self.dt_erode))
         self.apply_uplift()
 
 

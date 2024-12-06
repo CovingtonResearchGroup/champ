@@ -561,8 +561,8 @@ class CrossSection:
         ny = self.y
         nx[wetidx] = self.x[wetidx] + dr * cos(theta[wetidx])
         ny[wetidx] = self.y[wetidx] - dr * sin(theta[wetidx])
-        if len(nx) <= 3:
-            return
+        #if len(nx) <= 3:
+        #    return
 
         # Check for loops
         xc_ls = linestrings(nx, ny)
@@ -578,6 +578,11 @@ class CrossSection:
             # Reverse order
             nx = clean_x[::-1]
             ny = clean_y[::-1]
+            """
+            tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0.0)
+            un = linspace(u.min(), u.max(), n) 
+            nx, ny = interpolate.splev(un, tck, der=0)
+            """
 
         # Once flow drops far enough below ceiling, trim XC
         tmp_ymin = min(ny)
