@@ -633,9 +633,15 @@ class CrossSection:
 
         # Resample points by fitting spline
         if resample:
-            # s = nx.size#+np.sqrt(2*nx.size)
             tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0.0)
-            un = linspace(u.min(), u.max(), n)  # if n!=nx.size else nx.size)
+            un = linspace(u.min(), u.max(), n)
+            # Change spacing so that XC points are more closely spaced
+            # near channel center and more sparse on edges
+            unx = np.linspace(0, 2*np.pi, len(un))
+            delta = np.cumsum(np.cos(unx) + 1)
+            un += delta #add shifts to spline coord            
+            un -= un.min() # Shift back to min of zero
+            un = un / un.max() # Renormalize to 1
             nx, ny = interpolate.splev(un, tck, der=0)
 
         # Set new XC coordinates
