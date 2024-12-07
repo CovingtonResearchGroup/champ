@@ -1,0 +1,34 @@
+n: 20
+L: 1000.
+dz: 500.
+r_init: 1.0
+endtime: 10000000
+plotdir: './boone-v6-normed/'
+start_from_snapshot_num: 3000000
+snapshot_every: 10000
+plot_every: 1000
+multiQ: True
+n_plot_processes: 2
+
+
+sim_params:
+  Q_mean: 0.1
+  Q_min_mult: 0.1
+  Q_max_mult: 30
+  kQ: 0.5
+  nQ: 20
+  T_c: 200
+  dt_erode: 1
+  uplift: 0.0001
+  adaptive_step: True
+  max_frac_erode: 0.01
+  xc_n: 500
+  trim: True
+  a: 1.75
+  K: [5e-7,5e-7,5e-7]
+  layer_elevs: [-200,-100]
+  layer_solubility: [False, True, False]
+  K_sol: 1e-5
+  a_sol: 0.5
+
+
