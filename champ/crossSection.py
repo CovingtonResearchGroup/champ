@@ -569,6 +569,8 @@ class CrossSection:
         if not xc_ls.is_simple:
             # We have a loop
             simplified_xc = Polygon(xc_ls).buffer(0)
+            if not type(simplified_xc) == Polygon:
+                print('jkl;')
             clean_x, clean_y = simplified_xc.exterior.xy
             clean_x = np.array(clean_x)
             clean_y = np.array(clean_y)
@@ -648,24 +650,26 @@ class CrossSection:
 
     def resampleXC(self, nx, ny):
         # Changed spline to cubic. Don't know if it causes problems (12/6/24)
-        tck, u = interpolate.splprep([nx, ny], u=None, k=3, s=0.0)
-        # un = linspace(u.min(), u.max(), n)
+        tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0)#self.n*0.001**2) # smoothing with 1 mm sigma        # un = linspace(u.min(), u.max(), n)
         # Change spacing so that XC points are more closely spaced
         # near channel center and more sparse on edges.
         # Force dense zone of points to be centered on x=0.
-        rt = interpolate.sproot(tck)
-        rtx = rt[0][0]  # Find x root (channel center)
+        #rt = interpolate.sproot(tck)
+        t, c, k = tck
+        poly = interpolate.PPoly.from_spline((t,c[0],k))
+        rtx = poly.roots(extrapolate=False)[0]
+        #rtx = rt[0][0]  # Find x root (channel center)
         # Set left and right points in u, centered on channel (if even xc_n)
         # Scale so that lhs goes from 0 to rtx and rhs goes from rtx to 1
-        unl = np.linspace(u.min(), rtx, int(np.floor(self.n / 2)) + 1)
+        unl = np.linspace(u.min(), rtx, int(np.floor(self.n / 2)) + 1) 
         unx_l = np.linspace(0, np.pi, len(unl))
-        delta_l = np.cumsum(np.cos(unx_l) + 1)
+        delta_l = np.cumsum(np.cos(unx_l) + 1 + 0.5) # adding 0.5 makes contrast less extreme
         unl += delta_l
         unl -= unl.min()
         unl = unl * rtx / unl.max()
         unr = np.linspace(rtx, u.max(), int(np.ceil(self.n / 2)) + 1)
         unx_r = np.linspace(np.pi, 2 * np.pi, len(unr))
-        delta_r = np.cumsum(np.cos(unx_r) + 1)
+        delta_r = np.cumsum(np.cos(unx_r) + 1 + 0.5)
         unr += delta_r
         range_unr = u.max() - rtx
         unr -= unr.min()
