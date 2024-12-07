@@ -626,48 +626,15 @@ class CrossSection:
                 if (
                     max(ny) - min(ny)
                 ) < add_factor * self.fd and self.x_total is not None:
-                    self.switchToTotalXC()
+                    #self.switchToTotalXC()
+                    self.addPointsFromTotalXC(add_mult=1.5)
                     resample = False
                     nx = self.x
                     ny = self.y
 
         # Resample points by fitting spline
         if resample:
-            # Changed spline to cubic. Don't know if it causes problems (12/6/24)
-            tck, u = interpolate.splprep([nx, ny], u=None, k=3, s=0.0)
-            # un = linspace(u.min(), u.max(), n)
-            # Change spacing so that XC points are more closely spaced
-            # near channel center and more sparse on edges.
-            # Force dense zone of points to be centered on x=0.
-            rt = interpolate.sproot(tck)
-            rtx = rt[0][0]  # Find x root (channel center)
-            # Set left and right points in u, centered on channel (if even xc_n)
-            # Scale so that lhs goes from 0 to rtx and rhs goes from rtx to 1
-            unl = np.linspace(u.min(), rtx, int(np.floor(self.n / 2)) + 1)
-            unx_l = np.linspace(0, np.pi, len(unl))
-            delta_l = np.cumsum(np.cos(unx_l) + 1)
-            unl += delta_l
-            unl -= unl.min()
-            unl = unl * rtx / unl.max()
-            unr = np.linspace(rtx, u.max(), int(np.ceil(self.n / 2)) + 1)
-            unx_r = np.linspace(np.pi, 2 * np.pi, len(unr))
-            delta_r = np.cumsum(np.cos(unx_r) + 1)
-            unr += delta_r
-            range_unr = u.max() - rtx
-            unr -= unr.min()
-            unr = unr * range_unr / unr.max()
-            unr += rtx
-            un = np.concatenate([unl[:-1], unr[1:]])  # remove points at channel center
-            nx, ny = interpolate.splev(un, tck, der=0)
-
-            """
-            unx = np.linspace(0, 2*np.pi, len(un))
-            delta = np.cumsum(np.cos(unx) + 1)
-            un += delta #add shifts to spline coord            
-            un -= un.min() # Shift back to min of zero
-            un = un / un.max() # Renormalize to 1
-            nx, ny = interpolate.splev(un, tck, der=0)
-            """
+            nx, ny = self.resampleXC(nx, ny)
 
         # Set new XC coordinates
         self.x = nx
@@ -678,6 +645,67 @@ class CrossSection:
         # Use LHS ymax rather than total. This works because of roll.
         self.ymax = ny[0]  # max(ny)
         self.n = len(nx)
+
+    def resampleXC(self, nx, ny):
+        # Changed spline to cubic. Don't know if it causes problems (12/6/24)
+        tck, u = interpolate.splprep([nx, ny], u=None, k=3, s=0.0)
+        # un = linspace(u.min(), u.max(), n)
+        # Change spacing so that XC points are more closely spaced
+        # near channel center and more sparse on edges.
+        # Force dense zone of points to be centered on x=0.
+        rt = interpolate.sproot(tck)
+        rtx = rt[0][0]  # Find x root (channel center)
+        # Set left and right points in u, centered on channel (if even xc_n)
+        # Scale so that lhs goes from 0 to rtx and rhs goes from rtx to 1
+        unl = np.linspace(u.min(), rtx, int(np.floor(self.n / 2)) + 1)
+        unx_l = np.linspace(0, np.pi, len(unl))
+        delta_l = np.cumsum(np.cos(unx_l) + 1)
+        unl += delta_l
+        unl -= unl.min()
+        unl = unl * rtx / unl.max()
+        unr = np.linspace(rtx, u.max(), int(np.ceil(self.n / 2)) + 1)
+        unx_r = np.linspace(np.pi, 2 * np.pi, len(unr))
+        delta_r = np.cumsum(np.cos(unx_r) + 1)
+        unr += delta_r
+        range_unr = u.max() - rtx
+        unr -= unr.min()
+        unr = unr * range_unr / unr.max()
+        unr += rtx
+        un = np.concatenate([unl[:-1], unr[1:]])  # remove points at channel center
+        nx, ny = interpolate.splev(un, tck, der=0)
+        return nx, ny
+
+    def addPointsFromTotalXC(self, add_mult=1.5):
+        points_added = False
+        maxdepth = self.ymax - self.ymin
+        add_idx = logical_and(
+            self.y_total > maxdepth + self.ymin,
+            self.y_total < add_mult * maxdepth + self.ymin,
+        )
+        if True in add_idx:
+            points_added = True
+            add_left = logical_and(add_idx, self.x_total < 0)
+            add_right = logical_and(add_idx, self.x_total > 0)
+            x_add_left = self.x_total[add_left]
+            x_add_right = self.x_total[add_right]
+            y_add_left = self.y_total[add_left]
+            y_add_right = self.y_total[add_right]
+            # Trim top slightly in case of connection across
+            x_lower = self.x[self.y < self.ymax - 0.02 * maxdepth]
+            y_lower = self.y[self.y < self.ymax - 0.02 * maxdepth]
+            x_tmp = np.concatenate([x_add_left, x_lower, x_add_right])
+            y_tmp = np.concatenate([y_add_left, y_lower, y_add_right])
+            # Resample XC (move this up below y_tmp?)
+            self.x, self.y = self.resampleXC(x_tmp, y_tmp)
+            self.rollXC()
+            self.create_pm()
+            self.ymin = min(self.y)
+            # Use LHS ymax rather than total. This works because of roll.
+            self.ymax = self.y[0]  # max(self.y)
+            self.n = len(self.x)
+            #self.back_to_total = True
+        return points_added
+
 
     def switchToTotalXC(self):
         # Switch to using total
@@ -821,42 +849,13 @@ class CrossSection:
             # Try adding some points back into XC from total XC
             if self.x_total is not None:
                 more_points_available = self.y_total.max() > self.y.max()
-                none_added = True
+                points_added = False
                 while more_points_available:
-                    # Try doubling XC depth
-                    while none_added and more_points_available:
-                        add_idx = logical_and(
-                            self.y_total > maxdepth + self.ymin,
-                            self.y_total < 2 * maxdepth + self.ymin,
-                        )
-                        if True in add_idx:
-                            none_added = False
-                            add_left = logical_and(add_idx, self.x_total < 0)
-                            add_right = logical_and(add_idx, self.x_total > 0)
-                            x_add_left = self.x_total[add_left]
-                            x_add_right = self.x_total[add_right]
-                            y_add_left = self.y_total[add_left]
-                            y_add_right = self.y_total[add_right]
-                            # Trim top slightly in case of connection across
-                            x_lower = self.x[self.y < self.ymax - 0.02 * maxdepth]
-                            y_lower = self.y[self.y < self.ymax - 0.02 * maxdepth]
-                            x_tmp = np.concatenate([x_add_left, x_lower, x_add_right])
-                            y_tmp = np.concatenate([y_add_left, y_lower, y_add_right])
-                            # Resample XC (move this up below y_tmp?)
-                            tck, u = interpolate.splprep(
-                                [x_tmp, y_tmp], u=None, k=1, s=0.0
-                            )
-
-                            un = linspace(u.min(), u.max(), self.n)
-                            self.x, self.y = interpolate.splev(un, tck, der=0)
-                            self.rollXC()
-                            self.create_pm()
-                            self.ymin = min(self.y)
-                            # Use LHS ymax rather than total. This works because of roll.
-                            self.ymax = self.y[0]  # max(self.y)
-                            self.n = len(self.x)
-                            self.back_to_total = True
-
+                    # Try increasing XC height using total
+                    add_mult = 1
+                    while not points_added and more_points_available:
+                        add_mult *= 1.5                        
+                        points_added = self.addPointsFromTotalXC(add_mult=add_mult)
                         more_points_available = self.y_total.max() > self.y.max()
                     # Calculate Q for fds with added points
                     nfd = 20

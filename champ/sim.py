@@ -844,8 +844,8 @@ class multiXC(sim):
             # tic = toc
             # Calculate flow areas, wetted perimeters, hydraulic diameters,
             # free surface widths, and velocities
-            if norm_fd == 0:
-                print("asdf")
+            #if norm_fd == 0:
+            #    print("asdf")
             self.A_w[i] = xc.calcA(depth=self.fd_mids[i])
             self.P_w[i] = xc.calcP(depth=self.fd_mids[i])
             self.V_w[i] = -self.Q_w / self.A_w[i]
@@ -1173,6 +1173,8 @@ class multiXCmultiQ(multiXC):
             # print("timestep=", self.timestep, "  Q_w = ", self.Q_w, '  xc# = ', i)
             # if self.timestep==710 and self.Q_w==10:
             #    print('bad step')
+            #if i == 5:
+            #    print("")
             if len(xc.x[xc.wetidx]) < 2:
                 print("asdf")
             if not self.layered_sim:
@@ -1263,8 +1265,8 @@ class multiXCmultiQ(multiXC):
         self.sim_max_frac_erode = 0
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
-            if self.Q_w == 3.0:
-                print("jkl;")
+#            if self.Q_w == 3.0:
+#                print("jkl;")
             self.calc_flow(use_old_fd=False, create_interp=False)
             if i == self.nQ - 1:
                 self.erode(dt_frac=self.pdf_Q_frac[i], finalQ=True)
