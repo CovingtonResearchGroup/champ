@@ -570,7 +570,7 @@ class CrossSection:
             # We have a loop
             simplified_xc = Polygon(xc_ls).buffer(0)
             if not type(simplified_xc) == Polygon:
-                print('jkl;')
+                print("jkl;")
             clean_x, clean_y = simplified_xc.exterior.xy
             clean_x = np.array(clean_x)
             clean_y = np.array(clean_y)
@@ -628,7 +628,7 @@ class CrossSection:
                 if (
                     max(ny) - min(ny)
                 ) < add_factor * self.fd and self.x_total is not None:
-                    #self.switchToTotalXC()
+                    # self.switchToTotalXC()
                     self.addPointsFromTotalXC(add_mult=1.5)
                     resample = False
                     nx = self.x
@@ -650,11 +650,23 @@ class CrossSection:
 
     def resampleXC(self, nx, ny):
         # Changed spline to cubic. Don't know if it causes problems (12/6/24)
-        tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0)#self.n*0.001**2) # smoothing with 1 mm sigma        # un = linspace(u.min(), u.max(), n)
-        # Change spacing so that XC points are more closely spaced
-        # near channel center and more sparse on edges.
-        # Force dense zone of points to be centered on x=0.
-        #rt = interpolate.sproot(tck)
+        # Changed back to linear. Cubic seemed to produce wiggles.
+        tck, u = interpolate.splprep([nx, ny], u=None, k=1, s=0)
+        # Change spacing so that XC points are evenly space in arc
+        # distance that is normalized to XC width and depth
+        x_tmp, y_tmp = interpolate.splev(u, tck)
+        width = self.x.max() - self.x.min()
+        height = self.y.max() - self.y.min()
+        # Normalizing by width and height helps when aspect ratio
+        # is very large or small.
+        normed_dist = np.sqrt(
+            np.diff(x_tmp / width) ** 2 + np.diff(y_tmp / height) ** 2
+        )
+        arc_length = np.insert(np.cumsum(normed_dist), 0, 0)
+        even_arc_length = np.linspace(0, arc_length[-1], self.n)
+        u_even = np.interp(even_arc_length, arc_length, u)
+        nx, ny = interpolate.splev(u_even, tck)
+        """
         t, c, k = tck
         poly = interpolate.PPoly.from_spline((t,c[0],k))
         rtx = poly.roots(extrapolate=False)[0]
@@ -677,6 +689,7 @@ class CrossSection:
         unr += rtx
         un = np.concatenate([unl[:-1], unr[1:]])  # remove points at channel center
         nx, ny = interpolate.splev(un, tck, der=0)
+        """
         return nx, ny
 
     def addPointsFromTotalXC(self, add_mult=1.5):
@@ -707,9 +720,8 @@ class CrossSection:
             # Use LHS ymax rather than total. This works because of roll.
             self.ymax = self.y[0]  # max(self.y)
             self.n = len(self.x)
-            #self.back_to_total = True
+            # self.back_to_total = True
         return points_added
-
 
     def switchToTotalXC(self):
         # Switch to using total
@@ -858,7 +870,7 @@ class CrossSection:
                     # Try increasing XC height using total
                     add_mult = 1
                     while not points_added and more_points_available:
-                        add_mult *= 1.5                        
+                        add_mult *= 1.5
                         points_added = self.addPointsFromTotalXC(add_mult=add_mult)
                         more_points_available = self.y_total.max() > self.y.max()
                     # Calculate Q for fds with added points
