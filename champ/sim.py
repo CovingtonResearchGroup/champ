@@ -1263,6 +1263,8 @@ class multiXCmultiQ(multiXC):
         self.sim_max_frac_erode = 0
         for i, Q_w in enumerate(self.Q_arr):
             self.Q_w = Q_w
+            if self.Q_w == 3.0:
+                print("jkl;")
             self.calc_flow(use_old_fd=False, create_interp=False)
             if i == self.nQ - 1:
                 self.erode(dt_frac=self.pdf_Q_frac[i], finalQ=True)
@@ -1297,7 +1299,9 @@ class multiXCmultiQ(multiXC):
                 else:
                     # Timestep is too big, reduce it
                     self.dt_erode = self.dt_erode / 1.5
-                print("Reducing timestep to " + str(self.dt_erode))# Timestep is too big, reduce it
+                print(
+                    "Reducing timestep to " + str(self.dt_erode)
+                )  # Timestep is too big, reduce it
             elif self.sim_max_frac_erode < 0.5 * self.max_frac_erode:
                 # Timestep is too small, increase it
                 self.dt_erode = self.dt_erode * 1.5

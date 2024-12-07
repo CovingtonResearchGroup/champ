@@ -449,7 +449,7 @@ class CrossSection:
         T_diff = T_b - T_c
         T_diff[T_diff < 0] = 0
         self.dr = dt * K * T_diff**a
-        if not no_erode:
+        if not no_erode and self.dr.max() > 0:
             self.erode(self.dr, trim=trim, resample=resample)
 
     def erode_power_law_layered(
@@ -500,7 +500,7 @@ class CrossSection:
         final_layer_idx = ywet > elev
         # print('len(final_layer_idx)=',len(final_layer_idx[final_layer_idx==True]))
         self.dr[final_layer_idx] = dt * K[-1] * T_diff[final_layer_idx] ** a
-        if not no_erode:
+        if not no_erode and self.dr.max() > 0:
             self.erode(self.dr, trim=trim, resample=resample)
 
     def update_total_xc(self, nx, ny):
@@ -561,7 +561,7 @@ class CrossSection:
         ny = self.y
         nx[wetidx] = self.x[wetidx] + dr * cos(theta[wetidx])
         ny[wetidx] = self.y[wetidx] - dr * sin(theta[wetidx])
-        #if len(nx) <= 3:
+        # if len(nx) <= 3:
         #    return
 
         # Check for loops
@@ -640,24 +640,24 @@ class CrossSection:
             # near channel center and more sparse on edges.
             # Force dense zone of points to be centered on x=0.
             rt = interpolate.sproot(tck)
-            rtx = rt[0][0] # Find x root (channel center)
+            rtx = rt[0][0]  # Find x root (channel center)
             # Set left and right points in u, centered on channel (if even xc_n)
             # Scale so that lhs goes from 0 to rtx and rhs goes from rtx to 1
-            unl = np.linspace(u.min(), rtx, int(np.floor(self.n/2)) + 1)
-            unx_l = np.linspace(0,np.pi, len(unl))
+            unl = np.linspace(u.min(), rtx, int(np.floor(self.n / 2)) + 1)
+            unx_l = np.linspace(0, np.pi, len(unl))
             delta_l = np.cumsum(np.cos(unx_l) + 1)
             unl += delta_l
             unl -= unl.min()
-            unl = unl*rtx/unl.max()
-            unr = np.linspace(rtx, u.max(), int(np.ceil(self.n/2)) + 1)
-            unx_r = np.linspace(np.pi, 2*np.pi, len(unr))
+            unl = unl * rtx / unl.max()
+            unr = np.linspace(rtx, u.max(), int(np.ceil(self.n / 2)) + 1)
+            unx_r = np.linspace(np.pi, 2 * np.pi, len(unr))
             delta_r = np.cumsum(np.cos(unx_r) + 1)
             unr += delta_r
             range_unr = u.max() - rtx
             unr -= unr.min()
             unr = unr * range_unr / unr.max()
             unr += rtx
-            un = np.concatenate([unl[:-1],unr[1:]]) # remove points at channel center
+            un = np.concatenate([unl[:-1], unr[1:]])  # remove points at channel center
             nx, ny = interpolate.splev(un, tck, der=0)
 
             """
@@ -861,7 +861,7 @@ class CrossSection:
                     # Calculate Q for fds with added points
                     nfd = 20
                     maxdepth = self.ymax - self.ymin
-                    for fd in np.linspace(SMALL, maxdepth, nfd):
+                    for fd in np.linspace(SMALL, 0.95 * maxdepth, nfd):
                         thisQ = self.calcNormalFlow(fd, slope, use_interp=False)
                         if thisQ > Q:
                             upper_bound = fd

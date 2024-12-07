@@ -3,12 +3,12 @@ L: 1000.
 dz: 500.
 r_init: 1.0
 endtime: 10000000
-plotdir: './boone-knickpoint-v4/'
-start_from_snapshot_num: 1420000
+plotdir: './boone-knickpoint-v6/'
+start_from_snapshot_num: 1000000
 snapshot_every: 10000
 plot_every: 1000
 multiQ: True
-n_plot_processes: 4
+n_plot_processes: 2
 
 
 sim_params:
@@ -21,7 +21,7 @@ sim_params:
   dt_erode: 1
   uplift: 0.0001
   adaptive_step: True
-  max_frac_erode: 0.005
+  max_frac_erode: 0.01
   xc_n: 500
   trim: True
   a: 1.75
