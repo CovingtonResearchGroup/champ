@@ -279,11 +279,14 @@ class CrossSection:
             maxdepth = self.ymax - self.ymin
         else:
             maxdepth = self.y_total.max() - self.ymin
+        add_mult = 1.5    
+        while fd > self.ymax - self.ymin and maxdepth > self.ymax - self.ymin:
+            self.addPointsFromTotalXC(add_mult=add_mult)
+            add_mult *= 1.5
+            #self.update_total_xc(self.x, self.y)
+            #self.switchToTotalXC()
         if fd > maxdepth:
             fd = maxdepth
-        if fd > self.ymax - self.ymin:
-            self.update_total_xc(self.x, self.y)
-            self.switchToTotalXC()
         self.fd = fd
         self.wetidx = self.y - self.ymin <= fd
 
