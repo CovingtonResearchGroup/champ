@@ -7,7 +7,7 @@ from scipy import interpolate
 from mayavi import mlab
 
 
-def make_frames(snap_dir, contact_elev=None):
+def make_frames(snap_dir, contact_elev=None, azimuth=300, roll=-60, elevation=70, distance=30):
     mlab.options.offscreen = True
     mlab.figure(size=(2000, 1400))  # , bgcolor=(1,1,1))
     snaplist = glob.glob(os.path.join(snap_dir, "snap*.pkl"))
@@ -119,7 +119,7 @@ def make_frames(snap_dir, contact_elev=None):
                 opacity=0.75,
             )
 
-        mlab.view(azimuth=300, roll=-60, elevation=70, distance=30)
+        mlab.view(azimuth=azimuth, roll=roll, elevation=elevation, distance=distance)
         framenum = "%05d" % (j,)
         mlab.savefig(os.path.join(anim_dir, framenum + ".png"))
         mlab.clf()

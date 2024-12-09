@@ -4,7 +4,7 @@ dz: 500.
 r_init: 1.0
 endtime: 10000000
 plotdir: './boone-knickpoints-original-continued/'
-start_from_snapshot_num: 2860000
+start_from_snapshot_num: 2864800
 snapshot_every: 10000
 plot_every: 1000
 multiQ: True
