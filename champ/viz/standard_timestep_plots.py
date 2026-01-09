@@ -11,6 +11,7 @@ from pylab import (
     xlim,
     ceil,
     arange,
+    axis,
 )
 import matplotlib
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -56,6 +57,7 @@ def plot_overlapping_XCs(sim, plotdir, timestep_str):
         plot([-0.5, 0.5], [wl, wl])
     xlabel("Cross-channel distance (m)")
     ylabel("Relative elevation (m)")
+    axis('equal')
     savefig(os.path.join(plotdir, "XC-" + timestep_str + ".png"))
     close(fig)
 
@@ -144,10 +146,11 @@ def plot_3D_XCs(sim, plotdir, timestep_str, xmax=5):
     water_poly = Poly3DCollection(verts, facecolors="blue")
     water_poly.set_alpha(0.35)
     ax.add_collection3d(water_poly)  # , zdir='y')
-    xlim([-xmax, xmax])
+    #xlim([-xmax, xmax])
     ax.view_init(elev=10, azim=-35)
     ax.set_xlabel("Cross-channel distance (m)")
     ax.set_ylabel("Longitudinal distance (m)")
     ax.set_zlabel("Elevation (m)")
+    ax.set_aspect('equalxz', adjustable='datalim')
     savefig(os.path.join(plotdir, "3D-XC-" + timestep_str + ".png"))
     close(fig)
