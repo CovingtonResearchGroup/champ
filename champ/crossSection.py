@@ -507,7 +507,7 @@ class CrossSection:
             The new x and y points within the evolved cross-section.
 
         """
-        n = self.n
+        n = self.n + 2
         # create new total xc arrays from old and wet portions
         self.x1 = x1 = self.x_total[
             np.logical_and(self.x_total < 0, self.y_total > ny.max())
