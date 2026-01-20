@@ -290,13 +290,39 @@ class CrossSection:
         self.fd = fd
         self.wetidx = self.y - self.ymin <= fd
 
-    def setMaxVelPoint(self, fd):
+    def setMaxVelPoint(self, fd, method='farthest'):
         """Set the maximum velocity point."""
 
         self.setFD(fd)
         if fd > (self.ymax - self.ymin) * use_centroid_fraction:
             # Treat as full pipe
-            mx, my = self.findCentroid()
+            if method == 'centroid':
+            #use centroid method
+                mx, my = self.findCentroid()
+            if method == 'widest':
+                max_x = max(self.x)
+                my = self.y[np.where(self.x==max_x)]
+                mx = 0
+            if method == 'farthest':
+                max_x = max(self.x)
+                my = self.y[np.where(self.x==max_x)]
+                mx=0
+                current_dist = np.hypot(mx - self.x, my - self.y)
+                current_min = current_dist.min()
+                step=max_x*0.05 #smaller steps when the xsection is small
+                my_cycler=[step,-1*step,0]
+                next_center=2
+                fail_count=0
+                while (fail_count<2):
+                    fail_count=0
+                    for n in range(0,2):
+                        wing_dist = np.hypot(mx-self.x, my+my_cycler[n]-self.y)
+                        if wing_dist.min()>current_min:
+                            current_min=wing_dist.min()
+                            next_center = n
+                        else:
+                            fail_count +=1
+                    my=my+my_cycler[next_center]
         else:
             # open channel
             L, R = self.findLR(fd)
