@@ -11,6 +11,7 @@ from pylab import (
     xlim,
     ceil,
     arange,
+    axis,
 )
 import matplotlib
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -56,6 +57,7 @@ def plot_overlapping_XCs(sim, plotdir, timestep_str):
         plot([-0.5, 0.5], [wl, wl])
     xlabel("Cross-channel distance (m)")
     ylabel("Relative elevation (m)")
+    axis('equal')
     savefig(os.path.join(plotdir, "XC-" + timestep_str + ".png"))
     close(fig)
 
